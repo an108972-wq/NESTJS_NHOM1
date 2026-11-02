@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Quản Lý Thư Viện NestJS</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f4f6f9; }
+    .container { max-width: 1050px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    h2, h3 { color: #333; margin-top: 0; }
+    .auth-box, .book-form, .search-box, .dashboard-box { background: #eef2f5; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+    input { padding: 9px; margin: 5px 0; width: 96%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    button { padding: 8px 14px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-right: 4px; margin-top: 4px; }
+    button:hover { opacity: 0.9; }
+    button.logout { background: #dc3545; }
+    button.borrow { background: #28a745; }
+    button.edit { background: #ffc107; color: #212529; }
+    button.delete { background: #dc3545; }
+    button.return { background: #17a2b8; }
+    button.pay { background: #fd7e14; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+    th { background-color: #007bff; color: white; }
+    .status-badge { font-weight: bold; color: #28a745; }
+    .badge-borrowed { background: #ffeeba; color: #856404; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .badge-returned { background: #d4edda; color: #155724; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .pagination { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>📚 Hệ Thống Quản Lý Thư Viện NestJS</h2>
+
+  <!-- 1. AUTH -->
+  <div id="authSection" class="auth-box">
+    <h3>Đăng Nhập / Đăng Ký</h3>
+    <input type="text" id="authUsername" placeholder="Tên tài khoản">
+    <input type="password" id="authPassword" placeholder="Mật khẩu (ít nhất 6 ký tự)">
+    <div>
+      <button onclick="login()">Đăng Nhập</button>
+      <button onclick="register()" style="background: #28a745;">Đăng Ký</button>
+    </div>
+  </div>
+
+  <div id="userSection" class="auth-box" style="display: none;">
+    <p style="margin:0 0 10px 0;">Xin chào: <strong id="loggedInUser"></strong> <span class="status-badge">(Đã xác thực JWT)</span></p>
+    <button class="logout" onclick="logout()">Đăng Xuất</button>
+  </div>
+
+  <!-- 2. TÌM KIẾM SÁCH -->
+  <div class="search-box">
+    <h3>🔍 Tìm Kiếm Sách</h3>
+    <input type="text" id="searchInput" onkeyup="loadBooks(1)" placeholder="Nhập tên sách, tác giả hoặc ISBN để tìm nhanh...">
+  </div>
+
+  <!-- 3. FORM THÊM / SỬA SÁCH -->
+  <div class="book-form">
+    <h3 id="formTitle">Thêm Sách Mới</h3>
+    <input type="hidden" id="editingBookId">
+    <input type="text" id="title" placeholder="Tên sách">
+    <input type="text" id="author" placeholder="Tác giả">
+    <input type="text" id="isbn" placeholder="Mã ISBN">
+    <input type="number" id="totalCopies" placeholder="Tổng số lượng">
+    <div>
+      <button id="saveBookBtn" onclick="saveBook()">Thêm Sách</button>
+      <button id="cancelEditBtn" onclick="resetForm()" style="background: #6c757d; display: none;">Hủy Sửa</button>
+    </div>
+  </div>
+
+  <!-- 4. DANH SÁCH SÁCH & PHÂN TRANG -->
+  <h3>📖 Danh Sách Sách Trong Thư Viện</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tên Sách</th>
+        <th>Tác Giả</th>
+        <th>ISBN</th>
+        <th>Còn lại / Tổng</th>
+        <th style="width: 210px;">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody id="bookList"></tbody>
+  </table>
+
+  <div class="pagination">
+    <button onclick="changePage(-1)">◀ Trang Trước</button>
+    <span>Trang <strong id="currentPage">1</strong> / <strong id="lastPage">1</strong></span>
+    <button onclick="changePage(1)">Trang Sau ▶</button>
+  </div>
+
+  <!-- 5. LỊCH SỬ MƯỢN TRẢ -->
+  <h3>📋 Quản Lý Mượn, Trả & Hạn Trả Sách</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Người Mượn</th>
+        <th>Sách</th>
+        <th>Trạng Thái</th>
+        <th>Hạn Trả</th>
+        <th>Tiền Phạt</th>
+        <th style="width: 180px;">Thao Tác</th>
+      </tr>
+    </thead>
+    <tbody id="borrowList"></tbody>
+  </table>
+</div>
+
+<script>
+  const API_URL = 'http://localhost:3000';
+  let currentPage = 1;
+  let maxPage = 1;
+
+  function getHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  }
+
+  function checkAuthStatus() {
+    const token = localStorage.getItem('accessToken');
+    const username = localStorage.getItem('username');
+    if (token && username) {
+      document.getElementById('authSection').style.display = 'none';
+      document.getElementById('userSection').style.display = 'block';
+      document.getElementById('loggedInUser').innerText = username;
+      loadBorrowRecords();
+    } else {
+      document.getElementById('authSection').style.display = 'block';
+      document.getElementById('userSection').style.display = 'none';
+    }
+  }
+
+  async function register() {
+    const username = document.getElementById('authUsername').value;
+    const password = document.getElementById('authPassword').value;
+    const res = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    alert(data.message || 'Đăng ký thành công!');
+  }
+
+  async function login() {
+    const username = document.getElementById('authUsername').value;
+    const password = document.getElementById('authPassword').value;
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.accessToken) {
+      localStorage.setItem('accessToken', data.accessToken);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('username', username);
+      checkAuthStatus();
+      alert('Đăng nhập thành công!');
+    } else {
+      alert(data.message || 'Đăng nhập thất bại!');
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('username');
+    checkAuthStatus();
+  }
+
+  async function loadBooks(page = 1) {
+    const query = document.getElementById('searchInput').value;
+    const res = await fetch(`${API_URL}/books?page=${page}&limit=5&search=${encodeURIComponent(query)}`);
+    const result = await res.json();
+
+    currentPage = result.page;
+    maxPage = result.lastPage;
+
+    document.getElementById('currentPage').innerText = currentPage;
+    document.getElementById('lastPage').innerText = maxPage;
+
+    renderBooks(result.data);
+  }
+
+  function changePage(delta) {
+    const targetPage = currentPage + delta;
+    if (targetPage >= 1 && targetPage <= maxPage) {
+      loadBooks(targetPage);
+    }
+  }
+
+  function renderBooks(books) {
+    const tbody = document.getElementById('bookList');
+    tbody.innerHTML = '';
+    books.forEach(b => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${b.id}</td>
+          <td><strong>${b.title}</strong></td>
+          <td>${b.author}</td>
+          <td>${b.isbn}</td>
+          <td>${b.availableCopies} / ${b.totalCopies}</td>
+          <td>
+            <button class="borrow" onclick="borrowBook(${b.id})">Mượn</button>
+            <button class="edit" onclick="startEditBook(${b.id}, '${b.title}', '${b.author}', '${b.isbn}', ${b.totalCopies})">Sửa</button>
+            <button class="delete" onclick="deleteBook(${b.id})">Xóa</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  async function saveBook() {
+    const id = document.getElementById('editingBookId').value;
+    const title = document.getElementById('title').value;
+    const author = document.getElementById('author').value;
+    const isbn = document.getElementById('isbn').value;
+    const totalCopies = parseInt(document.getElementById('totalCopies').value);
+
+    const payload = { title, author, isbn, totalCopies, availableCopies: totalCopies };
+    const method = id ? 'PATCH' : 'POST';
+    const url = id ? `${API_URL}/books/${id}` : `${API_URL}/books`;
+
+    const res = await fetch(url, {
+      method,
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+
+    if (res.ok) {
+      alert(id ? 'Cập nhật thành công!' : 'Thêm sách thành công!');
+      resetForm();
+      loadBooks(currentPage);
+    } else {
+      const err = await res.json();
+      alert('Lỗi: ' + JSON.stringify(err.message));
+    }
+  }
+
+  function startEditBook(id, title, author, isbn, totalCopies) {
+    document.getElementById('editingBookId').value = id;
+    document.getElementById('title').value = title;
+    document.getElementById('author').value = author;
+    document.getElementById('isbn').value = isbn;
+    document.getElementById('totalCopies').value = totalCopies;
+
+    document.getElementById('formTitle').innerText = `Sửa Sách (#${id})`;
+    document.getElementById('saveBookBtn').innerText = 'Cập Nhật Sách';
+    document.getElementById('cancelEditBtn').style.display = 'inline-block';
+  }
+
+  function resetForm() {
+    document.getElementById('editingBookId').value = '';
+    document.getElementById('title').value = '';
+    document.getElementById('author').value = '';
+    document.getElementById('isbn').value = '';
+    document.getElementById('totalCopies').value = '';
+
+    document.getElementById('formTitle').innerText = 'Thêm Sách Mới';
+    document.getElementById('saveBookBtn').innerText = 'Thêm Sách';
+    document.getElementById('cancelEditBtn').style.display = 'none';
+  }
+
+  async function deleteBook(id) {
+    if (!confirm('Bạn có chắc muốn xóa cuốn sách này?')) return;
+    const res = await fetch(`${API_URL}/books/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+
+    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+    if (res.ok) loadBooks(currentPage);
+  }
+
+  async function borrowBook(bookId) {
+    const res = await fetch(`${API_URL}/borrow/${bookId}`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+
+    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+    if (res.ok) {
+      alert('Mượn sách thành công!');
+      loadBooks(currentPage);
+      loadBorrowRecords();
+    } else {
+      const err = await res.json();
+      alert(err.message || 'Lỗi khi mượn sách');
+    }
+  }
+
+  async function returnBook(recordId) {
+    const res = await fetch(`${API_URL}/borrow/return/${recordId}`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+
+    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+    if (res.ok) {
+      alert('Trả sách thành công!');
+      loadBooks(currentPage);
+      loadBorrowRecords();
+    } else {
+      const err = await res.json();
+      alert(err.message || 'Lỗi khi trả sách');
+    }
+  }
+
+  async function payFine(recordId) {
+    const res = await fetch(`${API_URL}/borrow/pay-fine/${recordId}`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+
+    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+    if (res.ok) {
+      alert('Nộp tiền phạt thành công!');
+      loadBorrowRecords();
+    } else {
+      const err = await res.json();
+      alert(err.message || 'Lỗi khi nộp tiền phạt');
+    }
+  }
+
+  async function loadBorrowRecords() {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const res = await fetch(`${API_URL}/borrow`, { headers: getHeaders() });
+    if (!res.ok) return;
+    const records = await res.json();
+
+    const tbody = document.getElementById('borrowList');
+    tbody.innerHTML = '';
+    records.forEach(r => {
+      const isBorrowed = r.status === 'BORROWED';
+      const badge = isBorrowed 
+        ? '<span class="badge-borrowed">ĐANG MƯỢN</span>' 
+        : '<span class="badge-returned">ĐÃ TRẢ</span>';
+      
+      let returnBtn = isBorrowed 
+        ? `<button class="return" onclick="returnBook(${r.id})">Trả Sách</button>` 
+        : '---';
+
+      let fineInfo = '0 VNĐ';
+      if (r.fineStatus === 'UNPAID') {
+        fineInfo = `<strong style="color:#dc3545;">${Number(r.fineAmount).toLocaleString('vi-VN')} VNĐ (Nợ)</strong>`;
+        returnBtn += ` <button class="pay" onclick="payFine(${r.id})">Nộp Phạt</button>`;
+      } else if (r.fineStatus === 'PAID') {
+        fineInfo = `<span style="color:#28a745;">${Number(r.fineAmount).toLocaleString('vi-VN')} VNĐ (Đã Nộp)</span>`;
+      }
+
+      const dueDateStr = r.dueDate ? new Date(r.dueDate).toLocaleDateString('vi-VN') : '---';
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.user ? r.user.username : 'Unknown'}</td>
+          <td><strong>${r.book ? r.book.title : 'Unknown'}</strong></td>
+          <td>${badge}</td>
+          <td>${dueDateStr}</td>
+          <td>${fineInfo}</td>
+          <td>${returnBtn}</td>
+        </tr>
+      `;
+    });
+  }
+
+  checkAuthStatus();
+  loadBooks(1);
+</script>
+</body>
+</html>
