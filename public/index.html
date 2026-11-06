@@ -1,381 +1,505 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hệ Thống Quản Lý Thư Viện NestJS</title>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f4f6f9; }
-    .container { max-width: 1050px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-    h2, h3 { color: #333; margin-top: 0; }
-    .auth-box, .book-form, .search-box, .dashboard-box { background: #eef2f5; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-    input { padding: 9px; margin: 5px 0; width: 96%; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-    button { padding: 8px 14px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-right: 4px; margin-top: 4px; }
-    button:hover { opacity: 0.9; }
-    button.logout { background: #dc3545; }
-    button.borrow { background: #28a745; }
-    button.edit { background: #ffc107; color: #212529; }
-    button.delete { background: #dc3545; }
-    button.return { background: #17a2b8; }
-    button.pay { background: #fd7e14; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-    th { background-color: #007bff; color: white; }
-    .status-badge { font-weight: bold; color: #28a745; }
-    .badge-borrowed { background: #ffeeba; color: #856404; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-    .badge-returned { background: #d4edda; color: #155724; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-    .pagination { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123c35">
+    <title>Hệ Thống Quản Lý Thư Viện</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <button id="sidebarToggle" class="icon-button staff-only sidebar-toggle" type="button" aria-label="Thu gọn thanh điều hướng" aria-expanded="true" hidden>☰</button>
+      <a class="brand" href="/search" aria-label="Trang chủ">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span>Hệ Thống Quản Lý Thư Viện</span>
+      </a>
+      <nav id="navigation" class="navigation" aria-label="Điều hướng chính">
+        <a href="/search">Tra cứu sách</a>
+        <a href="#loans">Mượn - trả</a>
+        <a href="#reservations">Đặt giữ</a>
+        <a class="inventory-only" href="/admin/categories">Thể loại</a>
+        <a class="staff-only" href="/admin/reports">Báo cáo</a>
+        <a class="counter-only" href="/admin/users">Độc giả</a>
+        <a class="inventory-only" href="/admin/publishers">Nhà xuất bản</a>
+        <a class="reader-only" href="/profile" hidden>Hồ sơ của tôi</a>
+      </nav>
+      <div class="global-search-wrap">
+        <label class="global-search" for="globalSearch"><span aria-hidden="true">⌕</span><input id="globalSearch" type="search" role="combobox" aria-autocomplete="list" aria-controls="globalSuggestions" aria-expanded="false" placeholder="Tìm sách, tác giả, ISBN..."></label>
+        <div id="globalSuggestions" class="search-suggestions" role="listbox" hidden></div>
+      </div>
+      <div class="account">
+        <button id="notificationButton" class="icon-button" type="button" aria-label="Thông báo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+          <span id="notificationCount" class="notification-count" hidden>0</span>
+        </button>
+        <div id="accountArea">
+          <button id="openLogin" class="button button-light" type="button">Đăng nhập</button>
+        </div>
+      </div>
+    </header>
 
-<div class="container">
-  <h2>📚 Hệ Thống Quản Lý Thư Viện NestJS</h2>
+    <aside id="adminSidebar" class="admin-sidebar" aria-label="Điều hướng quản trị" hidden>
+      <div class="sidebar-heading">QUẢN TRỊ THƯ VIỆN</div>
+      <nav class="sidebar-navigation">
+        <a href="/admin/dashboard" data-admin-nav="dashboard"><span class="sidebar-icon" aria-hidden="true">▦</span><span class="sidebar-label">Dashboard</span></a>
+        <a class="inventory-only" href="/admin/books" data-admin-nav="books"><span class="sidebar-icon" aria-hidden="true">▤</span><span class="sidebar-label">Quản lý sách</span></a>
+        <a class="counter-only" href="/admin/borrow-return" data-admin-nav="loans"><span class="sidebar-icon" aria-hidden="true">↔</span><span class="sidebar-label">Quản lý mượn / trả</span></a>
+        <a class="counter-only" href="/admin/reservations" data-admin-nav="reservations"><span class="sidebar-icon" aria-hidden="true">⌛</span><span class="sidebar-label">Đặt trước / giữ chỗ</span></a>
+        <a class="counter-only" href="/admin/fines" data-admin-nav="fines"><span class="sidebar-icon" aria-hidden="true">₫</span><span class="sidebar-label">Vi phạm & tiền phạt</span></a>
+        <a class="counter-only" href="/admin/users" data-admin-nav="readers"><span class="sidebar-icon" aria-hidden="true">♙</span><span class="sidebar-label">Quản lý độc giả</span></a>
+        <a class="inventory-only" href="/admin/categories" data-admin-nav="categories"><span class="sidebar-icon" aria-hidden="true">▧</span><span class="sidebar-label">Thể loại</span></a>
+        <a class="inventory-only" href="/admin/publishers" data-admin-nav="publishers"><span class="sidebar-icon" aria-hidden="true">▣</span><span class="sidebar-label">Nhà xuất bản</span></a>
+        <a class="staff-only" href="/admin/reports" data-admin-nav="reports"><span class="sidebar-icon" aria-hidden="true">▥</span><span class="sidebar-label">Báo cáo & thống kê</span></a>
+        <a class="admin-only" href="/admin/staffs" data-admin-nav="staffs" hidden><span class="sidebar-icon" aria-hidden="true">♟</span><span class="sidebar-label">Quản lý thủ thư</span></a>
+        <a class="admin-only" href="/admin/settings" data-admin-nav="settings" hidden><span class="sidebar-icon" aria-hidden="true">⚙</span><span class="sidebar-label">Cấu hình hệ thống</span></a>
+      </nav>
+      <div class="sidebar-footer">Hệ Thống Quản Lý Thư Viện</div>
+    </aside>
 
-  <!-- 1. AUTH -->
-  <div id="authSection" class="auth-box">
-    <h3>Đăng Nhập / Đăng Ký</h3>
-    <input type="text" id="authUsername" placeholder="Tên tài khoản">
-    <input type="password" id="authPassword" placeholder="Mật khẩu (ít nhất 6 ký tự)">
-    <div>
-      <button onclick="login()">Đăng Nhập</button>
-      <button onclick="register()" style="background: #28a745;">Đăng Ký</button>
-    </div>
-  </div>
+    <main class="page">
+      <section id="authPanel" class="auth-panel">
+        <div>
+          <span class="eyebrow">KHÔNG GIAN ĐỌC CỦA BẠN</span>
+          <h1>Khám phá tri thức,<br>kết nối cùng thư viện.</h1>
+          <p>Đăng nhập để gửi yêu cầu mượn, theo dõi hạn trả và nhận thông báo từ thư viện.</p>
+        </div>
+        <form id="loginForm" class="auth-card">
+          <h2>Chào mừng trở lại</h2>
+          <label>Tên tài khoản hoặc email<input id="authUsername" name="username" autocomplete="username" required></label>
+          <label>Mật khẩu<input id="authPassword" name="password" type="password" autocomplete="current-password" required></label>
+          <button class="button button-primary full-width" type="submit">Đăng nhập</button>
+          <button id="registerButton" class="text-button full-width" type="button">Tạo tài khoản độc giả</button>
+        </form>
+      </section>
 
-  <div id="userSection" class="auth-box" style="display: none;">
-    <p style="margin:0 0 10px 0;">Xin chào: <strong id="loggedInUser"></strong> <span class="status-badge">(Đã xác thực JWT)</span></p>
-    <button class="logout" onclick="logout()">Đăng Xuất</button>
-  </div>
+      <section id="staffs" class="content-section admin-only" data-admin-route="staffs" hidden>
+        <div class="section-heading"><div><span class="eyebrow">QUẢN TRỊ NHÂN SỰ</span><h2>Quản lý thủ thư & phân quyền</h2><p>Admin toàn quyền; thủ thư quầy xử lý bạn đọc/mượn trả; thủ thư kho quản lý danh mục và bản sao.</p></div><button id="refreshStaffs" class="button button-light" type="button">Làm mới</button></div>
+        <form id="staffForm" class="inline-form user-create-form">
+          <input id="staffUsername" placeholder="Tên tài khoản" required minlength="2">
+          <input id="staffFullName" placeholder="Họ tên" required minlength="2">
+          <input id="staffEmail" type="email" placeholder="Email">
+          <input id="staffPhone" type="tel" placeholder="Số điện thoại">
+          <input id="staffPassword" type="password" minlength="6" placeholder="Mật khẩu (ít nhất 6 ký tự)" required>
+          <select id="staffRole" required><option value="COUNTER_LIBRARIAN">Thủ thư quầy</option><option value="INVENTORY_LIBRARIAN">Thủ thư kho</option></select>
+          <button class="button button-primary" type="submit">Tạo tài khoản nhân viên</button>
+        </form>
+        <div class="table-wrap report-card"><table><thead><tr><th>Tài khoản</th><th>Họ tên / Liên hệ</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="staffList"></tbody></table></div>
+      </section>
 
-  <!-- 2. TÌM KIẾM SÁCH -->
-  <div class="search-box">
-    <h3>🔍 Tìm Kiếm Sách</h3>
-    <input type="text" id="searchInput" onkeyup="loadBooks(1)" placeholder="Nhập tên sách, tác giả hoặc ISBN để tìm nhanh...">
-  </div>
+      <section id="welcome" class="welcome" hidden>
+        <div>
+          <span class="eyebrow">THƯ VIỆN CỦA BẠN</span>
+          <h1>Xin chào, <span id="welcomeName"></span></h1>
+          <p>Tra cứu đầu sách, quản lý phiếu mượn và cập nhật hoạt động mới nhất.</p>
+        </div>
+        <div class="welcome-decoration" aria-hidden="true">▤</div>
+      </section>
 
-  <!-- 3. FORM THÊM / SỬA SÁCH -->
-  <div class="book-form">
-    <h3 id="formTitle">Thêm Sách Mới</h3>
-    <input type="hidden" id="editingBookId">
-    <input type="text" id="title" placeholder="Tên sách">
-    <input type="text" id="author" placeholder="Tác giả">
-    <input type="text" id="isbn" placeholder="Mã ISBN">
-    <input type="number" id="totalCopies" placeholder="Tổng số lượng">
-    <div>
-      <button id="saveBookBtn" onclick="saveBook()">Thêm Sách</button>
-      <button id="cancelEditBtn" onclick="resetForm()" style="background: #6c757d; display: none;">Hủy Sửa</button>
-    </div>
-  </div>
+      <section id="notificationPanel" class="notification-panel" hidden>
+        <div class="section-heading"><div><span class="eyebrow">CẬP NHẬT</span><h2>Thông báo</h2></div><button id="closeNotifications" class="text-button" type="button">Đóng</button></div>
+        <div id="notificationsList" class="notification-list"></div>
+      </section>
 
-  <!-- 4. DANH SÁCH SÁCH & PHÂN TRANG -->
-  <h3>📖 Danh Sách Sách Trong Thư Viện</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Tên Sách</th>
-        <th>Tác Giả</th>
-        <th>ISBN</th>
-        <th>Còn lại / Tổng</th>
-        <th style="width: 210px;">Thao tác</th>
-      </tr>
-    </thead>
-    <tbody id="bookList"></tbody>
-  </table>
+      <section id="dashboard" class="dashboard-section staff-only" data-admin-route="dashboard" hidden>
+        <div class="section-heading">
+          <div><span class="eyebrow">TỔNG QUAN</span><h2>Bảng điều khiển</h2></div>
+        </div>
+        <div class="quick-shortcuts report-card">
+          <strong>Thao tác nhanh</strong>
+          <div class="button-row">
+            <button id="dashboardAddBook" class="button button-primary inventory-only" type="button">＋ Thêm sách mới</button>
+            <button id="dashboardCreateLoan" class="button button-light counter-only" type="button">↔ Lập phiếu mượn</button>
+            <button id="dashboardCreateReader" class="button button-light counter-only" type="button">＋ Tạo độc giả</button>
+          </div>
+        </div>
+        <div id="statsGrid" class="stats-grid"></div>
+        <p id="dashboardFineSummary" class="finance-summary"></p>
+        <div class="report-card smart-alerts"><div class="section-heading compact"><div><h3>Cảnh báo thông minh</h3><p>Sách sắp đến hạn, quá hạn và sắp hết kho</p></div></div><div id="smartAlerts" class="alert-list"></div></div>
+        <div class="report-card chart-card dashboard-trend-card counter-only">
+          <div class="section-heading compact"><div><h3>Xu hướng mượn sách</h3><p>Số phiếu tạo theo tuần hoặc tháng</p></div><label class="filter-field">Khoảng thời gian<select id="dashboardTrendPeriod"><option value="week">8 tuần gần nhất</option><option value="month">12 tháng gần nhất</option></select></label></div>
+          <canvas id="dashboardTrendChart" role="img" aria-label="Biểu đồ xu hướng mượn sách theo thời gian"></canvas>
+        </div>
+        <div class="counter-only">
+          <div class="section-heading"><div><span class="eyebrow">DUYỆT PHIẾU</span><h3>Yêu cầu mượn online chờ duyệt</h3></div><button id="dashboardViewLoans" class="button button-light" type="button">Tất cả phiếu mượn</button></div>
+          <div class="table-wrap report-card"><table><thead><tr><th>Độc giả</th><th>Sách / Barcode</th><th>Ngày yêu cầu</th><th>Thao tác</th></tr></thead><tbody id="dashboardPendingLoans"></tbody></table></div>
+        </div>
+      </section>
 
-  <div class="pagination">
-    <button onclick="changePage(-1)">◀ Trang Trước</button>
-    <span>Trang <strong id="currentPage">1</strong> / <strong id="lastPage">1</strong></span>
-    <button onclick="changePage(1)">Trang Sau ▶</button>
-  </div>
+      <section id="reports" class="dashboard-section staff-only" data-admin-route="reports" hidden>
+        <div class="section-heading">
+          <div><span class="eyebrow">BÁO CÁO & THỐNG KÊ</span><h2>Báo cáo thư viện</h2></div>
+          <div class="button-row">
+            <button id="exportExcel" class="button button-light" type="button">Xuất Excel</button>
+            <button id="exportPdf" class="button button-primary" type="button">Xuất PDF</button>
+          </div>
+        </div>
+        <div class="report-card chart-card">
+          <div class="section-heading compact"><div><h3>Lượt mượn theo đầu sách</h3><p>Top sách được mượn nhiều trong hệ thống</p></div></div>
+          <canvas id="borrowChart" role="img" aria-label="Biểu đồ lượt mượn theo đầu sách"></canvas>
+        </div>
+        <div class="report-card">
+          <div class="section-heading compact"><div><h3>Sách được mượn nhiều</h3><p>Thống kê theo các phiếu đang mượn và đã trả</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Đầu sách</th><th>Tác giả</th><th>Lượt mượn</th></tr></thead><tbody id="topBooks"></tbody></table></div>
+        </div>
+      </section>
 
-  <!-- 5. LỊCH SỬ MƯỢN TRẢ -->
-  <h3>📋 Quản Lý Mượn, Trả & Hạn Trả Sách</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Người Mượn</th>
-        <th>Sách</th>
-        <th>Trạng Thái</th>
-        <th>Hạn Trả</th>
-        <th>Tiền Phạt</th>
-        <th style="width: 180px;">Thao Tác</th>
-      </tr>
-    </thead>
-    <tbody id="borrowList"></tbody>
-  </table>
-</div>
+      <section id="fines" class="content-section staff-only" data-admin-route="fines" hidden>
+        <div class="section-heading"><div><span class="eyebrow">THEO DÕI VI PHẠM</span><h2>Vi phạm & tiền phạt</h2><p>Quá hạn, sách hỏng/mất và lịch sử thanh toán.</p></div><div class="button-row"><button id="openManualFineDialog" class="button button-primary" type="button">＋ Ghi nhận vi phạm</button><button id="refreshFines" class="button button-light" type="button">Làm mới</button></div></div>
+        <div id="fineSummary" class="stats-grid"></div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Độc giả</th><th>Sách / Barcode</th><th>Vi phạm</th><th>Hạn trả</th><th>Tiền phạt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="fineList"></tbody></table></div>
+        <div class="section-heading"><div><span class="eyebrow">SỔ THU</span><h3>Lịch sử thanh toán</h3></div><div class="button-row"><label class="inline-filter">Từ ngày<input id="finePaymentFrom" type="date"></label><label class="inline-filter">Đến ngày<input id="finePaymentTo" type="date"></label><button id="exportFinePayments" class="button button-light" type="button">Xuất Excel sổ thu</button></div></div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Mã giao dịch</th><th>Phiếu mượn</th><th>Số tiền</th><th>Phương thức</th><th>Trạng thái</th><th>Ngày tạo / thu</th></tr></thead><tbody id="finePaymentList"></tbody></table></div>
+        <div class="section-heading"><div><span class="eyebrow">TÌNH TRẠNG KHO</span><h3>Bản sao bảo trì / hỏng / mất</h3></div></div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Sách</th><th>Barcode</th><th>Tình trạng</th><th>Vị trí ghi nhận</th><th>Thao tác</th></tr></thead><tbody id="fineInventoryList"></tbody></table></div>
+      </section>
 
-<script>
-  const API_URL = 'http://localhost:3000';
-  let currentPage = 1;
-  let maxPage = 1;
+      <section id="settings" class="content-section form-panel admin-only" data-admin-route="settings" hidden>
+        <div class="section-heading"><div><span class="eyebrow">QUY TẮC NGHIỆP VỤ</span><h2>Cấu hình hệ thống</h2><p>Thay đổi mặc định áp dụng cho các yêu cầu mượn mới.</p></div></div>
+        <form id="settingsForm" class="form-grid">
+          <label>Số phiếu mượn đang hoạt động tối đa<input id="settingMaxLoans" type="number" min="1" max="50" required></label>
+          <label>Số ngày mượn<input id="settingBorrowDays" type="number" min="1" max="60" required></label>
+          <label>Số ngày gia hạn mượn<input id="settingRenewalDays" type="number" min="7" max="14" required></label>
+          <label class="wide">Tiền phạt mỗi ngày trễ (VNĐ)<input id="settingDailyFine" type="number" min="0" max="1000000" step="1000" required></label>
+          <div class="wide"><button class="button button-primary" type="submit">Lưu cấu hình</button></div>
+        </form>
+        <p class="settings-note">Tiền phạt sách hỏng/mất do Thủ thư nhập khi xác nhận trả.</p>
+        <div class="report-card smtp-settings">
+          <h3>Cấu hình email thông báo</h3>
+          <p id="smtpConfigurationStatus">Đang kiểm tra cấu hình SMTP…</p>
+          <p>Để tránh lưu mật khẩu email trong cơ sở dữ liệu, hãy cấu hình <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURE</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code> và <code>SMTP_FROM</code> trong môi trường triển khai, sau đó khởi động lại ứng dụng.</p>
+        </div>
+      </section>
 
-  function getHeaders() {
-    const token = localStorage.getItem('accessToken');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    };
-  }
+      <section id="readerProfile" class="content-section" data-admin-route="reader-profile" hidden>
+        <div class="section-heading"><div><span class="eyebrow">HỒ SƠ ĐỘC GIẢ</span><h2 id="readerProfileTitle">Lịch sử độc giả</h2></div><div class="button-row"><button id="profileQuickBorrow" class="button button-primary counter-only" type="button" hidden>Lập phiếu mượn</button><button id="profileRenewCard" class="button button-light counter-only" type="button" hidden>Gia hạn thẻ</button><button id="profileToggleCard" class="button button-danger counter-only" type="button" hidden>Khóa thẻ</button><button id="refreshReaderProfile" class="button button-light" type="button">Làm mới</button></div></div>
+        <div id="readerProfileSummary" class="stats-grid"></div>
+        <div class="section-heading"><div><h3>Phiếu mượn & tiền phạt</h3></div></div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Sách / Barcode</th><th>Trạng thái</th><th>Ngày mượn</th><th>Hạn trả</th><th>Ngày trả</th><th>Tiền phạt</th><th>Thao tác</th></tr></thead><tbody id="readerProfileLoans"></tbody></table></div>
+        <div class="section-heading"><div><h3>Sách đang giữ</h3></div></div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Sách</th><th>Barcode</th><th>Trạng thái</th><th>Hết hạn nhận</th></tr></thead><tbody id="readerProfileReservations"></tbody></table></div>
+      </section>
 
-  function checkAuthStatus() {
-    const token = localStorage.getItem('accessToken');
-    const username = localStorage.getItem('username');
-    if (token && username) {
-      document.getElementById('authSection').style.display = 'none';
-      document.getElementById('userSection').style.display = 'block';
-      document.getElementById('loggedInUser').innerText = username;
-      loadBorrowRecords();
-    } else {
-      document.getElementById('authSection').style.display = 'block';
-      document.getElementById('userSection').style.display = 'none';
-    }
-  }
+      <section id="books" class="content-section" data-admin-route="books">
+        <div class="section-heading">
+          <div><span class="eyebrow">DANH MỤC</span><h2>Khám phá sách</h2><p>Tìm kiếm theo tên sách, tác giả hoặc ISBN.</p></div>
+          <div class="button-row book-admin-tools">
+            <button id="manageReviewsButton" class="button button-light staff-only" type="button">Kiểm duyệt đánh giá</button>
+            <button id="openBatchLabels" class="button button-light inventory-only" type="button">In tem barcode</button>
+            <button id="exportBooksButton" class="button button-light inventory-only" type="button">Xuất CSV sách</button>
+            <button id="newBookButton" class="button button-primary inventory-only" type="button" hidden>+ Thêm sách</button>
+          </div>
+        </div>
+        <div class="book-import-panel inventory-only">
+          <form id="bookImportForm" class="inline-form">
+            <label class="book-import-file">Nhập hàng loạt CSV / XLSX<input id="bookImportFile" type="file" accept=".csv,.xlsx" required></label>
+            <button class="button button-primary" type="submit">Nhập danh sách sách</button>
+            <button id="downloadBookTemplate" class="button button-light" type="button">Tải mẫu CSV</button>
+          </form>
+          <div id="bookImportResults" class="import-results" role="status" hidden></div>
+        </div>
+        <div class="filter-panel">
+          <label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" role="combobox" aria-autocomplete="list" aria-controls="bookSuggestions" aria-expanded="false" placeholder="Tên sách, tác giả hoặc ISBN"></label>
+          <label class="filter-field"><span>Thể loại</span><select id="categoryFilter"><option value="">Tất cả thể loại</option></select></label>
+          <label class="filter-field"><span>Tình trạng kho</span><select id="availabilityFilter"><option value="">Tất cả sách</option><option value="available">Còn bản sao</option><option value="unavailable">Đang hết</option></select></label>
+          <label class="filter-field"><span>Năm xuất bản</span><select id="publicationYearFilter"><option value="">Tất cả năm</option></select></label>
+          <label class="filter-field"><span>Kệ sách</span><select id="shelfFilter"><option value="">Tất cả kệ</option></select></label>
+          <label class="filter-field"><span>Tầng</span><select id="floorFilter"><option value="">Tất cả tầng</option></select></label>
+          <label class="filter-field"><span>Dãy</span><select id="aisleFilter"><option value="">Tất cả dãy</option></select></label>
+          <label class="filter-field barcode-field"><span>Quét barcode / QR</span><input id="barcodeInput" placeholder="Nhập hoặc quét mã rồi nhấn Enter"></label>
+        </div>
+        <div id="bookSuggestions" class="search-suggestions book-suggestions" role="listbox" hidden></div>
+        <div id="bookList" class="book-grid" aria-live="polite"></div>
+        <div class="pagination"><button id="previousPage" class="button button-light" type="button">← Trang trước</button><span>Trang <strong id="currentPage">1</strong> / <strong id="lastPage">1</strong></span><button id="nextPage" class="button button-light" type="button">Trang sau →</button></div>
+      </section>
 
-  async function register() {
-    const username = document.getElementById('authUsername').value;
-    const password = document.getElementById('authPassword').value;
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    alert(data.message || 'Đăng ký thành công!');
-  }
+      <section id="bookFormPanel" class="content-section form-panel admin-only" data-admin-route="books" hidden>
+        <div class="section-heading"><div><span class="eyebrow">DANH MỤC</span><h2 id="bookFormTitle">Thêm sách mới</h2></div><button id="cancelBookEdit" class="button button-light" type="button">Đóng</button></div>
+        <form id="bookForm" class="form-grid">
+          <input id="bookId" type="hidden">
+          <label>Tên sách<input id="bookTitle" minlength="2" maxlength="255" required></label><label>Tác giả<input id="bookAuthor" minlength="2" maxlength="255" required></label>
+          <label>ISBN<input id="bookIsbn" required></label><label>Năm xuất bản<input id="bookPublicationYear" type="number" min="1000" max="9999"></label>
+          <label>Số bản sao<input id="bookCopies" type="number" min="1" value="1" required></label>
+          <label>Thể loại<select id="bookCategory"><option value="">Chưa phân loại</option></select></label>
+          <label>Nhà xuất bản<select id="publisherId"><option value="">Chưa có nhà xuất bản</option></select></label>
+          <label>Kệ<input id="bookShelf" placeholder="Ví dụ: A2"></label><label>Tầng<input id="bookFloor" placeholder="Ví dụ: 3"></label>
+          <label class="wide">Dãy<input id="bookAisle" placeholder="Ví dụ: Dãy B"></label>
+          <label class="wide">Mô tả<textarea id="bookDescription" rows="4" maxlength="5000" placeholder="Giới thiệu nội dung sách"></textarea></label>
+          <label class="wide">URL ảnh bìa<input id="bookCoverImageUrl" type="url" maxlength="2048" placeholder="https://..."></label>
+          <div class="wide"><button class="button button-primary" type="submit">Lưu thông tin sách</button></div>
+        </form>
+      </section>
 
-  async function login() {
-    const username = document.getElementById('authUsername').value;
-    const password = document.getElementById('authPassword').value;
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.accessToken) {
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('username', username);
-      checkAuthStatus();
-      alert('Đăng nhập thành công!');
-    } else {
-      alert(data.message || 'Đăng nhập thất bại!');
-    }
-  }
+      <section id="categories" class="content-section staff-only" data-admin-route="categories" hidden>
+        <div class="section-heading"><div><span class="eyebrow">TỔ CHỨC KHO SÁCH</span><h2>Thể loại</h2><p>Quản lý danh mục và lọc sách theo chủ đề.</p></div></div>
+        <form id="categoryForm" class="inline-form"><input id="categoryName" placeholder="Tên thể loại mới" maxlength="100" required><input id="categoryDescription" placeholder="Mô tả (không bắt buộc)"><button class="button button-primary" type="submit">Thêm thể loại</button></form>
+        <div id="categoryList" class="category-list"></div>
+      </section>
 
-  function logout() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('username');
-    checkAuthStatus();
-  }
+      <section id="publishers" class="content-section staff-only" data-admin-route="publishers" hidden>
+        <div class="section-heading"><div><span class="eyebrow">ĐỐI TÁC XUẤT BẢN</span><h2>Nhà xuất bản</h2><p>Quản lý thông tin nhà xuất bản và gán vào đầu sách.</p></div></div>
+        <form id="publisherForm" class="inline-form"><input id="publisherEditId" type="hidden"><input id="publisherName" placeholder="Tên nhà xuất bản" minlength="2" maxlength="150" required><input id="publisherEmail" type="email" maxlength="150" placeholder="Email liên hệ"><input id="publisherPhone" type="tel" maxlength="30" placeholder="Số điện thoại (7–15 chữ số)"><input id="publisherAddress" maxlength="255" placeholder="Địa chỉ"><button id="publisherSubmit" class="button button-primary" type="submit">Thêm nhà xuất bản</button><button id="cancelPublisherEdit" class="button button-light" type="button" hidden>Hủy sửa</button></form>
+        <label class="table-search"><span>Tìm nhà xuất bản</span><input id="publisherSearch" type="search" placeholder="Tên, email hoặc số điện thoại"></label>
+        <div id="publisherList" class="category-list"></div>
+      </section>
 
-  async function loadBooks(page = 1) {
-    const query = document.getElementById('searchInput').value;
-    const res = await fetch(`${API_URL}/books?page=${page}&limit=5&search=${encodeURIComponent(query)}`);
-    const result = await res.json();
+      <section id="users" class="content-section staff-only" data-admin-route="readers" hidden>
+        <div class="section-heading"><div><span class="eyebrow">QUẢN LÝ TÀI KHOẢN</span><h2>Độc giả & phân quyền</h2><p>Thêm tài khoản, cập nhật giới hạn mượn hoặc khóa tài khoản.</p></div><button id="refreshUsers" class="button button-light" type="button">Làm mới</button></div>
+        <form id="userForm" class="inline-form user-create-form"><input id="newUsername" placeholder="Tên tài khoản" required><input id="newFullName" placeholder="Họ tên" minlength="2"><input id="newUserPassword" type="password" minlength="6" placeholder="Mật khẩu (ít nhất 6 ký tự)" required><input id="newUserEmail" type="email" placeholder="Email"><input id="newUserPhone" type="tel" placeholder="Số điện thoại"><select id="newUserRole"><option value="READER">Độc giả</option></select><label class="inline-limit">Giới hạn mượn<input id="newUserLimit" type="number" min="1" max="50" value="5" required></label><button class="button button-primary" type="submit">Tạo tài khoản</button></form>
+        <div class="filter-panel user-filters">
+          <label class="search-field"><span aria-hidden="true">⌕</span><input id="userSearch" type="search" placeholder="Tìm tên, email"></label>
+          <label class="filter-field"><span>Vai trò</span><select id="userRoleFilter"><option value="">Tất cả vai trò</option><option value="ADMIN">Super Admin</option><option value="LIBRARIAN">Thủ thư cũ</option><option value="COUNTER_LIBRARIAN">Thủ thư quầy</option><option value="INVENTORY_LIBRARIAN">Thủ thư kho</option><option value="READER">Độc giả</option></select></label>
+          <label class="filter-field"><span>Trạng thái</span><select id="userStatusFilter"><option value="">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="locked">Đã khóa</option></select></label>
+        </div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Tài khoản</th><th>Email</th><th>Vai trò</th><th>Giới hạn mượn</th><th>Thẻ thư viện</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="userList"></tbody></table></div>
+      </section>
 
-    currentPage = result.page;
-    maxPage = result.lastPage;
+      <section id="loans" class="content-section" data-admin-route="loans">
+        <div class="section-heading"><div><span class="eyebrow">THEO DÕI GIAO DỊCH</span><h2 id="loanHeading">Phiếu mượn của tôi</h2><p id="loanDescription">Theo dõi trạng thái, gia hạn và tiền phạt.</p></div><button id="refreshLoans" class="button button-light" type="button">Làm mới</button></div>
+        <div class="loan-toolbar counter-only"><button id="openBorrowDialog" class="button button-primary" type="button">＋ Lập phiếu mượn</button><span id="loanRuleSummary" class="muted-note"></span></div>
+        <label class="table-search counter-only"><span>Quét barcode trả sách</span><input id="loanReturnBarcode" placeholder="Quét / nhập mã bản sao rồi nhấn Enter"></label>
+        <label class="table-search"><span>Tìm trong phiếu mượn</span><input id="loanSearch" type="search" placeholder="Tên độc giả, sách hoặc trạng thái"></label>
+        <div class="loan-status-tabs counter-only" role="group" aria-label="Lọc trạng thái phiếu mượn">
+          <button class="loan-status-tab is-active" type="button" data-loan-filter="all" aria-pressed="true">Tất cả</button>
+          <button class="loan-status-tab" type="button" data-loan-filter="PENDING" aria-pressed="false">Chờ duyệt</button>
+          <button class="loan-status-tab" type="button" data-loan-filter="BORROWED" aria-pressed="false">Đang mượn</button>
+          <button class="loan-status-tab" type="button" data-loan-filter="OVERDUE" aria-pressed="false">Quá hạn</button>
+          <button class="loan-status-tab" type="button" data-loan-filter="RETURNED" aria-pressed="false">Đã trả</button>
+        </div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Độc giả</th><th>Sách / Bản sao</th><th>Trạng thái</th><th>Hạn trả</th><th>Tình trạng / Tiền phạt</th><th>Thao tác</th></tr></thead><tbody id="borrowList"></tbody></table></div>
+        <div class="pagination loan-pagination"><button id="previousLoanPage" class="button button-light" type="button">← Trang trước</button><span>Trang <strong id="currentLoanPage">1</strong> / <strong id="lastLoanPage">1</strong></span><button id="nextLoanPage" class="button button-light" type="button">Trang sau →</button></div>
+      </section>
 
-    document.getElementById('currentPage').innerText = currentPage;
-    document.getElementById('lastPage').innerText = maxPage;
+      <section id="reservations" class="content-section" data-admin-route="reservations">
+        <div class="section-heading"><div><span class="eyebrow">XẾP HÀNG GIỮ SÁCH</span><h2>Yêu cầu đặt giữ</h2><p id="reservationDescription">Theo dõi vị trí hàng đợi và nhận sách khi đến lượt.</p></div><div class="button-row"><button id="openReservationDialog" class="button button-primary counter-only" type="button">＋ Tạo yêu cầu tại quầy</button><button id="refreshReservations" class="button button-light" type="button">Làm mới</button></div></div>
+        <div class="reservation-status-tabs" role="group" aria-label="Lọc trạng thái hàng chờ">
+          <button class="reservation-status-tab is-active" type="button" data-reservation-filter="all" aria-pressed="true">Tất cả</button>
+          <button class="reservation-status-tab" type="button" data-reservation-filter="WAITING" aria-pressed="false">Đang chờ sách</button>
+          <button class="reservation-status-tab" type="button" data-reservation-filter="READY" aria-pressed="false">Chờ nhận sách</button>
+          <button class="reservation-status-tab" type="button" data-reservation-filter="FULFILLED" aria-pressed="false">Đã hoàn tất</button>
+          <button class="reservation-status-tab" type="button" data-reservation-filter="CANCELLED" aria-pressed="false">Đã hủy</button>
+        </div>
+        <div class="table-wrap report-card"><table><thead><tr><th>Sách</th><th>Độc giả</th><th>Hàng chờ</th><th>Trạng thái</th><th>Hết hạn nhận</th><th>Thao tác</th></tr></thead><tbody id="reservationList"></tbody></table></div>
+      </section>
 
-    renderBooks(result.data);
-  }
+      <section id="reviewsPanel" class="content-section" hidden>
+        <div class="section-heading"><div><span class="eyebrow">CỘNG ĐỒNG ĐỌC</span><h2 id="reviewsTitle">Đánh giá sách</h2></div><button id="closeReviews" class="button button-light" type="button">Đóng</button></div>
+        <div id="reviewsList" class="review-list"></div>
+      </section>
 
-  function changePage(delta) {
-    const targetPage = currentPage + delta;
-    if (targetPage >= 1 && targetPage <= maxPage) {
-      loadBooks(targetPage);
-    }
-  }
+      <dialog id="loanDialog" class="dialog">
+        <form id="loanRequestForm" method="dialog" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="loanDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">ĐĂNG KÝ MƯỢN SÁCH</span>
+          <h2 id="loanDialogTitle">Xác nhận yêu cầu</h2>
+          <p>Yêu cầu sẽ được gửi đến nhân viên thư viện để duyệt.</p>
+          <input id="loanBookId" type="hidden">
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="loanDialog">Hủy</button><button class="button button-primary" type="submit">Gửi yêu cầu</button></div>
+        </form>
+      </dialog>
 
-  function renderBooks(books) {
-    const tbody = document.getElementById('bookList');
-    tbody.innerHTML = '';
-    books.forEach(b => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${b.id}</td>
-          <td><strong>${b.title}</strong></td>
-          <td>${b.author}</td>
-          <td>${b.isbn}</td>
-          <td>${b.availableCopies} / ${b.totalCopies}</td>
-          <td>
-            <button class="borrow" onclick="borrowBook(${b.id})">Mượn</button>
-            <button class="edit" onclick="startEditBook(${b.id}, '${b.title}', '${b.author}', '${b.isbn}', ${b.totalCopies})">Sửa</button>
-            <button class="delete" onclick="deleteBook(${b.id})">Xóa</button>
-          </td>
-        </tr>
-      `;
-    });
-  }
+      <dialog id="registerDialog" class="dialog">
+        <form id="registerForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="registerDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">ĐĂNG KÝ ĐỘC GIẢ</span>
+          <h2>Tạo tài khoản thư viện</h2>
+          <p>Tài khoản sẽ được kích hoạt sau khi thư viện duyệt.</p>
+          <label>Họ tên<input id="registerFullName" autocomplete="name" minlength="2" maxlength="150" required></label>
+          <label>Email<input id="registerEmail" type="email" autocomplete="email" maxlength="255" required></label>
+          <label>Số điện thoại<input id="registerPhone" type="tel" autocomplete="tel" pattern="[0-9+().\\-\\s]{9,30}" required></label>
+          <label>Mật khẩu<input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required></label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="registerDialog">Hủy</button><button class="button button-primary" type="submit">Gửi đăng ký</button></div>
+        </form>
+      </dialog>
 
-  async function saveBook() {
-    const id = document.getElementById('editingBookId').value;
-    const title = document.getElementById('title').value;
-    const author = document.getElementById('author').value;
-    const isbn = document.getElementById('isbn').value;
-    const totalCopies = parseInt(document.getElementById('totalCopies').value);
+      <dialog id="userDialog" class="dialog">
+        <form id="userEditForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="userDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">TÀI KHOẢN ĐỘC GIẢ</span>
+          <h2>Cập nhật tài khoản</h2>
+          <input id="editUserId" type="hidden">
+          <label>Họ tên<input id="editUserFullName" minlength="2" maxlength="150"></label>
+          <label>Họ tên<input id="editUserFullName" minlength="2" maxlength="150"></label>
+          <label>Email<input id="editUserEmail" type="email"></label>
+          <label>Số điện thoại<input id="editUserPhone" type="tel"></label>
+          <label>Số điện thoại<input id="editUserPhone" type="tel"></label>
+          <label>Vai trò<select id="editUserRole"><option value="ADMIN">Super Admin</option><option value="LIBRARIAN">Thủ thư cũ (toàn quyền)</option><option value="COUNTER_LIBRARIAN">Thủ thư quầy</option><option value="INVENTORY_LIBRARIAN">Thủ thư kho</option><option value="READER">Độc giả</option></select></label>
+          <label>Giới hạn phiếu mượn đang hoạt động<input id="editUserLimit" type="number" min="1" max="50" required></label>
+          <div class="card-validity-fields">
+            <label>Ngày cấp thẻ<input id="editCardIssuedAt" type="date"></label>
+            <label>Ngày hết hạn thẻ<input id="editCardExpiresAt" type="date"></label>
+          </div>
+          <label class="checkbox-label"><input id="editUserActive" type="checkbox"> Tài khoản đang hoạt động</label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="userDialog">Hủy</button><button class="button button-primary" type="submit">Lưu thay đổi</button></div>
+        </form>
+      </dialog>
 
-    const payload = { title, author, isbn, totalCopies, availableCopies: totalCopies };
-    const method = id ? 'PATCH' : 'POST';
-    const url = id ? `${API_URL}/books/${id}` : `${API_URL}/books`;
+      <dialog id="publisherDeleteDialog" class="dialog">
+        <div class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="publisherDeleteDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">XÁC NHẬN THAO TÁC</span>
+          <h2>Xóa nhà xuất bản?</h2>
+          <p id="publisherDeleteMessage"></p>
+          <p>Sách liên quan sẽ không còn nhà xuất bản được gán.</p>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="publisherDeleteDialog">Hủy</button><button id="confirmPublisherDelete" class="button button-danger" type="button">Xóa nhà xuất bản</button></div>
+        </div>
+      </dialog>
 
-    const res = await fetch(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(payload)
-    });
+      <dialog id="cardRenewDialog" class="dialog">
+        <form id="cardRenewForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="cardRenewDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">THẺ THƯ VIỆN</span>
+          <h2>Gia hạn thẻ độc giả</h2>
+          <input id="renewCardUserId" type="hidden">
+          <p id="renewCardReaderName"></p>
+          <label>Thời hạn gia hạn<select id="renewCardPeriod"><option value="6">6 tháng</option><option value="12">1 năm</option></select></label>
+          <label>Ngày hết hạn mới<input id="renewCardExpiresAt" type="date" required></label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="cardRenewDialog">Hủy</button><button class="button button-primary" type="submit">Lưu hạn thẻ</button></div>
+        </form>
+      </dialog>
 
-    if (res.status === 401) return alert('Bạn phải đăng nhập!');
+      <dialog id="batchLabelsDialog" class="dialog copies-dialog">
+        <div class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="batchLabelsDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">IN NHÃN KHO SÁCH</span>
+          <h2>Chọn đầu sách để in tem</h2>
+          <p>Chọn một hoặc nhiều đầu sách. Tất cả barcode bản sao hiện có sẽ được bố trí trên trang A4 để in hoặc lưu PDF.</p>
+          <label class="checkbox-label"><input id="selectAllLabelBooks" type="checkbox"> Chọn tất cả sách trong trang hiện tại</label>
+          <div id="labelBookSelector" class="label-book-selector"></div>
+          <h3>Xem trước tem</h3>
+          <div id="labelPreview" class="label-preview"></div>
+          <div class="button-row"><button id="printSelectedLabels" class="button button-primary" type="button">Tạo PDF nhãn</button><button class="button button-light" type="button" data-close-dialog="batchLabelsDialog">Đóng</button></div>
+        </div>
+      </dialog>
 
-    if (res.ok) {
-      alert(id ? 'Cập nhật thành công!' : 'Thêm sách thành công!');
-      resetForm();
-      loadBooks(currentPage);
-    } else {
-      const err = await res.json();
-      alert('Lỗi: ' + JSON.stringify(err.message));
-    }
-  }
+      <dialog id="reviewsModerationDialog" class="dialog">
+        <div class="dialog-card moderation-dialog">
+          <button class="dialog-close" type="button" data-close-dialog="reviewsModerationDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">QUẢN LÝ NỘI DUNG</span>
+          <h2>Kiểm duyệt đánh giá</h2>
+          <div id="moderationReviewList" class="review-list"></div>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="reviewsModerationDialog">Đóng</button></div>
+        </div>
+      </dialog>
 
-  function startEditBook(id, title, author, isbn, totalCopies) {
-    document.getElementById('editingBookId').value = id;
-    document.getElementById('title').value = title;
-    document.getElementById('author').value = author;
-    document.getElementById('isbn').value = isbn;
-    document.getElementById('totalCopies').value = totalCopies;
+      <dialog id="returnDialog" class="dialog">
+        <form id="returnForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="returnDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">XÁC NHẬN HOÀN TRẢ</span>
+          <h2>Kiểm tra tình trạng sách</h2>
+          <input id="returnRecordId" type="hidden">
+          <input id="returnBarcode" type="hidden">
+          <p id="returnBookSummary" class="muted-note"></p>
+          <p id="returnFineEstimate" class="fine-estimate"></p>
+          <label>Tình trạng<select id="returnCondition"><option value="NORMAL">Bình thường</option><option value="LIGHT_DAMAGE">Hỏng nhẹ</option><option value="SEVERE_DAMAGE">Hỏng nặng</option><option value="LOST">Báo mất</option></select></label>
+          <label id="damageFineField" hidden>Mức phạt hư hỏng/mất (VNĐ)<input id="damageFineAmount" type="number" min="0" max="1000000" step="1000" value="0"></label>
+          <label id="collectFineField" class="checkbox-label" hidden><input id="collectFineAtCounter" type="checkbox"> Đã thu tiền phạt tại quầy</label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="returnDialog">Hủy</button><button class="button button-primary" type="submit">Xác nhận trả</button></div>
+        </form>
+      </dialog>
 
-    document.getElementById('formTitle').innerText = `Sửa Sách (#${id})`;
-    document.getElementById('saveBookBtn').innerText = 'Cập Nhật Sách';
-    document.getElementById('cancelEditBtn').style.display = 'inline-block';
-  }
+      <dialog id="manualFineDialog" class="dialog">
+        <form id="manualFineForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="manualFineDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">GHI NHẬN TẠI QUẦY</span>
+          <h2>Lập phiếu vi phạm</h2>
+          <label>Tìm độc giả<input id="manualFineReaderSearch" type="search" placeholder="Tên, email, số điện thoại hoặc mã thẻ"></label>
+          <label>Độc giả<select id="manualFineReader" required><option value="">Chọn độc giả</option></select></label>
+          <label>Loại vi phạm<select id="manualFineType" required><option value="DAMAGED">Làm hỏng sách</option><option value="LOST">Mất sách</option><option value="OTHER">Vi phạm khác</option></select></label>
+          <label>Barcode bản sao<input id="manualFineBarcode" maxlength="100" placeholder="Bắt buộc với trường hợp hỏng hoặc mất sách"></label>
+          <label>Lý do / ghi chú<input id="manualFineDescription" required minlength="3" maxlength="100"></label>
+          <label>Mức phạt (VNĐ)<input id="manualFineAmount" type="number" min="1" max="1000000" step="1000" required></label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="manualFineDialog">Hủy</button><button class="button button-primary" type="submit">Lưu phiếu vi phạm</button></div>
+        </form>
+      </dialog>
 
-  function resetForm() {
-    document.getElementById('editingBookId').value = '';
-    document.getElementById('title').value = '';
-    document.getElementById('author').value = '';
-    document.getElementById('isbn').value = '';
-    document.getElementById('totalCopies').value = '';
+      <dialog id="fineCollectionDialog" class="dialog">
+        <form id="fineCollectionForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="fineCollectionDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">SỔ THU TIỀN PHẠT</span>
+          <h2>Xác nhận thu tiền phạt</h2>
+          <input id="fineCollectionType" type="hidden">
+          <input id="fineCollectionId" type="hidden">
+          <input id="fineCollectionReference" type="hidden">
+          <p id="fineCollectionSummary" class="muted-note"></p>
+          <label>Phương thức thanh toán<select id="fineCollectionMethod"><option value="CASH">Tiền mặt</option><option value="VIETQR">Chuyển khoản VietQR</option></select></label>
+          <div id="fineVietQrPanel" class="vietqr-panel" hidden></div>
+          <p class="muted-note">Chỉ xác nhận giao dịch VietQR sau khi đã kiểm tra tiền thực nhận trong tài khoản.</p>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="fineCollectionDialog">Hủy</button><button class="button button-primary" type="submit">Xác nhận đã nhận tiền</button></div>
+        </form>
+      </dialog>
 
-    document.getElementById('formTitle').innerText = 'Thêm Sách Mới';
-    document.getElementById('saveBookBtn').innerText = 'Thêm Sách';
-    document.getElementById('cancelEditBtn').style.display = 'none';
-  }
+      <dialog id="fineWaiveDialog" class="dialog">
+        <form id="fineWaiveForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="fineWaiveDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">ĐIỀU CHỈNH KHOẢN PHẠT</span>
+          <h2>Miễn / giảm tiền phạt</h2>
+          <input id="fineWaiveType" type="hidden">
+          <input id="fineWaiveId" type="hidden">
+          <label>Số tiền miễn giảm (VNĐ)<input id="fineWaiveAmount" type="number" min="1" step="1000" required></label>
+          <label>Lý do miễn giảm<input id="fineWaiveReason" minlength="5" maxlength="255" required></label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="fineWaiveDialog">Hủy</button><button class="button button-primary" type="submit">Lưu điều chỉnh</button></div>
+        </form>
+      </dialog>
 
-  async function deleteBook(id) {
-    if (!confirm('Bạn có chắc muốn xóa cuốn sách này?')) return;
-    const res = await fetch(`${API_URL}/books/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
+      <dialog id="staffBorrowDialog" class="dialog">
+        <form id="quickBorrowForm" class="dialog-card staff-borrow-dialog">
+          <button class="dialog-close" type="button" data-close-dialog="staffBorrowDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">MƯỢN SÁCH TẠI QUẦY</span>
+          <h2>Lập phiếu mượn</h2>
+          <p>Tra cứu độc giả bằng họ tên, SĐT, email hoặc mã thẻ; quét nhiều mã bản sao trước khi gửi.</p>
+          <label>Tìm độc giả<input id="quickBorrowReaderSearch" type="search" placeholder="Tên, số điện thoại, email hoặc mã thẻ"></label>
+          <label>Độc giả<select id="quickBorrowReader" required><option value="">Chọn độc giả</option></select></label>
+          <p id="borrowDueSuggestion" class="muted-note"></p>
+          <label>Quét barcode bản sao<input id="quickBorrowBarcode" autocomplete="off" placeholder="Quét / nhập mã rồi nhấn Enter"></label>
+          <div id="borrowBarcodeList" class="borrow-barcode-list" aria-live="polite"></div>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="staffBorrowDialog">Hủy</button><button id="submitStaffBorrow" class="button button-primary" type="submit">Tạo phiếu chờ duyệt</button></div>
+        </form>
+      </dialog>
 
-    if (res.status === 401) return alert('Bạn phải đăng nhập!');
-    if (res.ok) loadBooks(currentPage);
-  }
+      <dialog id="staffReservationDialog" class="dialog">
+        <form id="staffReservationForm" class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="staffReservationDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">ĐẶT GIỮ TẠI QUẦY</span>
+          <h2>Tạo yêu cầu giữ sách</h2>
+          <p>Yêu cầu được thêm vào cuối hàng chờ hiện tại của đầu sách.</p>
+          <label>Tìm độc giả<input id="reservationReaderSearch" type="search" placeholder="Tên, số điện thoại, email hoặc mã thẻ"></label>
+          <label>Độc giả<select id="reservationReaderSelect" required><option value="">Chọn độc giả</option></select></label>
+          <label>Tìm sách<input id="reservationBookSearch" type="search" placeholder="Tên sách, tác giả hoặc ISBN"></label>
+          <label>Đầu sách<select id="reservationBookSelect" required><option value="">Tìm và chọn sách</option></select></label>
+          <div class="button-row"><button class="button button-light" type="button" data-close-dialog="staffReservationDialog">Hủy</button><button id="submitStaffReservation" class="button button-primary" type="submit">Thêm vào hàng chờ</button></div>
+        </form>
+      </dialog>
 
-  async function borrowBook(bookId) {
-    const res = await fetch(`${API_URL}/borrow/${bookId}`, {
-      method: 'POST',
-      headers: getHeaders()
-    });
+      <dialog id="bookDetailDialog" class="dialog book-detail-dialog">
+        <div class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="bookDetailDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">THÔNG TIN ĐẦU SÁCH</span>
+          <h2 id="bookDetailTitle">Chi tiết sách</h2>
+          <div id="bookDetailBody" class="book-detail-body"></div>
+          <div class="button-row"><button id="detailReserveButton" class="button button-primary" type="button" hidden>Đặt giữ chỗ</button><button class="button button-light" type="button" data-close-dialog="bookDetailDialog">Đóng</button></div>
+        </div>
+      </dialog>
 
-    if (res.status === 401) return alert('Bạn phải đăng nhập!');
-    if (res.ok) {
-      alert('Mượn sách thành công!');
-      loadBooks(currentPage);
-      loadBorrowRecords();
-    } else {
-      const err = await res.json();
-      alert(err.message || 'Lỗi khi mượn sách');
-    }
-  }
+      <dialog id="copiesDialog" class="dialog copies-dialog">
+        <div class="dialog-card">
+          <button class="dialog-close" type="button" data-close-dialog="copiesDialog" aria-label="Đóng">×</button>
+          <span class="eyebrow">QUẢN LÝ TỒN KHO</span>
+          <h2 id="copiesDialogTitle">Bản sao sách</h2>
+          <p>Trạng thái Đang mượn/Đang giữ được cập nhật theo quy trình mượn trả.</p>
+          <div id="copiesList" class="copies-list"></div>
+          <div class="button-row">
+            <button id="addCopyButton" class="button button-primary" type="button">+ Thêm bản sao</button>
+            <button id="printCopyLabels" class="button button-light" type="button">In barcode / PDF</button>
+            <button class="button button-light" type="button" data-close-dialog="copiesDialog">Đóng</button>
+          </div>
+        </div>
+      </dialog>
 
-  async function returnBook(recordId) {
-    const res = await fetch(`${API_URL}/borrow/return/${recordId}`, {
-      method: 'POST',
-      headers: getHeaders()
-    });
-
-    if (res.status === 401) return alert('Bạn phải đăng nhập!');
-    if (res.ok) {
-      alert('Trả sách thành công!');
-      loadBooks(currentPage);
-      loadBorrowRecords();
-    } else {
-      const err = await res.json();
-      alert(err.message || 'Lỗi khi trả sách');
-    }
-  }
-
-  async function payFine(recordId) {
-    const res = await fetch(`${API_URL}/borrow/pay-fine/${recordId}`, {
-      method: 'POST',
-      headers: getHeaders()
-    });
-
-    if (res.status === 401) return alert('Bạn phải đăng nhập!');
-    if (res.ok) {
-      alert('Nộp tiền phạt thành công!');
-      loadBorrowRecords();
-    } else {
-      const err = await res.json();
-      alert(err.message || 'Lỗi khi nộp tiền phạt');
-    }
-  }
-
-  async function loadBorrowRecords() {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    const res = await fetch(`${API_URL}/borrow`, { headers: getHeaders() });
-    if (!res.ok) return;
-    const records = await res.json();
-
-    const tbody = document.getElementById('borrowList');
-    tbody.innerHTML = '';
-    records.forEach(r => {
-      const isBorrowed = r.status === 'BORROWED';
-      const badge = isBorrowed 
-        ? '<span class="badge-borrowed">ĐANG MƯỢN</span>' 
-        : '<span class="badge-returned">ĐÃ TRẢ</span>';
-      
-      let returnBtn = isBorrowed 
-        ? `<button class="return" onclick="returnBook(${r.id})">Trả Sách</button>` 
-        : '---';
-
-      let fineInfo = '0 VNĐ';
-      if (r.fineStatus === 'UNPAID') {
-        fineInfo = `<strong style="color:#dc3545;">${Number(r.fineAmount).toLocaleString('vi-VN')} VNĐ (Nợ)</strong>`;
-        returnBtn += ` <button class="pay" onclick="payFine(${r.id})">Nộp Phạt</button>`;
-      } else if (r.fineStatus === 'PAID') {
-        fineInfo = `<span style="color:#28a745;">${Number(r.fineAmount).toLocaleString('vi-VN')} VNĐ (Đã Nộp)</span>`;
-      }
-
-      const dueDateStr = r.dueDate ? new Date(r.dueDate).toLocaleDateString('vi-VN') : '---';
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${r.id}</td>
-          <td>${r.user ? r.user.username : 'Unknown'}</td>
-          <td><strong>${r.book ? r.book.title : 'Unknown'}</strong></td>
-          <td>${badge}</td>
-          <td>${dueDateStr}</td>
-          <td>${fineInfo}</td>
-          <td>${returnBtn}</td>
-        </tr>
-      `;
-    });
-  }
-
-  checkAuthStatus();
-  loadBooks(1);
-</script>
-</body>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+    <footer><span>© Hệ Thống Quản Lý Thư Viện</span><span>Tri thức được sẻ chia</span></footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+    <script src="/app.js" defer></script>
+  </body>
 </html>

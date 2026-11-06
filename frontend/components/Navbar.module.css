@@ -1,0 +1,278 @@
+.header {
+  align-items: center;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  min-height: 4.25rem;
+  padding: 0.5rem clamp(1rem, 4vw, 3rem);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.brand,
+.navigation a,
+.profileButton,
+.iconButton,
+.menu a,
+.menu button {
+  color: #172033;
+  text-decoration: none;
+}
+
+.brand {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+  font-weight: 750;
+  gap: 0.65rem;
+}
+
+.logo,
+.avatar {
+  align-items: center;
+  background: #1d4ed8;
+  border-radius: 0.7rem;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 700;
+  height: 2.25rem;
+  justify-content: center;
+  width: 2.25rem;
+}
+
+.navigation,
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 1.25rem;
+}
+
+.navigation a {
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.navigation a:hover,
+.menu a:hover,
+.menu button:hover {
+  color: #1d4ed8;
+}
+
+.actions {
+  gap: 0.65rem;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.iconButton,
+.profileButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 2.6rem;
+}
+
+.iconButton {
+  border-radius: 50%;
+  position: relative;
+  width: 2.6rem;
+}
+
+.iconButton:hover,
+.profileButton:hover {
+  background: #f1f5f9;
+}
+
+.iconButton svg {
+  fill: none;
+  height: 1.35rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 1.35rem;
+}
+
+.badge {
+  align-items: center;
+  background: #dc2626;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  display: flex;
+  font-size: 0.65rem;
+  font-weight: 700;
+  height: 1.15rem;
+  justify-content: center;
+  min-width: 1.15rem;
+  padding: 0 0.2rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.profileButton {
+  border-radius: 999px;
+  gap: 0.55rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.avatar {
+  border-radius: 50%;
+  height: 2rem;
+  width: 2rem;
+}
+
+.username {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.caret {
+  color: #64748b;
+}
+
+.menu {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.8rem;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 14%);
+  min-width: 13rem;
+  padding: 0.45rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.65rem);
+  z-index: 30;
+}
+
+.menu a,
+.menu button {
+  background: transparent;
+  border: 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+
+.identity {
+  border-bottom: 1px solid #e2e8f0;
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.35rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.identity span,
+.notification time,
+.empty {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.roleBadge {
+  background: #dbeafe;
+  border-radius: 999px;
+  color: #1d4ed8 !important;
+  display: inline-flex;
+  font-size: 0.7rem !important;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.35rem 0.5rem;
+  white-space: nowrap;
+}
+
+.notificationMenu {
+  max-height: min(28rem, 75vh);
+  overflow: auto;
+  width: min(23rem, calc(100vw - 2rem));
+}
+
+.notificationMenu h2 {
+  font-size: 1rem;
+  margin: 0;
+  padding: 0.7rem 0.75rem;
+}
+
+.notification {
+  border-top: 1px solid #e2e8f0 !important;
+  display: grid !important;
+  gap: 0.35rem;
+  white-space: normal;
+}
+
+.notification span {
+  color: #475569;
+  font-size: 0.87rem;
+  line-height: 1.4;
+}
+
+.notification.unread {
+  background: #eff6ff;
+}
+
+.notification time {
+  text-align: right;
+}
+
+.empty,
+.error {
+  margin: 0;
+  padding: 0.75rem;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 850px) {
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+
+  .navigation {
+    flex: 1 1 100%;
+    gap: 1rem;
+    order: 3;
+    overflow-x: auto;
+    padding: 0.35rem 0;
+  }
+
+  .actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding-inline: 0.75rem;
+  }
+
+  .navigation {
+    gap: 0.85rem;
+  }
+
+  .navigation a {
+    font-size: 0.82rem;
+  }
+
+  .username {
+    display: none;
+  }
+}

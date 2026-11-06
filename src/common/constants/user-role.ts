@@ -1,0 +1,26 @@
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  LIBRARIAN = 'LIBRARIAN',
+  COUNTER_LIBRARIAN = 'COUNTER_LIBRARIAN',
+  INVENTORY_LIBRARIAN = 'INVENTORY_LIBRARIAN',
+  READER = 'READER',
+}
+
+export const STAFF_ROLES = [
+  UserRole.ADMIN,
+  UserRole.LIBRARIAN,
+  UserRole.COUNTER_LIBRARIAN,
+  UserRole.INVENTORY_LIBRARIAN,
+];
+
+export const COUNTER_ROLES = [
+  UserRole.ADMIN,
+  UserRole.LIBRARIAN,
+  UserRole.COUNTER_LIBRARIAN,
+];
+
+export const INVENTORY_ROLES = [
+  UserRole.ADMIN,
+  UserRole.LIBRARIAN,
+  UserRole.INVENTORY_LIBRARIAN,
+];

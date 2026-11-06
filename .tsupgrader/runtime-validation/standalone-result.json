@@ -1,0 +1,193 @@
+{
+  "planHash": "49c5baaa194203c48736e3a7f7da139ffa77982cfd2f6625e64c60f02eba0597",
+  "phase": "standalone",
+  "recordedAtUtc": "2026-11-01T07:30:52.4664015Z",
+  "retryCount": 0,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": true,
+    "setupDurationMs": 0,
+    "setupFailureOutput": null,
+    "assertions": [
+      {
+        "name": "nest-build",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E library-management@0.0.1 build\r\n\u003E nest build\r\n\r\n",
+        "durationMs": 8676
+      },
+      {
+        "name": "tests-pass",
+        "kind": "process",
+        "verificationMethod": "test-results",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E library-management@0.0.1 test\r\n\u003E vitest run\r\n\r\n\u001B[33m(!) Your Vite config uses features that are unsupported by \u0060configLoader: \u0027native\u0027\u0060, which is planned to become the default in a future major version of Vite:\r\n  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a \u0060.mjs\u0060 extension or set \u0060\u0022type\u0022: \u0022module\u0022\u0060 in the closest package.json\r\nSet \u0060VITE_CONFIG_NATIVE_IGNORE_WARNING=true\u0060 to suppress this warning.\u001B[39m\r\n\u001B[33mThe plugin \u0022vite-tsconfig-paths\u0022 is detected. Vite now supports tsconfig paths resolution natively via the \u001B[1mresolve.tsconfigPaths\u001B[22m option. You can remove the plugin and set \u001B[1mresolve.tsconfigPaths: true\u001B[22m in your Vite config instead.\u001B[39m\r\n\r\n RUN  v4.1.12 D:/BTNest/library-management\r\n\r\n\r\n Test Files  20 passed (20)\r\n      Tests  87 passed (87)\r\n   Start at  14:30:28\r\n   Duration  8.47s (transform 10.30s, setup 0ms, import 51.12s, tests 4.29s, environment 4ms)\r\n\r\n",
+        "durationMs": 10976,
+        "testResults": {
+          "testFramework": "vitest",
+          "runnerDetectedFrom": "package_json",
+          "testsTotal": 87,
+          "testsPassed": 87,
+          "testsFailed": 0,
+          "testsSkipped": 0,
+          "parseFailed": false
+        }
+      },
+      {
+        "name": "lint-pass",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E library-management@0.0.1 lint\r\n\u003E oxlint src/ test/ frontend/\r\n\r\n",
+        "durationMs": 771
+      },
+      {
+        "name": "home-page-200",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n\u003C!doctype html\u003E\r\n\u003Chtml lang=\u0022vi\u0022\u003E\r\n  \u003Chead\u003E\r\n    \u003Cmeta charset=\u0022UTF-8\u0022\u003E\r\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1\u0022\u003E\r\n    \u003Cmeta name=\u0022theme-color\u0022 content=\u0022#123c35\u0022\u003E\r\n    \u003Ctitle\u003EH\u1EC7 Th\u1ED1ng Qu\u1EA3n L\u00FD Th\u01B0 Vi\u1EC7n\u003C/title\u003E\r\n    \u003Clink rel=\u0022stylesheet\u0022 href=\u0022/styles.css\u0022\u003E\r\n  \u003C/head\u003E\r\n  \u003Cbody\u003E\r\n    \u003Cheader class=\u0022topbar\u0022\u003E\r\n      \u003Cbutton id=\u0022sidebarToggle\u0022 class=\u0022icon-button staff-only sidebar-toggle\u0022 type=\u0022button\u0022 aria-label=\u0022Thu g\u1ECDn thanh \u0111i\u1EC1u h\u01B0\u1EDBng\u0022 aria-expanded=\u0022true\u0022 hidden\u003E\u2630\u003C/button\u003E\r\n      \u003Ca class=\u0022brand\u0022 href=\u0022/search\u0022 aria-label=\u0022Trang ch\u1EE7\u0022\u003E\r\n        \u003Cspan class=\u0022brand-mark\u0022 aria-hidden=\u0022true\u0022\u003ET\u003C/span\u003E\r\n        \u003Cspan\u003EH\u1EC7 Th\u1ED1ng Qu\u1EA3n L\u00FD Th\u01B0 Vi\u1EC7n\u003C/span\u003E\r\n      \u003C/a\u003E\r\n      \u003Cnav id=\u0022navigation\u0022 class=\u0022navigation\u0022 aria-label=\u0022\u0110i\u1EC1u h\u01B0\u1EDBng ch\u00EDnh\u0022\u003E\r\n        \u003Ca href=\u0022/search\u0022\u003ETra c\u1EE9u s\u00E1ch\u003C/a\u003E\r\n        \u003Ca href=\u0022#loans\u0022\u003EM\u01B0\u1EE3n - tr\u1EA3\u003C/a\u003E\r\n        \u003Ca href=\u0022#reservations\u0022\u003E\u0110\u1EB7t gi\u1EEF\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/categories\u0022\u003ETh\u1EC3 lo\u1EA1i\u003C/a\u003E\r\n        \u003Ca class=\u0022staff-only\u0022 href=\u0022/admin/reports\u0022\u003EB\u00E1o c\u00E1o\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/users\u0022\u003E\u0110\u1ED9c gi\u1EA3\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/publishers\u0022\u003ENh\u00E0 xu\u1EA5t b\u1EA3n\u003C/a\u003E\r\n        \u003Ca class=\u0022reader-only\u0022 href=\u0022/profile\u0022 hidden\u003EH\u1ED3 s\u01A1 c\u1EE7a t\u00F4i\u003C/a\u003E\r\n      \u003C/nav\u003E\r\n      \u003Cdiv class=\u0022global-search-wrap\u0022\u003E\r\n        \u003Clabel class=\u0022global-search\u0022 for=\u0022globalSearch\u0022\u003E\u003Cspan aria-hidden=\u0022true\u0022\u003E\u2315\u003C/span\u003E\u003Cinput id=\u0022globalSearch\u0022 type=\u0022search\u0022 role=\u0022combobox\u0022 aria-autocomplete=\u0022list\u0022 aria-controls=\u0022globalSuggestions\u0022 aria-expanded=\u0022false\u0022 placeholder=\u0022T\u00ECm s\u00E1ch, t\u00E1c gi\u1EA3, ISBN...\u0022\u003E\u003C/label\u003E\r\n        \u003Cdiv id=\u0022globalSuggestions\u0022 class=\u0022search-suggestions\u0022 role=\u0022listbox\u0022 hidden\u003E\u003C/div\u003E\r\n      \u003C/div\u003E\r\n      \u003Cdiv class=\u0022account\u0022\u003E\r\n        \u003Cbutton id=\u0022notificationButton\u0022 class=\u0022icon-button\u0022 type=\u0022button\u0022 aria-label=\u0022Th\u00F4ng b\u00E1o\u0022\u003E\r\n          \u003Csvg viewBox=\u00220 0 24 24\u0022 aria-hidden=\u0022true\u0022\u003E\u003Cpath d=\u0022M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4\u0022/\u003E\u003C/svg\u003E\r\n          \u003Cspan id=\u0022notificationCount\u0022 class=\u0022notification-count\u0022 hidden\u003E0\u003C/span\u003E\r\n        \u003C/button\u003E\r\n        \u003Cdiv id=\u0022accountArea\u0022\u003E\r\n          \u003Cbutton id=\u0022openLogin\u0022 class=\u0022button button-light\u0022 type=\u0022button\u0022\u003E\u0110\u0103ng nh\u1EADp\u003C/button\u003E\r\n        \u003C/div\u003E\r\n      \u003C/div\u003E\r\n    \u003C/header\u003E\r\n\r\n    \u003Caside id=\u0022adminSidebar\u0022 class=\u0022admin-sidebar\u0022 aria-label=\u0022\u0110i\u1EC1u h\u01B0\u1EDBng qu\u1EA3n tr\u1ECB\u0022 hidden\u003E\r\n      \u003Cdiv class=\u0022sidebar-heading\u0022\u003EQU\u1EA2N TR\u1ECA TH\u01AF VI\u1EC6N\u003C/div\u003E\r\n      \u003Cnav class=\u0022sidebar-navigation\u0022\u003E\r\n        \u003Ca href=\u0022/admin/dashboard\u0022 data-admin-nav=\u0022dashboard\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A6\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EDashboard\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/books\u0022 data-admin-nav=\u0022books\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A4\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD s\u00E1ch\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/borrow-return\u0022 data-admin-nav=\u0022loans\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u2194\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD m\u01B0\u1EE3n / tr\u1EA3\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/reservations\u0022 data-admin-nav=\u0022reservations\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u231B\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003E\u0110\u1EB7t tr\u01B0\u1EDBc / gi\u1EEF ch\u1ED7\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/fines\u0022 data-admin-nav=\u0022fines\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u20AB\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EVi ph\u1EA1m \u0026 ti\u1EC1n ph\u1EA1t\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/users\u0022 data-admin-nav=\u0022readers\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u2659\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD \u0111\u1ED9c gi\u1EA3\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/categories\u0022 data-admin-nav=\u0022categories\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A7\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003ETh\u1EC3 lo\u1EA1i\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/publishers\u0022 data-admin-nav=\u0022publishers\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A3\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003ENh\u00E0 xu\u1EA5t b\u1EA3n\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022staff-only\u0022 href=\u0022/admin/reports\u0022 data-admin-nav=\u0022reports\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A5\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\n\u2026[truncated]",
+        "durationMs": 3274
+      },
+      {
+        "name": "public-book-search-200",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n{\u0022data\u0022:[{\u0022id\u0022:5,\u0022title\u0022:\u0022d\u0022,\u0022author\u0022:\u0022a\u0022,\u0022isbn\u0022:\u002212\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:12,\u0022availableCopies\u0022:10,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]},{\u0022id\u0022:1,\u0022title\u0022:\u0022Harry Potter v\u00E0 H\u00F2n \u0110\u00E1 Ph\u00F9 Th\u1EE7y\u0022,\u0022author\u0022:\u0022J.K. Rowling\u0022,\u0022isbn\u0022:\u0022978-0747532699\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:5,\u0022availableCopies\u0022:5,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]},{\u0022id\u0022:3,\u0022title\u0022:\u0022Nh\u00E0 Gi\u1EA3 Kim\u0022,\u0022author\u0022:\u0022Paulo Coelho\u0022,\u0022isbn\u0022:\u0022978-0062315007\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:3,\u0022availableCopies\u0022:2,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]},{\u0022id\u0022:4,\u0022title\u0022:\u0022Thi\u1EC7n t\u00E2m\u0022,\u0022author\u0022:\u0022Nguy\u1EC5n Thi\u1EC7n T\u00E2m\u0022,\u0022isbn\u0022:\u0022123456\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:1,\u0022availableCopies\u0022:1,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]},{\u0022id\u0022:6,\u0022title\u0022:\u0022w\u0022,\u0022author\u0022:\u0022q\u0022,\u0022isbn\u0022:\u00221\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:2,\u0022availableCopies\u0022:2,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]},{\u0022id\u0022:2,\u0022title\u0022:\u0022\u0110\u1EAFc Nh\u00E2n T\u00E2m\u0022,\u0022author\u0022:\u0022Dale Carnegie\u0022,\u0022isbn\u0022:\u0022978-0671027032\u0022,\u0022publicationYear\u0022:null,\u0022description\u0022:null,\u0022coverImageUrl\u0022:null,\u0022totalCopies\u0022:10,\u0022availableCopies\u0022:8,\u0022shelf\u0022:null,\u0022floor\u0022:null,\u0022aisle\u0022:null,\u0022deletedAt\u0022:null,\u0022category\u0022:null,\u0022publisher\u0022:null,\u0022locations\u0022:[]}],\u0022total\u0022:6,\u0022page\u0022:1,\u0022lastPage\u0022:1}\n--- server output ---\n\r\n\u003E library-management@0.0.1 start:prod\r\n\u003E node dist/main\r\n\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[NestFactory] \u001B[39m\u001B[32mStarting Nest application...\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mAppModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B68ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mPassportModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mJwtModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:43 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mServeStaticModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmCoreModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B1409ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 14688  - \u001B[39m14:30:44 01/11/2026 \u001B[\n\u2026[truncated]",
+        "durationMs": 4140
+      },
+      {
+        "name": "fine-list-requires-auth",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 401\n{\u0022statusCode\u0022:401,\u0022timestamp\u0022:\u00222026-11-01T07:30:48.678Z\u0022,\u0022path\u0022:\u0022/borrow/fines\u0022,\u0022message\u0022:\u0022Unauthorized\u0022}\n--- server output ---\n\r\n\u003E library-management@0.0.1 start:prod\r\n\u003E node dist/main\r\n\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[NestFactory] \u001B[39m\u001B[32mStarting Nest application...\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mAppModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B69ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B1ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mPassportModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mJwtModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:47 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mServeStaticModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmCoreModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B782ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B1ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mTypeOrmModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mSettingsModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B3ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mReportsModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B1ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mCategoriesModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mReviewsModule dependencies initialized\u001B[39m\u001B[38;5;3m \u002B0ms\u001B[39m\r\n\u001B[32m[Nest] 26036  - \u001B[39m14:30:48 01/11/2026 \u001B[32m    LOG\u001B[39m \u001B[38;5;3m[InstanceLoader] \u001B[39m\u001B[32mPublishersModule dependencies initialized\u001B[39m\u001B[38\n\u2026[truncated]",
+        "durationMs": 3122
+      },
+      {
+        "name": "manual-fine-create-requires-auth",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": false,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n\u003C!doctype html\u003E\r\n\u003Chtml lang=\u0022vi\u0022\u003E\r\n  \u003Chead\u003E\r\n    \u003Cmeta charset=\u0022UTF-8\u0022\u003E\r\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1\u0022\u003E\r\n    \u003Cmeta name=\u0022theme-color\u0022 content=\u0022#123c35\u0022\u003E\r\n    \u003Ctitle\u003EH\u1EC7 Th\u1ED1ng Qu\u1EA3n L\u00FD Th\u01B0 Vi\u1EC7n\u003C/title\u003E\r\n    \u003Clink rel=\u0022stylesheet\u0022 href=\u0022/styles.css\u0022\u003E\r\n  \u003C/head\u003E\r\n  \u003Cbody\u003E\r\n    \u003Cheader class=\u0022topbar\u0022\u003E\r\n      \u003Cbutton id=\u0022sidebarToggle\u0022 class=\u0022icon-button staff-only sidebar-toggle\u0022 type=\u0022button\u0022 aria-label=\u0022Thu g\u1ECDn thanh \u0111i\u1EC1u h\u01B0\u1EDBng\u0022 aria-expanded=\u0022true\u0022 hidden\u003E\u2630\u003C/button\u003E\r\n      \u003Ca class=\u0022brand\u0022 href=\u0022/search\u0022 aria-label=\u0022Trang ch\u1EE7\u0022\u003E\r\n        \u003Cspan class=\u0022brand-mark\u0022 aria-hidden=\u0022true\u0022\u003ET\u003C/span\u003E\r\n        \u003Cspan\u003EH\u1EC7 Th\u1ED1ng Qu\u1EA3n L\u00FD Th\u01B0 Vi\u1EC7n\u003C/span\u003E\r\n      \u003C/a\u003E\r\n      \u003Cnav id=\u0022navigation\u0022 class=\u0022navigation\u0022 aria-label=\u0022\u0110i\u1EC1u h\u01B0\u1EDBng ch\u00EDnh\u0022\u003E\r\n        \u003Ca href=\u0022/search\u0022\u003ETra c\u1EE9u s\u00E1ch\u003C/a\u003E\r\n        \u003Ca href=\u0022#loans\u0022\u003EM\u01B0\u1EE3n - tr\u1EA3\u003C/a\u003E\r\n        \u003Ca href=\u0022#reservations\u0022\u003E\u0110\u1EB7t gi\u1EEF\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/categories\u0022\u003ETh\u1EC3 lo\u1EA1i\u003C/a\u003E\r\n        \u003Ca class=\u0022staff-only\u0022 href=\u0022/admin/reports\u0022\u003EB\u00E1o c\u00E1o\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/users\u0022\u003E\u0110\u1ED9c gi\u1EA3\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/publishers\u0022\u003ENh\u00E0 xu\u1EA5t b\u1EA3n\u003C/a\u003E\r\n        \u003Ca class=\u0022reader-only\u0022 href=\u0022/profile\u0022 hidden\u003EH\u1ED3 s\u01A1 c\u1EE7a t\u00F4i\u003C/a\u003E\r\n      \u003C/nav\u003E\r\n      \u003Cdiv class=\u0022global-search-wrap\u0022\u003E\r\n        \u003Clabel class=\u0022global-search\u0022 for=\u0022globalSearch\u0022\u003E\u003Cspan aria-hidden=\u0022true\u0022\u003E\u2315\u003C/span\u003E\u003Cinput id=\u0022globalSearch\u0022 type=\u0022search\u0022 role=\u0022combobox\u0022 aria-autocomplete=\u0022list\u0022 aria-controls=\u0022globalSuggestions\u0022 aria-expanded=\u0022false\u0022 placeholder=\u0022T\u00ECm s\u00E1ch, t\u00E1c gi\u1EA3, ISBN...\u0022\u003E\u003C/label\u003E\r\n        \u003Cdiv id=\u0022globalSuggestions\u0022 class=\u0022search-suggestions\u0022 role=\u0022listbox\u0022 hidden\u003E\u003C/div\u003E\r\n      \u003C/div\u003E\r\n      \u003Cdiv class=\u0022account\u0022\u003E\r\n        \u003Cbutton id=\u0022notificationButton\u0022 class=\u0022icon-button\u0022 type=\u0022button\u0022 aria-label=\u0022Th\u00F4ng b\u00E1o\u0022\u003E\r\n          \u003Csvg viewBox=\u00220 0 24 24\u0022 aria-hidden=\u0022true\u0022\u003E\u003Cpath d=\u0022M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4\u0022/\u003E\u003C/svg\u003E\r\n          \u003Cspan id=\u0022notificationCount\u0022 class=\u0022notification-count\u0022 hidden\u003E0\u003C/span\u003E\r\n        \u003C/button\u003E\r\n        \u003Cdiv id=\u0022accountArea\u0022\u003E\r\n          \u003Cbutton id=\u0022openLogin\u0022 class=\u0022button button-light\u0022 type=\u0022button\u0022\u003E\u0110\u0103ng nh\u1EADp\u003C/button\u003E\r\n        \u003C/div\u003E\r\n      \u003C/div\u003E\r\n    \u003C/header\u003E\r\n\r\n    \u003Caside id=\u0022adminSidebar\u0022 class=\u0022admin-sidebar\u0022 aria-label=\u0022\u0110i\u1EC1u h\u01B0\u1EDBng qu\u1EA3n tr\u1ECB\u0022 hidden\u003E\r\n      \u003Cdiv class=\u0022sidebar-heading\u0022\u003EQU\u1EA2N TR\u1ECA TH\u01AF VI\u1EC6N\u003C/div\u003E\r\n      \u003Cnav class=\u0022sidebar-navigation\u0022\u003E\r\n        \u003Ca href=\u0022/admin/dashboard\u0022 data-admin-nav=\u0022dashboard\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A6\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EDashboard\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/books\u0022 data-admin-nav=\u0022books\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A4\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD s\u00E1ch\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/borrow-return\u0022 data-admin-nav=\u0022loans\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u2194\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD m\u01B0\u1EE3n / tr\u1EA3\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/reservations\u0022 data-admin-nav=\u0022reservations\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u231B\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003E\u0110\u1EB7t tr\u01B0\u1EDBc / gi\u1EEF ch\u1ED7\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/fines\u0022 data-admin-nav=\u0022fines\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u20AB\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EVi ph\u1EA1m \u0026 ti\u1EC1n ph\u1EA1t\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022counter-only\u0022 href=\u0022/admin/users\u0022 data-admin-nav=\u0022readers\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u2659\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003EQu\u1EA3n l\u00FD \u0111\u1ED9c gi\u1EA3\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/categories\u0022 data-admin-nav=\u0022categories\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A7\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003ETh\u1EC3 lo\u1EA1i\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022inventory-only\u0022 href=\u0022/admin/publishers\u0022 data-admin-nav=\u0022publishers\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A3\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\u003ENh\u00E0 xu\u1EA5t b\u1EA3n\u003C/span\u003E\u003C/a\u003E\r\n        \u003Ca class=\u0022staff-only\u0022 href=\u0022/admin/reports\u0022 data-admin-nav=\u0022reports\u0022\u003E\u003Cspan class=\u0022sidebar-icon\u0022 aria-hidden=\u0022true\u0022\u003E\u25A5\u003C/span\u003E\u003Cspan class=\u0022sidebar-label\u0022\n\u2026[truncated]",
+        "durationMs": 3656
+      }
+    ],
+    "executions": [
+      {
+        "source": "nest-build",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "build"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "tests-pass",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "test"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "lint-pass",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "lint"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "home-page-200",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "start:prod"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "public-book-search-200",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "start:prod"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "fine-list-requires-auth",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "start:prod"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "manual-fine-create-requires-auth",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "start:prod"
+        ],
+        "cwd": "D:\\BTNest\\library-management",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      }
+    ]
+  }
+}

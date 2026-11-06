@@ -6,12 +6,13 @@ import { User } from '../users/entities/user.entity';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { JWT_ACCESS_SECRET } from '../../common/constants/auth-secrets';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
-    JwtModule.register({}),
+    JwtModule.register({ secret: JWT_ACCESS_SECRET }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

@@ -7,6 +7,14 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BorrowRecordsModule } from './modules/borrow-records/borrow-records.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { PublishersModule } from './modules/publishers/publishers.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -15,11 +23,11 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'library_db',
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+      username: process.env.DB_USERNAME || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'library_db',
       autoLoadEntities: true,
       synchronize: true,
     }),
@@ -27,6 +35,14 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     AuthModule,
     BorrowRecordsModule,
     ReportsModule,
+    UsersModule,
+    CategoriesModule,
+    ReviewsModule,
+    PublishersModule,
+    ReservationsModule,
+    NotificationsModule,
+    PaymentsModule,
+    SettingsModule,
   ],
 })
 export class AppModule implements NestModule {

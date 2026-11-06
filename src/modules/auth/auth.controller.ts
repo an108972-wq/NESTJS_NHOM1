@@ -19,8 +19,7 @@ export class AuthController {
 
   @Post('refresh')
   refresh(@Body() dto: RefreshTokenDto) {
-    const payload: any = JSON.parse(Buffer.from(dto.refreshToken.split('.')[1], 'base64').toString());
-    return this.authService.refreshToken(payload.sub, dto.refreshToken);
+    return this.authService.refreshToken(dto.refreshToken);
   }
 
   @UseGuards(JwtAuthGuard)

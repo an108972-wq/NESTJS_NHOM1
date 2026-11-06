@@ -1,6 +1,22 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Book } from '../../books/entities/book.entity';
+import { BookCopy } from '../../books/entities/book-copy.entity';
+
+export enum BorrowStatus {
+  PENDING = 'PENDING',
+  BORROWED = 'BORROWED',
+  RETURNED = 'RETURNED',
+  REJECTED = 'REJECTED',
+}
+
+export enum ReturnCondition {
+  NORMAL = 'NORMAL',
+  DAMAGED = 'DAMAGED',
+  LIGHT_DAMAGE = 'LIGHT_DAMAGE',
+  SEVERE_DAMAGE = 'SEVERE_DAMAGE',
+  LOST = 'LOST',
+}
 
 @Entity('borrow_records')
 export class BorrowRecord {
@@ -13,17 +29,29 @@ export class BorrowRecord {
   @ManyToOne(() => Book, { onDelete: 'CASCADE' })
   book: Book;
 
+  @ManyToOne(() => BookCopy, { nullable: true, onDelete: 'SET NULL' })
+  copy: BookCopy | null;
+
   @CreateDateColumn()
   borrowedAt: Date;
 
   @Column({ type: 'datetime', nullable: true })
-  dueDate: Date;
+  dueDate: Date | null;
 
   @Column({ type: 'datetime', nullable: true })
-  returnedAt?: Date;
+  returnedAt: Date | null;
 
-  @Column({ default: 'BORROWED' }) // BORROWED | RETURNED
-  status: string;
+  @Column({ type: 'enum', enum: BorrowStatus, default: BorrowStatus.PENDING })
+  status: BorrowStatus;
+
+  @Column({ type: 'datetime', nullable: true })
+  approvedAt: Date | null;
+
+  @Column({ type: 'int', default: 0 })
+  extensionCount: number;
+
+  @Column({ type: 'enum', enum: ReturnCondition, nullable: true })
+  returnCondition: ReturnCondition | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   fineAmount: number;
