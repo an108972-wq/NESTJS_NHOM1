@@ -13,7 +13,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { COUNTER_ROLES, UserRole } from '../../common/constants/user-role';
+import { COUNTER_ROLES, STAFF_ROLES, UserRole } from '../../common/constants/user-role';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto.js';
@@ -52,7 +52,7 @@ export class UsersController {
   }
 
   @Get('staff-performance')
-  @Roles(...COUNTER_ROLES)
+  @Roles(...STAFF_ROLES)
   getStaffPerformance(@Query('staffId') staffId?: number) {
     return this.usersService.getStaffPerformance(staffId ? Number(staffId) : undefined);
   }

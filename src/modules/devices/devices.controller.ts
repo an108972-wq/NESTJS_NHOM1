@@ -41,7 +41,7 @@ export class DevicesController {
   }
 
   @Get('stats')
-  @Roles(...STAFF_ROLES)
+  @Roles(...ALL_ROLES)
   getStats() {
     return this.devicesService.getStats();
   }

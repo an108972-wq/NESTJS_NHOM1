@@ -26,7 +26,7 @@ import {
 } from './entities/borrow-record.entity';
 import { FinePayment, PaymentMethod, PaymentStatus } from '../payments/entities/payment.entity';
 import { SettingsService } from '../settings/settings.service';
-import { UserRole, READER_GROUP_LIMITS } from '../../common/constants/user-role';
+import { UserRole, READER_GROUP_LIMITS, STAFF_ROLES } from '../../common/constants/user-role';
 import { isLibraryCardExpired } from '../users/library-card';
 import { FineViolation, FineViolationType } from './entities/fine-violation.entity';
 import { FineAdjustment } from './entities/fine-adjustment.entity';
@@ -324,7 +324,7 @@ export class BorrowRecordsService {
   ): Promise<{ unlocked: boolean; message?: string }> {
     const mgr = manager || this.dataSource.manager;
     const user = await mgr.findOne(User, { where: { id: userId } });
-    if (!user || user.role !== UserRole.READER) {
+    if (!user || STAFF_ROLES.includes(user.role as any)) {
       return { unlocked: false };
     }
 

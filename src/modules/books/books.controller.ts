@@ -269,7 +269,7 @@ export class BooksController {
 
   @Post('audit')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...STAFF_ROLES)
+  @Roles(...INVENTORY_ROLES)
   runAudit(
     @Body()
     dto: { floor?: string; aisle?: string; shelf?: string; scannedBarcodes: string[] },
@@ -279,7 +279,7 @@ export class BooksController {
 
   @Post('audit/bulk-update-status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...STAFF_ROLES)
+  @Roles(...INVENTORY_ROLES)
   bulkUpdateAuditStatus(
     @Body()
     dto: { barcodes: string[]; status: BookCopyStatus; reason?: string },
@@ -289,7 +289,7 @@ export class BooksController {
 
   @Post('audit/relocate')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(...STAFF_ROLES)
+  @Roles(...INVENTORY_ROLES)
   relocateAuditCopies(
     @Body()
     dto: { barcodes: string[]; floor?: string; aisle?: string; shelf?: string },

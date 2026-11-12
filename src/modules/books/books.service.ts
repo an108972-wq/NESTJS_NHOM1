@@ -523,13 +523,29 @@ export class BooksService {
       .andWhere('copy.status != :disposedStatus', { disposedStatus: BookCopyStatus.DISPOSED });
 
     if (floor && floor.trim()) {
-      qb.andWhere('(copy.floor = :floor OR (copy.floor IS NULL AND book.floor = :floor))', { floor: floor.trim() });
+      const f = floor.trim();
+      const fNum = f.replace(/\D/g, '');
+      const fAlt = f.startsWith('Tầng') ? fNum : `Tầng ${f}`;
+      qb.andWhere(
+        "(COALESCE(NULLIF(TRIM(copy.floor), ''), NULLIF(TRIM(book.floor), '')) = :floor OR COALESCE(NULLIF(TRIM(copy.floor), ''), NULLIF(TRIM(book.floor), '')) = :floorAlt)",
+        { floor: f, floorAlt: fAlt || f },
+      );
     }
     if (aisle && aisle.trim()) {
-      qb.andWhere('(copy.aisle = :aisle OR (copy.aisle IS NULL AND book.aisle = :aisle))', { aisle: aisle.trim() });
+      const a = aisle.trim();
+      const aAlt = a.startsWith('Dãy') ? a.replace(/^Dãy\s*/i, '').trim() : `Dãy ${a}`;
+      qb.andWhere(
+        "(COALESCE(NULLIF(TRIM(copy.aisle), ''), NULLIF(TRIM(book.aisle), '')) = :aisle OR COALESCE(NULLIF(TRIM(copy.aisle), ''), NULLIF(TRIM(book.aisle), '')) = :aisleAlt)",
+        { aisle: a, aisleAlt: aAlt },
+      );
     }
     if (shelf && shelf.trim()) {
-      qb.andWhere('(copy.shelf = :shelf OR (copy.shelf IS NULL AND book.shelf = :shelf))', { shelf: shelf.trim() });
+      const s = shelf.trim();
+      const sAlt = s.startsWith('Kệ') ? s.replace(/^Kệ\s*/i, '').trim() : `Kệ ${s}`;
+      qb.andWhere(
+        "(COALESCE(NULLIF(TRIM(copy.shelf), ''), NULLIF(TRIM(book.shelf), '')) = :shelf OR COALESCE(NULLIF(TRIM(copy.shelf), ''), NULLIF(TRIM(book.shelf), '')) = :shelfAlt)",
+        { shelf: s, shelfAlt: sAlt },
+      );
     }
 
     const expectedCopies = await qb.getMany();
@@ -596,12 +612,10 @@ export class BooksService {
       try {
         for (let i = 0; i < scannedList.length; i += 50) {
           const chunk = scannedList.slice(i, i + 50);
-          await this.copyRepository
-            .createQueryBuilder()
-            .update(BookCopy)
-            .set({ lastAuditedAt: new Date() })
-            .where('barcode IN (:...barcodes)', { barcodes: chunk })
-            .execute();
+          await this.copyRepository.update(
+            { barcode: In(chunk) },
+            { lastAuditedAt: new Date() },
+          );
         }
       } catch {
         // Bỏ qua nếu cột lastAuditedAt chưa có hoặc DB đang bận
@@ -654,11 +668,20 @@ export class BooksService {
         if (copy.book) {
           if (previousStatus === BookCopyStatus.AVAILABLE) {
             copy.book.availableCopies = Math.max(0, copy.book.availableCopies - 1);
-            await manager.save(copy.book);
           } else if (status === BookCopyStatus.AVAILABLE) {
             copy.book.availableCopies += 1;
-            await manager.save(copy.book);
           }
+          if (typeof (manager as any).count === 'function') {
+            try {
+              const freshCount = await manager.count(BookCopy, {
+                where: { book: { id: copy.book.id }, status: BookCopyStatus.AVAILABLE },
+              });
+              copy.book.availableCopies = freshCount;
+            } catch {
+              // Dùng availableCopies đã điều chỉnh
+            }
+          }
+          await manager.save(copy.book);
         }
         updatedCount++;
       }

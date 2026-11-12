@@ -38,10 +38,11 @@ export class UsersService {
     const isReader = (dto.role ?? UserRole.READER) === UserRole.READER;
     const readerGroup = dto.readerGroup || (isReader ? 'STUDENT' : null);
     const groupLimit = readerGroup && READER_GROUP_LIMITS[readerGroup] ? READER_GROUP_LIMITS[readerGroup].maxActiveLoans : settings.maxActiveLoans;
+    const allowedLimit = Math.max(settings.maxActiveLoans, groupLimit);
     const maxActiveLoans = dto.maxActiveLoans ?? groupLimit;
-    if (dto.maxActiveLoans && dto.maxActiveLoans > settings.maxActiveLoans) {
+    if (dto.maxActiveLoans && dto.maxActiveLoans > allowedLimit) {
       throw new BadRequestException(
-        `Giới hạn mượn không được vượt quá ${settings.maxActiveLoans} sách theo cấu hình thư viện`,
+        `Giới hạn mượn không được vượt quá ${allowedLimit} sách theo phân loại hội viên (${readerGroup || 'Mặc định'})`,
       );
     }
 
@@ -266,11 +267,20 @@ export class UsersService {
       });
       if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
+      if (dto.readerGroup !== undefined) {
+        user.readerGroup = dto.readerGroup;
+        if (dto.maxActiveLoans === undefined && dto.readerGroup && READER_GROUP_LIMITS[dto.readerGroup]) {
+          user.maxActiveLoans = READER_GROUP_LIMITS[dto.readerGroup].maxActiveLoans;
+        }
+      }
       if (dto.maxActiveLoans !== undefined) {
         const settings = await this.settingsService.getSettings();
-        if (dto.maxActiveLoans > settings.maxActiveLoans) {
+        const currentGroup = dto.readerGroup || user.readerGroup;
+        const groupLimit = currentGroup && READER_GROUP_LIMITS[currentGroup] ? READER_GROUP_LIMITS[currentGroup].maxActiveLoans : settings.maxActiveLoans;
+        const allowedLimit = Math.max(settings.maxActiveLoans, groupLimit);
+        if (dto.maxActiveLoans > allowedLimit) {
           throw new BadRequestException(
-            `Giới hạn mượn không được vượt quá ${settings.maxActiveLoans} sách theo cấu hình thư viện`,
+            `Giới hạn mượn không được vượt quá ${allowedLimit} sách theo phân loại hội viên (${currentGroup || 'Mặc định'})`,
           );
         }
         const activeLoanCount = await manager.count(BorrowRecord, {
@@ -392,40 +402,47 @@ export class UsersService {
     return this.toPublicUser(saved);
   }
 
-  // TỰ ĐỘNG QUÉT VÀ KHÓA TÀI KHOẢN ĐỘC GIẢ VI PHẠM (QUÁ HẠN > 7 NGÀY HOẶC PHẠT > 100K)
+  // TỰ ĐỘNG QUÉT VÀ KHÓA TÀI KHOẢN ĐỘC GIẢ VI PHẠM (QUÁ HẠN LÂU NGÀY HOẶC NỢ TIỀN PHẠT)
   async autoLockOverdueReaders(performer?: any) {
     const activeReaders = await this.usersRepository.find({
       where: { role: UserRole.READER, isActive: true },
     });
     const now = new Date();
+    const settings = await this.settingsService.getSettings();
+    const overdueThresholdDays = settings.autoLockOverdueDays || 7;
+    const fineThreshold = (settings as any).autoLockFineThreshold || 100000;
     const lockedUsers: any[] = [];
 
     for (const reader of activeReaders) {
-      // 1. Kiểm tra sách mượn quá hạn > 7 ngày
+      // 1. Kiểm tra sách mượn quá hạn >= overdueThresholdDays
       const loans = await this.borrowRepository.find({
         where: { user: { id: reader.id }, status: BorrowStatus.BORROWED },
       });
 
-      let hasOverdueOver7Days = false;
+      let hasOverdueLongDays = false;
       for (const loan of loans) {
         if (loan.dueDate) {
           const dueTime = new Date(loan.dueDate).getTime();
           const diffDays = Math.floor((now.getTime() - dueTime) / (1000 * 60 * 60 * 24));
-          if (diffDays >= 7) {
-            hasOverdueOver7Days = true;
+          if (diffDays >= overdueThresholdDays) {
+            hasOverdueLongDays = true;
             break;
           }
         }
       }
 
-      // 2. Kiểm tra tổng tiền phạt chưa trả
+      // 2. Kiểm tra tổng tiền phạt chưa trả (cả biên bản vi phạm và phiếu mượn trễ hạn)
       const violations = await this.fineViolationRepository.find({
         where: { user: { id: reader.id }, fineStatus: 'UNPAID' },
       });
-      const totalUnpaidFines = violations.reduce((sum, v) => sum + Number(v.fineAmount || 0), 0);
-      const isFineOverLimit = totalUnpaidFines > 100000;
+      const unpaidManualFines = violations.reduce((sum, v) => sum + Number(v.fineAmount || 0), 0);
+      const unpaidLoanFines = loans
+        .filter((l) => l.fineStatus === 'UNPAID')
+        .reduce((sum, l) => sum + Number(l.fineAmount || 0), 0);
+      const totalUnpaidFines = unpaidManualFines + unpaidLoanFines;
+      const isFineOverLimit = totalUnpaidFines >= fineThreshold;
 
-      if (hasOverdueOver7Days || isFineOverLimit) {
+      if (hasOverdueLongDays || isFineOverLimit) {
         reader.isActive = false;
         await this.usersRepository.save(reader);
 
@@ -439,7 +456,7 @@ export class UsersService {
           await this.auditLogsService.log({
             action: 'AUTO_LOCK_VIOLATION',
             module: 'USERS',
-            description: `Tự động khóa tài khoản độc giả ${reader.fullName || reader.username} (Lý do: ${hasOverdueOver7Days ? 'Quá hạn > 7 ngày' : ''}${isFineOverLimit ? ' / Phạt nợ > 100k' : ''})`,
+            description: `Tự động khóa tài khoản độc giả ${reader.fullName || reader.username} (Lý do: ${hasOverdueLongDays ? `Quá hạn >= ${overdueThresholdDays} ngày` : ''}${isFineOverLimit ? ` / Nợ phạt >= ${fineThreshold.toLocaleString('vi-VN')} ₫` : ''})`,
             performerId: performer?.userId || performer?.id,
             performerName: performer?.username || 'Hệ thống tự động',
             performerRole: performer?.role || 'SYSTEM',
@@ -450,7 +467,7 @@ export class UsersService {
           id: reader.id,
           username: reader.username,
           fullName: reader.fullName,
-          reason: hasOverdueOver7Days ? 'Quá hạn trả sách trên 7 ngày' : 'Nợ tiền phạt vi phạm vượt quá 100.000 ₫',
+          reason: hasOverdueLongDays ? `Quá hạn trả sách trên ${overdueThresholdDays} ngày` : `Nợ tiền phạt vi phạm vượt quá ${fineThreshold.toLocaleString('vi-VN')} ₫`,
         });
       }
     }

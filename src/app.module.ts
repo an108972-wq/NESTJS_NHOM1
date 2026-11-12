@@ -21,6 +21,11 @@ import { DevicesModule } from './modules/devices/devices.module';
 import { StudyRoomsModule } from './modules/study-rooms/study-rooms.module';
 import { LockersModule } from './modules/lockers/lockers.module';
 import { AiModule } from './modules/ai/ai.module';
+import { EventsModule } from './modules/events/events.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
+import { TutorialsModule } from './modules/tutorials/tutorials.module';
+import { PartnersModule } from './modules/partners/partners.module';
+import { IotModule } from './modules/iot/iot.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -59,6 +64,11 @@ import { AppService } from './app.service';
     StudyRoomsModule,
     LockersModule,
     AiModule,
+    EventsModule,
+    FeedbackModule,
+    TutorialsModule,
+    PartnersModule,
+    IotModule,
   ],
 })
 export class AppModule implements NestModule {

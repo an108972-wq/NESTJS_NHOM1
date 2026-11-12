@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/entities/user.entity';
 import { RegisterDto, LoginDto, Verify2faDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
-import { UserRole } from '../../common/constants/user-role';
+import { UserRole, READER_GROUP_LIMITS } from '../../common/constants/user-role';
 import { JWT_ACCESS_SECRET, JWT_REFRESH_SECRET } from '../../common/constants/auth-secrets';
 
 @Injectable()
@@ -96,6 +96,8 @@ export class AuthService implements OnModuleInit {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const readerGroup = dto.readerGroup || 'STUDENT';
+    const groupLimit = (READER_GROUP_LIMITS[readerGroup] && READER_GROUP_LIMITS[readerGroup].maxActiveLoans) || 5;
     const user = this.usersRepository.create({
       username,
       fullName: dto.fullName.trim(),
@@ -103,6 +105,8 @@ export class AuthService implements OnModuleInit {
       email,
       passwordHash,
       role: UserRole.READER,
+      readerGroup,
+      maxActiveLoans: groupLimit,
       isActive: false,
       approvedAt: null,
     });

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { STAFF_ROLES } from '../../common/constants/user-role';
 import {
   BorrowRecord,
@@ -135,12 +135,23 @@ export class PaymentsService {
 
         if (record.user) {
           const user = await manager.findOne(User, { where: { id: record.user.id } });
-          if (user && (!user.isActive || Boolean(user.lockoutUntil && new Date(user.lockoutUntil) > new Date()))) {
-            const [unpaidBorrow, unpaidViolations] = await Promise.all([
+          if (
+            user &&
+            !STAFF_ROLES.includes(user.role as (typeof STAFF_ROLES)[number]) &&
+            (!user.isActive || Boolean(user.lockoutUntil && new Date(user.lockoutUntil) > new Date()))
+          ) {
+            const [unpaidBorrow, unpaidViolations, overdueLoans] = await Promise.all([
               manager.count(BorrowRecord, { where: { user: { id: user.id }, fineStatus: 'UNPAID' } }),
               manager.count(FineViolation, { where: { user: { id: user.id }, fineStatus: 'UNPAID' } }),
+              manager.count(BorrowRecord, {
+                where: {
+                  user: { id: user.id },
+                  status: BorrowStatus.BORROWED,
+                  dueDate: LessThan(new Date()),
+                },
+              }),
             ]);
-            if (unpaidBorrow === 0 && unpaidViolations === 0) {
+            if (unpaidBorrow === 0 && unpaidViolations === 0 && overdueLoans === 0) {
               user.isActive = true;
               user.lockoutUntil = null;
               user.failedLoginAttempts = 0;

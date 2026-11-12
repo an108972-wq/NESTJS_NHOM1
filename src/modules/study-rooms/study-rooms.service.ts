@@ -197,7 +197,10 @@ export class StudyRoomsService {
       throw new BadRequestException(`Chỉ có thể check-in cho đơn đặt đã được duyệt (Trạng thái hiện tại: ${booking.status})`);
     }
 
-    if (booking.room.qrToken !== qrTokenProvided) {
+    const validToken = booking.room.qrToken;
+    const roomCodeAlias = `ROOM-${booking.room.code}`;
+    const provided = (qrTokenProvided || '').trim().toUpperCase();
+    if (provided !== (validToken || '').toUpperCase() && provided !== roomCodeAlias.toUpperCase()) {
       throw new BadRequestException('Mã QR check-in tại cửa phòng không hợp lệ!');
     }
 

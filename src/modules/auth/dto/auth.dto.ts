@@ -35,6 +35,10 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(255)
   username?: string;
+
+  @IsOptional()
+  @IsString()
+  readerGroup?: string;
 }
 
 export class LoginDto {

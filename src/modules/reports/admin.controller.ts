@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { STAFF_ROLES } from '../../common/constants/user-role';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -19,7 +19,7 @@ export class AdminController {
   @Get('analytics')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...STAFF_ROLES)
-  getAnalytics() {
-    return this.reportsService.getAdvancedAnalytics();
+  getAnalytics(@Query('timeRange') timeRange?: string) {
+    return this.reportsService.getAdvancedAnalytics(timeRange);
   }
 }

@@ -61,14 +61,15 @@ export class NotificationsController {
 
   @Post('test-smtp')
   @Roles(UserRole.ADMIN)
-  testSmtp(@Body('email') email: string) {
+  testSmtp(@Body() body: any) {
+    const email = (body?.email || body?.to || '').trim();
     if (!email) throw new BadRequestException('Vui lòng cung cấp địa chỉ email nhận thư thử nghiệm');
-    return this.notificationsService.testSmtpConnection(email.trim());
+    return this.notificationsService.testSmtpConnection(email);
   }
 
   @Post('test-template')
   @Roles(UserRole.ADMIN)
-  testTemplate(@Body() body: { id?: number; code?: string; subject?: string; content?: string; email: string }) {
+  testTemplate(@Body() body: any) {
     return this.notificationsService.testTemplate(body);
   }
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 12, 2026 lúc 01:07 AM
+-- Thời gian đã tạo: Th10 12, 2026 lúc 03:31 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
@@ -47,7 +47,8 @@ CREATE TABLE `audit_logs` (
 INSERT INTO `audit_logs` (`id`, `action`, `module`, `description`, `performerId`, `performerName`, `performerRole`, `ipAddress`, `createdAt`, `level`) VALUES
 (1, 'SYSTEM_INIT', 'SYSTEM', 'Hệ thống Quản lý Thư viện số khởi động thành công.', NULL, 'Hệ thống', 'SYSTEM', '127.0.0.1', '2026-11-03 15:43:57.814000', 'INFO'),
 (2, 'LOGIN', 'AUTH', 'Quản trị viên đăng nhập vào hệ thống quản lý.', NULL, 'admin', 'ADMIN', '127.0.0.1', '2026-11-04 15:43:57.814000', 'INFO'),
-(3, 'STOCK_CHECK', 'INVENTORY', 'Thực hiện kiểm kê đối soát tự động toàn bộ kho sách.', NULL, 'admin', 'ADMIN', '127.0.0.1', '2026-11-05 10:43:57.814000', 'INFO');
+(3, 'STOCK_CHECK', 'INVENTORY', 'Thực hiện kiểm kê đối soát tự động toàn bộ kho sách.', NULL, 'admin', 'ADMIN', '127.0.0.1', '2026-11-05 10:43:57.814000', 'INFO'),
+(4, 'MERGE_CATEGORIES', 'CATEGORIES', 'Gộp 1 thể loại [buồn] vào \"hài\". Đã di chuyển 0 đầu sách. Đã xóa danh mục nguồn cũ.', 1, 'admin', 'ADMIN', NULL, '2026-11-12 16:42:54.440516', 'INFO');
 
 -- --------------------------------------------------------
 
@@ -77,22 +78,24 @@ CREATE TABLE `books` (
   `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
   `digitalViews` int(11) NOT NULL DEFAULT 0,
   `digitalDownloads` int(11) NOT NULL DEFAULT 0,
-  `pdfPermission` enum('PUBLIC','READER_ONLY','NO_DOWNLOAD') NOT NULL DEFAULT 'PUBLIC'
+  `pdfPermission` enum('PUBLIC','READER_ONLY','NO_DOWNLOAD') NOT NULL DEFAULT 'PUBLIC',
+  `digitalFormat` varchar(10) NOT NULL DEFAULT 'PDF',
+  `previewPages` int(11) NOT NULL DEFAULT 5
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `books`
 --
 
-INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `totalCopies`, `availableCopies`, `shelf`, `floor`, `aisle`, `categoryId`, `deletedAt`, `publisherId`, `description`, `coverImageUrl`, `publicationYear`, `pdfUrl`, `price`, `createdAt`, `updatedAt`, `digitalViews`, `digitalDownloads`, `pdfPermission`) VALUES
-(1, 'Harry Potter và Hòn Đá Phù Thủy', 'J.K. Rowling', '978-0747532699', 5, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(2, 'Đắc Nhân Tâm', 'Dale Carnegie', '978-0671027032', 10, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(3, 'Nhà Giả Kim', 'Paulo Coelho', '978-0062315007', 3, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(4, 'Thiện tâm', 'Nguyễn Thiện Tâm', '123456', 1, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(5, 'd', 'a', '12', 12, 9, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(6, 'w', 'q', '1', 2, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(7, 'phù thủy thần tiên', 'Trần Văn An', '1', 1, 1, '2', '3', 'B', NULL, NULL, 1, '', '', 2002, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC'),
-(8, 'Hà nội phố', 'Nguyễn Vĩnh Quang', '1', 1, 1, 'A2', '3', 'B', 1, NULL, 1, 'Rất cảm động', 'https://lh3.googleusercontent.com/grass-cs/AABkmLdc1LuRFsO92ZSTySkJgFDuZEgwA03pmQzmQMr1uEQ4kuNGBA-H0t6GkiQI5_QfJug8ZJaRA6Yl42ghlkTdCwmDfZKHsG271MEZP4v7cypoV4mumEYIOvucAzuCWCBdGO4D0u0tuT7bWKtp=w289-h312-n-k-no', 1966, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC');
+INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `totalCopies`, `availableCopies`, `shelf`, `floor`, `aisle`, `categoryId`, `deletedAt`, `publisherId`, `description`, `coverImageUrl`, `publicationYear`, `pdfUrl`, `price`, `createdAt`, `updatedAt`, `digitalViews`, `digitalDownloads`, `pdfPermission`, `digitalFormat`, `previewPages`) VALUES
+(1, 'Harry Potter và Hòn Đá Phù Thủy', 'J.K. Rowling', '978-0747532699', 5, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(2, 'Đắc Nhân Tâm', 'Dale Carnegie', '978-0671027032', 10, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(3, 'Nhà Giả Kim', 'Paulo Coelho', '978-0062315007', 3, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(4, 'Thiện tâm', 'Nguyễn Thiện Tâm', '123456', 1, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(5, 'd', 'a', '12', 12, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-12 16:42:32.000000', 0, 0, 'PUBLIC', 'PDF', 5),
+(6, 'w', 'q', '1', 2, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(7, 'phù thủy thần tiên', 'Trần Văn An', '1', 1, 1, '2', '3', 'B', NULL, NULL, 1, '', '', 2002, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(8, 'Hà nội phố', 'Nguyễn Vĩnh Quang', '1', 1, 1, 'A2', '3', 'B', 1, NULL, 1, 'Rất cảm động', 'https://lh3.googleusercontent.com/grass-cs/AABkmLdc1LuRFsO92ZSTySkJgFDuZEgwA03pmQzmQMr1uEQ4kuNGBA-H0t6GkiQI5_QfJug8ZJaRA6Yl42ghlkTdCwmDfZKHsG271MEZP4v7cypoV4mumEYIOvucAzuCWCBdGO4D0u0tuT7bWKtp=w289-h312-n-k-no', 1966, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5);
 
 -- --------------------------------------------------------
 
@@ -120,8 +123,8 @@ CREATE TABLE `book_copies` (
 INSERT INTO `book_copies` (`id`, `barcode`, `status`, `bookId`, `shelf`, `floor`, `aisle`, `lastAuditedAt`, `createdAt`, `updatedAt`) VALUES
 (1, 'LEGACY-5-1', 'RESERVED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (2, 'LEGACY-5-2', 'BORROWED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(3, 'LEGACY-5-3', 'RESERVED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(4, 'LEGACY-5-4', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
+(3, 'LEGACY-5-3', 'BORROWED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-12 14:25:13.000000'),
+(4, 'LEGACY-5-4', 'RESERVED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-12 16:42:32.000000'),
 (5, 'LEGACY-5-5', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (6, 'LEGACY-5-6', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (7, 'LEGACY-5-7', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
@@ -157,6 +160,37 @@ INSERT INTO `book_copies` (`id`, `barcode`, `status`, `bookId`, `shelf`, `floor`
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `book_donations`
+--
+
+CREATE TABLE `book_donations` (
+  `id` int(11) NOT NULL,
+  `partnerId` int(11) NOT NULL,
+  `partnerName` varchar(255) DEFAULT NULL,
+  `donationType` varchar(255) NOT NULL DEFAULT 'BOOKS',
+  `itemTitle` varchar(255) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  `estimatedValue` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `receiptNumber` varchar(255) NOT NULL,
+  `receivedByStaffName` varchar(255) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `donationDate` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `partner` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `book_donations`
+--
+
+INSERT INTO `book_donations` (`id`, `partnerId`, `partnerName`, `donationType`, `itemTitle`, `quantity`, `estimatedValue`, `receiptNumber`, `receivedByStaffName`, `note`, `donationDate`, `partner`) VALUES
+(1, 1, 'Hội Cựu Sinh Viên Khóa 2015-2019', 'BOOKS', 'Bộ sưu tập 350 cuốn Sách Khởi nghiệp, Lãnh đạo & Đổi mới sáng tạo 2026', 350, 42000000.00, 'REC-2026-001', 'Thủ thư Nguyễn Văn Quản', 'Sách mới nguyên seal, có dán nhãn logo Hội Cựu SV.', '2026-10-28 21:20:06.819000', NULL),
+(2, 1, 'Hội Cựu Sinh Viên Khóa 2015-2019', 'CASH', 'Kinh phí hỗ trợ số hóa tài liệu quý và mua bản quyền CSDL', 1, 50000000.00, 'REC-2026-002', 'Thủ thư Nguyễn Văn Quản', 'Đã chuyển vào tài khoản Quỹ phát triển Thư viện trường.', '2026-10-31 21:20:06.819000', NULL),
+(3, 2, 'Nhà Xuất Bản Khoa Học & Kỹ Thuật', 'BOOKS', '520 cuốn Giáo trình Bách khoa & Công nghệ Thông tin thế hệ mới', 520, 78000000.00, 'REC-2026-003', 'Thủ thư Lê Thị Hồng', 'Được chuyển thẳng vào kho tài liệu tham khảo tầng 2.', '2026-11-05 21:20:06.819000', NULL),
+(4, 3, 'Quỹ Giáo Dục & Phát Triển Văn Hóa Đọc Việt Nam', 'EQUIPMENT', '10 Máy tính bảng chuyên dụng tra cứu E-Library Kindle Paperwhite', 10, 45000000.00, 'REC-2026-004', 'Thủ thư Nguyễn Văn Quản', 'Bàn giao cho phòng Thư viện số E-Library khai thác.', '2026-11-09 21:20:06.819000', NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `borrow_records`
 --
 
@@ -185,8 +219,9 @@ CREATE TABLE `borrow_records` (
 INSERT INTO `borrow_records` (`id`, `borrowedAt`, `dueDate`, `returnedAt`, `fineAmount`, `fineStatus`, `userId`, `bookId`, `approvedAt`, `extensionCount`, `returnCondition`, `copyId`, `status`, `createdAt`, `updatedAt`) VALUES
 (1, '2026-11-01 09:12:10.437015', NULL, NULL, 0.00, 'NONE', 1, 5, NULL, 0, NULL, 1, 'PENDING', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
 (2, '2026-11-01 10:42:22.242176', '2026-11-29 11:50:10', NULL, 0.00, 'NONE', 1, 5, '2026-11-01 11:50:10', 1, NULL, 2, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
-(3, '2026-11-02 09:45:42.309211', NULL, NULL, 0.00, 'NONE', 3, 5, NULL, 0, NULL, 3, 'PENDING', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
-(4, '2026-11-02 09:46:09.347972', '2026-11-16 09:51:11', NULL, 0.00, 'NONE', 3, 3, '2026-11-02 09:51:11', 0, NULL, 24, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826');
+(3, '2026-11-02 09:45:42.309211', '2026-11-26 14:25:13', NULL, 0.00, 'NONE', 3, 5, '2026-11-12 14:25:13', 0, NULL, 3, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-12 14:25:13.000000'),
+(4, '2026-11-02 09:46:09.347972', '2026-11-16 09:51:11', NULL, 0.00, 'NONE', 3, 3, '2026-11-02 09:51:11', 0, NULL, 24, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
+(5, '2026-11-12 16:42:32.347737', NULL, NULL, 0.00, 'NONE', 1, 5, NULL, 0, NULL, 4, 'PENDING', '2026-11-12 16:42:32.347737', '2026-11-12 16:42:32.347737');
 
 -- --------------------------------------------------------
 
@@ -209,8 +244,7 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `ddcCode`, `parentId`, `createdAt`, `updatedAt`) VALUES
-(1, 'hài', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491'),
-(2, 'buồn', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491');
+(1, 'hài', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491');
 
 -- --------------------------------------------------------
 
@@ -347,6 +381,47 @@ CREATE TABLE `fine_violations` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `iot_devices`
+--
+
+CREATE TABLE `iot_devices` (
+  `id` int(11) NOT NULL,
+  `deviceCode` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL DEFAULT 'ENV_SENSOR',
+  `location` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL DEFAULT 'ONLINE',
+  `ipAddress` varchar(255) DEFAULT NULL,
+  `macAddress` varchar(255) DEFAULT NULL,
+  `firmwareVersion` varchar(255) DEFAULT NULL,
+  `temperature` decimal(5,2) DEFAULT NULL,
+  `humidity` decimal(5,2) DEFAULT NULL,
+  `rfidScansToday` int(11) NOT NULL DEFAULT 0,
+  `rfidAlertsToday` int(11) NOT NULL DEFAULT 0,
+  `powerState` tinyint(4) NOT NULL DEFAULT 1,
+  `batteryLevel` int(11) NOT NULL DEFAULT 100,
+  `lastPingAt` datetime DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `iot_devices`
+--
+
+INSERT INTO `iot_devices` (`id`, `deviceCode`, `name`, `type`, `location`, `status`, `ipAddress`, `macAddress`, `firmwareVersion`, `temperature`, `humidity`, `rfidScansToday`, `rfidAlertsToday`, `powerState`, `batteryLevel`, `lastPingAt`, `note`, `createdAt`, `updatedAt`) VALUES
+(1, 'RFID-GATE-MAIN', 'Hệ Thống Cổng Từ An Ninh RFID Cửa Chính (Làn 1 & 2)', 'RFID_GATE', 'Sảnh chính Tầng 1 - Cửa ra vào trung tâm', 'ONLINE', '192.168.10.101', 'D8:3A:DD:4A:21:01', 'v3.4.2-RFID-PRO', NULL, NULL, 1485, 2, 1, 100, '2026-11-12 21:20:06', 'Độ nhạy 99.8%. Tự động chụp ảnh độc giả khi chuông báo động kích hoạt.', '2026-11-12 21:20:06.833010', '2026-11-12 21:20:06.833010'),
+(2, 'RFID-GATE-FLOOR2', 'Cổng Từ Giám Sát Lối Vào Phòng Sách Chuyên Khảo', 'RFID_GATE', 'Lối vào Khu Tài liệu Ngoại văn - Tầng 2', 'ONLINE', '192.168.10.102', 'D8:3A:DD:4A:21:02', 'v3.4.2-RFID-PRO', NULL, NULL, 820, 0, 1, 100, '2026-11-12 21:20:06', 'Kết nối mạng nội bộ VLAN Thiết bị an ninh.', '2026-11-12 21:20:06.834590', '2026-11-12 21:20:06.834590'),
+(3, 'ENV-SENSOR-ARCHIVE', 'Trạm Cảm Biến Môi Trường Kho Lưu Trữ Sách Quý & Luận Án', 'ENV_SENSOR', 'Kho Lưu Trữ Đặc Biệt - Phòng 305 (Tầng 3)', 'ONLINE', '192.168.10.120', 'B4:E6:2D:11:88:C4', 'v2.1.0-ENV', 20.80, 53.50, 0, 0, 1, 98, '2026-11-12 21:20:06', 'Tiêu chuẩn bảo quản sách quý: Nhiệt độ 18°C-22°C, Độ ẩm 50%-60% RH. Cảnh báo tự động nếu vượt ngưỡng.', '2026-11-12 21:20:06.836723', '2026-11-12 21:20:06.836723'),
+(4, 'ENV-SENSOR-SERVER', 'Cảm Biến Nhiệt/Ẩm Phòng Máy Chủ & Hạ Tầng Số (Data Center)', 'ENV_SENSOR', 'Phòng Máy Chủ DC - Tầng B1', 'ONLINE', '192.168.10.121', 'B4:E6:2D:11:88:E2', 'v2.1.0-ENV', 19.50, 48.20, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Theo dõi 24/7 nhiệt độ tủ Rack máy chủ ứng dụng thư viện.', '2026-11-12 21:20:06.838299', '2026-11-12 21:20:06.838299'),
+(5, 'SMART-AC-ZONE-A', 'Hệ Thống Điều Hòa Trung Tâm VRV - Khu Đọc Tự Do (Zone A)', 'SMART_AC', 'Hội trường đọc tự do - Tầng 1', 'ONLINE', '192.168.10.140', '70:B3:D5:E1:90:3A', 'v1.8.9-HVAC-BACnet', 24.00, 58.00, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Tự động điều chỉnh công suất theo mật độ người đọc qua cảm biến hồng ngoại.', '2026-11-12 21:20:06.840409', '2026-11-12 21:20:06.840409'),
+(6, 'SMART-LIGHT-FLOOR2', 'Bộ Điều Khiển Chiếu Sáng Thông Minh DALI - Tầng 2', 'SMART_LIGHT', 'Hành lang & Dãy kệ sách Kho Mở - Tầng 2', 'ONLINE', '192.168.10.150', '70:B3:D5:E1:90:4B', 'v1.5.0-DALI', NULL, NULL, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Tiết kiệm 45% điện năng nhờ tự động giảm sáng khi không có người trong dãy kệ.', '2026-11-12 21:20:06.841662', '2026-11-12 21:20:06.841662'),
+(7, 'BOOK-DROP-247', 'Thùng Trả Sách Tự Động Thông Minh 24/7 Ngoài Cổng', 'BOOK_DROP_BOX', 'Mặt tiền Thư viện - Cổng phía Tây', 'ONLINE', '192.168.10.160', 'AC:67:B2:FF:10:99', 'v2.8.1-DROPBOX', NULL, NULL, 95, 0, 1, 100, '2026-11-12 21:20:06', 'Tích hợp đầu quét RFID nhận diện sách và băng tải tự động phân loại.', '2026-11-12 21:20:06.842793', '2026-11-12 21:20:06.842793');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `library_budgets`
 --
 
@@ -368,7 +443,72 @@ CREATE TABLE `library_budgets` (
 --
 
 INSERT INTO `library_budgets` (`id`, `year`, `totalBudget`, `q1Allocation`, `q2Allocation`, `q3Allocation`, `q4Allocation`, `notes`, `createdAt`, `updatedAt`) VALUES
-(1, 2026, 200000000.00, 50000000.00, 50000000.00, 50000000.00, 50000000.00, 'Ngân sách thu mua năm 2026', '2026-11-06 16:14:16.343818', '2026-11-06 16:14:16.343818');
+(1, 2026, 200000000.00, 50000000.00, 50000000.00, 50000000.00, 50000000.00, 'Ngân sách thu mua năm 2026', '2026-11-06 16:14:16.343818', '2026-11-12 16:43:06.000000');
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `library_events`
+--
+
+CREATE TABLE `library_events` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `type` varchar(30) NOT NULL DEFAULT 'ANNOUNCEMENT',
+  `content` text NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `startDate` datetime DEFAULT NULL,
+  `endDate` datetime DEFAULT NULL,
+  `bannerUrl` varchar(500) DEFAULT NULL,
+  `isPinned` tinyint(4) NOT NULL DEFAULT 0,
+  `targetAudience` varchar(30) NOT NULL DEFAULT 'ALL',
+  `status` varchar(30) NOT NULL DEFAULT 'UPCOMING',
+  `viewCount` int(11) NOT NULL DEFAULT 0,
+  `createdByName` varchar(150) DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `library_events`
+--
+
+INSERT INTO `library_events` (`id`, `title`, `type`, `content`, `location`, `startDate`, `endDate`, `bannerUrl`, `isPinned`, `targetAudience`, `status`, `viewCount`, `createdByName`, `createdAt`, `updatedAt`) VALUES
+(1, 'Triển lãm & Ngày hội Sách mới Năm học 2026', 'EXHIBITION', 'Chào đón năm học mới, Thư viện tổ chức Tuần lễ Triển lãm Sách mới với hơn 500 đầu sách chuyên khảo, giáo trình đại học chuẩn quốc tế và ấn phẩm khoa học công nghệ vừa cập bến kho sách lưu chiểu.', 'Sảnh chính Tòa nhà Thư viện Trung tâm (Tầng 1)', '2026-11-12 21:03:00', '2026-11-19 21:03:00', 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=80', 1, 'ALL', 'HAPPENING', 142, 'Thủ thư Ban quản lý', '2026-11-12 21:03:00.213397', '2026-11-12 21:03:00.213397'),
+(2, 'Workshop: Kỹ năng Khai thác Cơ sở Dữ liệu & Tài nguyên Số Quốc tế', 'WORKSHOP', 'Khóa tập huấn chuyên sâu trang bị cho sinh viên năm cuối và nghiên cứu sinh phương pháp tìm kiếm tài liệu trên Scopus, IEEE Xplore, ScienceDirect và cách trích dẫn chuẩn IEEE / APA.', 'Phòng Hội thảo Đa phương tiện P.302', '2026-11-15 21:03:00', '2026-11-15 21:03:00', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80', 1, 'STUDENT', 'UPCOMING', 88, 'Thủ thư Huỳnh Thảo', '2026-11-12 21:03:00.220963', '2026-11-12 21:03:00.220963'),
+(3, 'Thông báo: Tăng cường mở cửa phục vụ 24/7 trong Tuần lễ Thi học kỳ', 'ANNOUNCEMENT', 'Nhằm tạo điều kiện ôn tập tốt nhất cho toàn thể bạn đọc, từ ngày 15/11 đến hết 30/11, Thư viện mở cửa liên tục các phòng tự học Tầng 2 và Tầng 3 đến 23:00 mỗi ngày, có hỗ trợ nước uống và máy in tài liệu.', 'Toàn bộ không gian Thư viện', '2026-11-12 21:03:00', '2026-11-19 21:03:00', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80', 0, 'ALL', 'HAPPENING', 215, 'Giám đốc Thư viện', '2026-11-12 21:03:00.225147', '2026-11-12 21:03:00.225147');
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `library_partners`
+--
+
+CREATE TABLE `library_partners` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL DEFAULT 'ORGANIZATION',
+  `contactPerson` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `totalDonatedBooks` int(11) NOT NULL DEFAULT 0,
+  `totalDonatedCash` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `status` varchar(255) NOT NULL DEFAULT 'ACTIVE',
+  `note` text DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `library_partners`
+--
+
+INSERT INTO `library_partners` (`id`, `name`, `type`, `contactPerson`, `email`, `phone`, `address`, `totalDonatedBooks`, `totalDonatedCash`, `status`, `note`, `createdAt`, `updatedAt`) VALUES
+(1, 'Hội Cựu Sinh Viên Khóa 2015-2019', 'INDIVIDUAL_ALUMNI', 'ThS. Trần Quang Minh (Đại diện Ban liên lạc)', 'alumni.k15@university.edu.vn', '0912345678', 'Hà Nội, Việt Nam', 350, 50000000.00, 'ACTIVE', 'Tài trợ đợt kỷ niệm 10 năm ra trường nhằm xây dựng Tủ sách Khởi nghiệp & Kỹ năng mềm.', '2026-11-12 21:20:06.811387', '2026-11-12 21:20:06.811387'),
+(2, 'Nhà Xuất Bản Khoa Học & Kỹ Thuật', 'PUBLISHER', 'Bà Nguyễn Thị Lan (Phó Giám đốc Đối ngoại)', 'contact@nxbkhkt.vn', '02438221234', '70 Trần Hưng Đạo, Hoàn Kiếm, Hà Nội', 520, 0.00, 'ACTIVE', 'Đối tác chiến lược tài trợ sách giáo trình, sách chuyên khảo Kỹ thuật - Công nghệ hàng năm.', '2026-11-12 21:20:06.814144', '2026-11-12 21:20:06.814144'),
+(3, 'Quỹ Giáo Dục & Phát Triển Văn Hóa Đọc Việt Nam', 'ORGANIZATION', 'TS. Phạm Thanh Tùng (Chủ tịch Quỹ)', 'support@readvietnam.org', '0988776655', 'Số 15 Lê Duẩn, Quận 1, TP. Hồ Chí Minh', 800, 120000000.00, 'ACTIVE', 'Tài trợ thiết bị đọc sách điện tử E-Reader và bản quyền giáo trình số Quốc tế.', '2026-11-12 21:20:06.816547', '2026-11-12 21:20:06.816547'),
+(4, 'Tập Đoàn Công Nghệ FPT - Khối FPT Software', 'CORPORATION', 'Ông Lê Quốc Bảo (HR Talent Acquisition Manager)', 'baolq@fpt.com', '0905123987', 'Tòa nhà FPT Cầu Giấy, Duy Tân, Hà Nội', 210, 80000000.00, 'ACTIVE', 'Tài trợ chuyên mục sách Trí tuệ nhân tạo, Điện toán đám mây và Học bổng tra cứu số.', '2026-11-12 21:20:06.818043', '2026-11-12 21:20:06.818043');
 
 -- --------------------------------------------------------
 
@@ -409,6 +549,12 @@ CREATE TABLE `library_settings` (
   `smtpUser` varchar(150) NOT NULL DEFAULT '',
   `smtpPassword` varchar(255) NOT NULL DEFAULT '',
   `smtpFrom` varchar(150) NOT NULL DEFAULT 'thuvien@daihoc.edu.vn',
+  `smsProvider` varchar(50) NOT NULL DEFAULT 'ESMS',
+  `smsApiKey` varchar(255) NOT NULL DEFAULT '',
+  `smsApiSecret` varchar(255) NOT NULL DEFAULT '',
+  `smsBrandName` varchar(100) NOT NULL DEFAULT 'THUVIEN_EDU',
+  `smsEndpoint` varchar(255) NOT NULL DEFAULT 'https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_get/',
+  `enableSmsOtp` tinyint(4) NOT NULL DEFAULT 0,
   `readerGroupQuotas` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`readerGroupQuotas`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -416,8 +562,44 @@ CREATE TABLE `library_settings` (
 -- Đang đổ dữ liệu cho bảng `library_settings`
 --
 
-INSERT INTO `library_settings` (`id`, `maxActiveLoans`, `borrowDays`, `dailyFineRate`, `updatedAt`, `renewalDays`, `fineLockThreshold`, `autoLockOverdueDays`, `enableAutoLockOverdue`, `enableAutoEmailReminders`, `reminderDaysBeforeDue`, `vietqrBankId`, `vietqrAccountNo`, `vietqrAccountName`, `vnpayTmnCode`, `vnpayHashSecret`, `vnpayUrl`, `momoPartnerCode`, `momoAccessKey`, `momoSecretKey`, `cardRegistrationFee`, `cardReissueFee`, `autoBackupSchedule`, `lastBackupAt`, `backupRetentionDays`, `createdAt`, `smtpHost`, `smtpPort`, `smtpSecure`, `smtpUser`, `smtpPassword`, `smtpFrom`, `readerGroupQuotas`) VALUES
-(1, 5, 14, 5000, '2026-11-01 13:15:08.735092', 14, 50000, 30, 1, 1, 2, 'MBBank', '0388888888', 'THU VIEN DAI HOC', '', '', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html', '', '', '', 20000, 50000, 'DAILY', NULL, 30, '2026-11-06 19:28:22.050969', 'smtp.gmail.com', 587, 0, '', '', 'thuvien@daihoc.edu.vn', NULL);
+INSERT INTO `library_settings` (`id`, `maxActiveLoans`, `borrowDays`, `dailyFineRate`, `updatedAt`, `renewalDays`, `fineLockThreshold`, `autoLockOverdueDays`, `enableAutoLockOverdue`, `enableAutoEmailReminders`, `reminderDaysBeforeDue`, `vietqrBankId`, `vietqrAccountNo`, `vietqrAccountName`, `vnpayTmnCode`, `vnpayHashSecret`, `vnpayUrl`, `momoPartnerCode`, `momoAccessKey`, `momoSecretKey`, `cardRegistrationFee`, `cardReissueFee`, `autoBackupSchedule`, `lastBackupAt`, `backupRetentionDays`, `createdAt`, `smtpHost`, `smtpPort`, `smtpSecure`, `smtpUser`, `smtpPassword`, `smtpFrom`, `smsProvider`, `smsApiKey`, `smsApiSecret`, `smsBrandName`, `smsEndpoint`, `enableSmsOtp`, `readerGroupQuotas`) VALUES
+(1, 5, 14, 5000, '2026-11-01 13:15:08.735092', 14, 50000, 30, 1, 1, 2, 'MBBank', '0388888888', 'THU VIEN DAI HOC', '', '', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html', '', '', '', 20000, 50000, 'DAILY', NULL, 30, '2026-11-06 19:28:22.050969', 'smtp.gmail.com', 587, 0, '', '', 'thuvien@daihoc.edu.vn', 'ESMS', '', '', 'THUVIEN_EDU', 'https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_get/', 0, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `library_tutorials`
+--
+
+CREATE TABLE `library_tutorials` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `category` varchar(30) NOT NULL DEFAULT 'SEARCH_GUIDE',
+  `format` varchar(20) NOT NULL DEFAULT 'VIDEO',
+  `description` text NOT NULL,
+  `contentUrl` varchar(500) NOT NULL,
+  `thumbnailUrl` varchar(500) DEFAULT NULL,
+  `instructor` varchar(150) DEFAULT NULL,
+  `durationMinutes` int(11) DEFAULT NULL,
+  `eventDate` datetime DEFAULT NULL,
+  `maxSeats` int(11) DEFAULT 50,
+  `registeredCount` int(11) NOT NULL DEFAULT 0,
+  `viewCount` int(11) NOT NULL DEFAULT 0,
+  `isFeatured` tinyint(4) NOT NULL DEFAULT 0,
+  `status` varchar(20) NOT NULL DEFAULT 'ACTIVE',
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `library_tutorials`
+--
+
+INSERT INTO `library_tutorials` (`id`, `title`, `category`, `format`, `description`, `contentUrl`, `thumbnailUrl`, `instructor`, `durationMinutes`, `eventDate`, `maxSeats`, `registeredCount`, `viewCount`, `isFeatured`, `status`, `createdAt`, `updatedAt`) VALUES
+(1, 'Video Hướng dẫn: Khai thác Cổng tra cứu OPAC & Tìm kiếm Nâng cao', 'SEARCH_GUIDE', 'VIDEO', 'Khám phá cách tra cứu sách theo tiêu đề, tác giả, chỉ số phân loại DDC, và sử dụng các toán tử AND, OR, NOT để tìm chính xác tài liệu bạn cần trong 30 giây.', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80', 'ThS. Nguyễn Văn Toàn', 12, NULL, 50, 0, 320, 1, 'ACTIVE', '2026-11-12 21:03:00.244852', '2026-11-12 21:03:00.244852'),
+(2, 'Cẩm nang & Quy định Mượn trả Sách in, Thiết bị và Tủ khóa', 'POLICY_RULES', 'PDF', 'Tài liệu hướng dẫn tổng hợp các quy định về hạn mức mượn sách, cách gia hạn online, biểu phí bồi thường hư hại và quy chế sử dụng phòng học nhóm.', 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80', 'Ban Quản trị Thư viện', 8, NULL, 50, 0, 450, 1, 'ACTIVE', '2026-11-12 21:03:00.248770', '2026-11-12 21:03:00.248770'),
+(3, 'Workshop: Kỹ năng Thông tin (Information Literacy) cho Sinh viên Khóa mới', 'WORKSHOP', 'WORKSHOP', 'Buổi tập huấn thực hành trực tiếp: Đánh giá độ tin cậy của nguồn tin học thuật, tránh đạo văn (Plagiarism) và sử dụng phần mềm quản lý trích dẫn Zotero/Mendeley.', 'https://thuvien.edu.vn/workshops/info-lit-2026', 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=600&q=80', 'TS. Phan Thanh Tùng & Nhóm Hướng dẫn', 90, '2026-11-17 21:03:00', 60, 38, 195, 1, 'UPCOMING', '2026-11-12 21:03:00.253540', '2026-11-12 21:03:00.253540'),
+(4, 'Hướng dẫn Truy cập Cơ sở Dữ liệu Điện tử từ xa qua VPN Thư viện', 'DIGITAL_RESOURCES', 'ARTICLE', 'Từng bước cài đặt cấu hình VPN Proxy của Nhà trường để truy cập miễn phí toàn văn hàng triệu bài báo khoa học trên Springer, IEEE và ScienceDirect từ', 'https://thuvien.edu.vn/guides/vpn-remote-access', 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80', 'Phòng Công nghệ Thông tin', 10, NULL, 50, 0, 281, 0, 'ACTIVE', '2026-11-12 21:03:00.257258', '2026-11-12 21:16:41.000000');
 
 -- --------------------------------------------------------
 
@@ -497,6 +679,19 @@ CREATE TABLE `notification_templates` (
   `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
   `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `notification_templates`
+--
+
+INSERT INTO `notification_templates` (`id`, `code`, `name`, `channel`, `subject`, `content`, `isActive`, `createdAt`, `updatedAt`) VALUES
+(1, 'DUE_REMINDER', 'Nhắc nhở sách sắp đến hạn trả', 'EMAIL', 'Thư viện: Sách mượn sắp đến hạn hoàn trả', 'Kính gửi {TEN_DOC_GIA}, đầu sách \"{TEN_SACH}\" của bạn sắp đến hạn trả vào ngày {NGAY_HET_HAN}. Vui lòng sắp xếp trả sách hoặc truy cập hệ thống thư viện để gia hạn trực tuyến.', 1, '2026-11-12 19:36:56.699483', '2026-11-12 19:36:56.699483'),
+(2, 'OVERDUE_ALERT', 'Cảnh báo sách mượn quá hạn & Báo phạt', 'EMAIL', 'Cảnh báo: Sách mượn đã quá hạn hoàn trả & Báo nộp phạt', 'Kính gửi {TEN_DOC_GIA}, cuốn sách \"{TEN_SACH}\" đã quá hạn hoàn trả vào ngày {NGAY_HET_HAN}. Tiền phạt phát sinh hiện tại: {SO_TIEN_PHAT} VNĐ. Đề nghị bạn hoàn trả ngay tại quầy hoặc thanh toán trực tuyến.', 1, '2026-11-12 19:36:56.719367', '2026-11-12 19:36:56.719367'),
+(3, 'FINE_NOTICE', 'Thông báo nộp phạt trễ hạn', 'EMAIL', 'Thông báo: Phát sinh phí phạt trễ hạn sách \"{TEN_SACH}\"', 'Kính gửi {TEN_DOC_GIA}, hệ thống ghi nhận khoản tiền phạt phát sinh cho cuốn sách \"{TEN_SACH}\" là {SO_TIEN_PHAT} VNĐ do quá hạn ngày {NGAY_HET_HAN}. Vui lòng quét mã QR thanh toán hoặc nộp phạt trực tiếp tại quầy thư viện.', 1, '2026-11-12 19:36:56.727922', '2026-11-12 19:36:56.727922'),
+(4, 'HOLD_READY', 'Sách đặt trước đã có sẵn tại quầy (24h)', 'EMAIL', 'Xác nhận giữ chỗ: Cuốn sách \"{TEN_SACH}\" đã sẵn sàng tại quầy', 'Kính gửi {TEN_DOC_GIA}, cuốn sách \"{TEN_SACH}\" bạn đã đặt giữ chỗ hiện đã có bản sao sẵn sàng tại quầy thư viện. Hạn giữ sách đến hết {NGAY_HET_HAN_GIU} (trong vòng 24 giờ). Vui lòng mang thẻ thư viện {MA_THE} đến nhận sách.', 1, '2026-11-12 19:36:56.734581', '2026-11-12 19:36:56.734581'),
+(5, 'RESERVATION_CONFIRM', 'Xác nhận đăng ký giữ chỗ sách', 'EMAIL', 'Xác nhận: Đã tiếp nhận đăng ký đặt giữ sách \"{TEN_SACH}\"', 'Kính gửi {TEN_DOC_GIA}, bạn đã đăng ký đặt giữ chỗ thành công cho cuốn sách \"{TEN_SACH}\". Hệ thống sẽ tự động gửi email thông báo ngay khi có sách hoàn trả vào kho.', 1, '2026-11-12 19:36:56.740243', '2026-11-12 19:36:56.740243'),
+(6, 'ACQUISITION_APPROVED', 'Đề xuất mua sách được duyệt', 'EMAIL', 'Đề xuất mua sách của bạn đã được phê duyệt', 'Chào {TEN_DOC_GIA}, thư viện đã phê duyệt đề xuất bổ sung cuốn sách \"{TEN_SACH}\". Sách sẽ được nhập kho và thông báo tới bạn sớm nhất.', 1, '2026-11-12 19:36:56.745070', '2026-11-12 19:36:56.745070'),
+(7, 'CARD_EXPIRE_REMINDER', 'Nhắc gia hạn thẻ thư viện', 'SMS', 'Thẻ thư viện sắp hết hạn', 'Kính gửi {TEN_DOC_GIA}, thẻ thư viện số {MA_THE} của bạn sẽ hết hiệu lực vào ngày {NGAY_HET_HAN}. Vui lòng liên hệ quầy hoặc gia hạn qua cổng cá nhân.', 1, '2026-11-12 19:36:56.750099', '2026-11-12 19:36:56.750099');
 
 -- --------------------------------------------------------
 
@@ -630,6 +825,40 @@ CREATE TABLE `purchase_request_votes` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `reader_feedback`
+--
+
+CREATE TABLE `reader_feedback` (
+  `id` int(11) NOT NULL,
+  `senderName` varchar(150) NOT NULL,
+  `senderEmail` varchar(150) DEFAULT NULL,
+  `senderPhone` varchar(30) DEFAULT NULL,
+  `cardNumber` varchar(50) DEFAULT NULL,
+  `category` varchar(30) NOT NULL DEFAULT 'SERVICE_QUALITY',
+  `title` varchar(255) NOT NULL,
+  `content` text NOT NULL,
+  `rating` int(11) NOT NULL DEFAULT 5,
+  `status` varchar(30) NOT NULL DEFAULT 'PENDING',
+  `response` text DEFAULT NULL,
+  `respondedByName` varchar(150) DEFAULT NULL,
+  `respondedAt` datetime DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6),
+  `userId` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `reader_feedback`
+--
+
+INSERT INTO `reader_feedback` (`id`, `senderName`, `senderEmail`, `senderPhone`, `cardNumber`, `category`, `title`, `content`, `rating`, `status`, `response`, `respondedByName`, `respondedAt`, `createdAt`, `updatedAt`, `userId`) VALUES
+(1, 'Trần Minh Đức', 'duc.tm22@student.edu.vn', '0912345678', 'TV-00102', 'FACILITIES', 'Đề xuất bổ sung thêm ổ cắm điện tại khu vực tự học Tầng 3', 'Em thấy khu vực bàn nhóm Tầng 3 rất thoáng mát và yên tĩnh, nhưng các dãy bàn giữa còn thiếu ổ cắm sạc cho laptop. Kính mong Thư viện trang bị thêm ổ cắm dây nối dài để chúng em làm đồ án thuận tiện hơn.', 4, 'RESOLVED', 'Cảm ơn phản hồi rất thực tế của bạn. Bộ phận kỹ thuật đã tiến hành lắp đặt thêm 4 hộp ổ cắm đa năng tại các dãy bàn Tầng 3 từ ngày 10/11.', 'Thủ thư Trực ban Nguyễn Long', '2026-11-12 21:03:00', '2026-11-12 21:03:00.231538', '2026-11-12 21:03:00.231538', NULL),
+(2, 'TS. Lê Hoàng Nam', 'nam.lh@university.edu.vn', '0988776655', 'GV-00045', 'BOOK_REQUEST', 'Ý kiến bổ sung tạp chí và tài liệu chuyên sâu về Machine Learning & Big Data', 'Bộ môn Trí tuệ Nhân tạo đang hướng dẫn các đề tài tốt nghiệp khóa mới. Đề nghị Thư viện liên kết hoặc mua thêm bản quyền điện tử các chuyên san của Springer Nature và O\'Reilly 2025-2026.', 5, 'IN_PROGRESS', 'Ban Giám đốc Thư viện đã tiếp nhận ý kiến của Thầy và đưa vào danh mục thẩm định kinh phí bổ sung ngân sách Quý 4.', 'Thủ thư Huỳnh Thảo', '2026-11-12 21:03:00', '2026-11-12 21:03:00.235267', '2026-11-12 21:03:00.235267', NULL),
+(3, 'Phạm Thị Thùy Linh', 'linh.ptt@student.edu.vn', '0903112233', 'TV-00389', 'SERVICE_QUALITY', 'Thái độ phục vụ của các cô thủ thư tại quầy mượn trả rất tận tình', 'Hôm qua em đến mượn giáo trình ôn tập muộn sát giờ đóng cửa nhưng các cô thủ thư vẫn kiên nhẫn hướng dẫn em quét mã vạch và lấy sách trên kệ. Em xin gửi lời cảm ơn chân thành tới ban quản trị thư viện!', 5, 'RESOLVED', 'Thư viện rất vui khi nhận được lời động viên của bạn. Đây là động lực lớn để toàn thể đội ngũ nâng cao hơn nữa chất lượng phục vụ độc giả.', 'Thủ thư Trưởng quầy', '2026-11-12 21:03:00', '2026-11-12 21:03:00.238668', '2026-11-12 21:03:00.238668', NULL);
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `reservations`
 --
 
@@ -733,6 +962,24 @@ CREATE TABLE `study_rooms` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `tutorial_registrations`
+--
+
+CREATE TABLE `tutorial_registrations` (
+  `id` int(11) NOT NULL,
+  `fullName` varchar(150) NOT NULL,
+  `email` varchar(150) NOT NULL,
+  `phone` varchar(30) DEFAULT NULL,
+  `cardNumber` varchar(50) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'REGISTERED',
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `tutorialId` int(11) DEFAULT NULL,
+  `userId` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `users`
 --
 
@@ -769,7 +1016,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `passwordHash`, `currentHashedRefreshToken`, `createdAt`, `updatedAt`, `email`, `isActive`, `role`, `maxActiveLoans`, `libraryCardIssuedAt`, `libraryCardExpiresAt`, `fullName`, `phone`, `approvedAt`, `isTwoFactorEnabled`, `twoFactorTempCode`, `twoFactorCodeExpiresAt`, `passwordResetToken`, `passwordResetExpiresAt`, `failedLoginAttempts`, `lockoutUntil`, `cardNumber`, `readerGroup`, `customPermissions`) VALUES
-(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$vwxz7pXWZ/cyZxE/hpR7P.PiOmAr0uIEhp2cN4p3xErBxt8wmPY3u', '2026-10-30 15:14:38.589024', '2026-11-11 11:51:19.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$Doa.cdrha/4Kpw551SmHK.zAS//uvFQdwfYZdH9c6w5lDA2/Mr7nO', '2026-10-30 15:14:38.589024', '2026-11-12 21:16:18.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (2, 'he', '$2b$10$O2RbYv8CdMBL8Dr8Lzg3TOAZwxFjnP.qkxdgu/MLr9..UM9gqdDPy', NULL, '2026-11-01 13:06:32.277679', '2026-11-01 13:06:45.000000', NULL, 1, 'READER', 5, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (3, 'an108972@donga.edu.vn', '$2b$10$zGiNjzn3VwYTPZW5OpKIVO3756fZAQn2YR.niBFgROWQ6dYtP6mhO', NULL, '2026-11-01 19:33:47.447069', '2026-11-02 09:46:23.000000', 'an108972@donga.edu.vn', 1, 'READER', 5, '2026-11-01', NULL, 'Phan Thanh An', '0354352106', '2026-11-01 19:39:32', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (4, 'phanthanhanlop9.2@gmail.com', '$2b$10$3cEwVX8Lh.35gZx22rf2pul885ranTwGcW1XBwObRZU6.OVt2C5yW', NULL, '2026-11-01 19:34:42.624268', '2026-11-02 07:29:44.000000', 'phanthanhanlop9.2@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Phan Thanh An_IT24C', '0354352106', '2026-11-02 07:29:44', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
@@ -803,6 +1050,13 @@ ALTER TABLE `book_copies`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `IDX_1898a8d374e5b83af172664568` (`barcode`),
   ADD KEY `FK_447efeb15b6c881052abd7605ec` (`bookId`);
+
+--
+-- Chỉ mục cho bảng `book_donations`
+--
+ALTER TABLE `book_donations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `IDX_bd046ffaecb61b67fc0dbe7b94` (`receiptNumber`);
 
 --
 -- Chỉ mục cho bảng `borrow_records`
@@ -877,6 +1131,13 @@ ALTER TABLE `fine_violations`
   ADD KEY `FK_afea16d957b0f32d40da0c61066` (`copyId`);
 
 --
+-- Chỉ mục cho bảng `iot_devices`
+--
+ALTER TABLE `iot_devices`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `IDX_bd5a17501314adac29933360cc` (`deviceCode`);
+
+--
 -- Chỉ mục cho bảng `library_budgets`
 --
 ALTER TABLE `library_budgets`
@@ -884,9 +1145,27 @@ ALTER TABLE `library_budgets`
   ADD UNIQUE KEY `IDX_f004dee63ba9ec2c3f057ad59e` (`year`);
 
 --
+-- Chỉ mục cho bảng `library_events`
+--
+ALTER TABLE `library_events`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Chỉ mục cho bảng `library_partners`
+--
+ALTER TABLE `library_partners`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Chỉ mục cho bảng `library_settings`
 --
 ALTER TABLE `library_settings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Chỉ mục cho bảng `library_tutorials`
+--
+ALTER TABLE `library_tutorials`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -959,6 +1238,13 @@ ALTER TABLE `purchase_request_votes`
   ADD KEY `FK_572707eb54810f41fba125e54c6` (`userId`);
 
 --
+-- Chỉ mục cho bảng `reader_feedback`
+--
+ALTER TABLE `reader_feedback`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_6ecaf954ed12be97b8b2252d740` (`userId`);
+
+--
 -- Chỉ mục cho bảng `reservations`
 --
 ALTER TABLE `reservations`
@@ -998,6 +1284,14 @@ ALTER TABLE `study_rooms`
   ADD UNIQUE KEY `IDX_fbf8ff231c9bb83528ae48f5b1` (`code`);
 
 --
+-- Chỉ mục cho bảng `tutorial_registrations`
+--
+ALTER TABLE `tutorial_registrations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `FK_689b63ace389a1fa6ddaac5988f` (`tutorialId`),
+  ADD KEY `FK_f5a9698f8a958210f3f35381cf1` (`userId`);
+
+--
 -- Chỉ mục cho bảng `users`
 --
 ALTER TABLE `users`
@@ -1013,7 +1307,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT cho bảng `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT cho bảng `books`
@@ -1028,10 +1322,16 @@ ALTER TABLE `book_copies`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
+-- AUTO_INCREMENT cho bảng `book_donations`
+--
+ALTER TABLE `book_donations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT cho bảng `borrow_records`
 --
 ALTER TABLE `borrow_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT cho bảng `categories`
@@ -1082,10 +1382,34 @@ ALTER TABLE `fine_violations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT cho bảng `iot_devices`
+--
+ALTER TABLE `iot_devices`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
 -- AUTO_INCREMENT cho bảng `library_budgets`
 --
 ALTER TABLE `library_budgets`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT cho bảng `library_events`
+--
+ALTER TABLE `library_events`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT cho bảng `library_partners`
+--
+ALTER TABLE `library_partners`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT cho bảng `library_tutorials`
+--
+ALTER TABLE `library_tutorials`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT cho bảng `lockers`
@@ -1109,7 +1433,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT cho bảng `notification_templates`
 --
 ALTER TABLE `notification_templates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT cho bảng `publishers`
@@ -1142,6 +1466,12 @@ ALTER TABLE `purchase_request_votes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT cho bảng `reader_feedback`
+--
+ALTER TABLE `reader_feedback`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT cho bảng `reservations`
 --
 ALTER TABLE `reservations`
@@ -1169,6 +1499,12 @@ ALTER TABLE `room_violations`
 -- AUTO_INCREMENT cho bảng `study_rooms`
 --
 ALTER TABLE `study_rooms`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `tutorial_registrations`
+--
+ALTER TABLE `tutorial_registrations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
@@ -1290,6 +1626,12 @@ ALTER TABLE `purchase_request_votes`
   ADD CONSTRAINT `FK_b3839524d5c415c8efde6f47a3f` FOREIGN KEY (`requestId`) REFERENCES `purchase_requests` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 
 --
+-- Các ràng buộc cho bảng `reader_feedback`
+--
+ALTER TABLE `reader_feedback`
+  ADD CONSTRAINT `FK_6ecaf954ed12be97b8b2252d740` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+
+--
 -- Các ràng buộc cho bảng `reservations`
 --
 ALTER TABLE `reservations`
@@ -1316,6 +1658,13 @@ ALTER TABLE `room_bookings`
 --
 ALTER TABLE `room_violations`
   ADD CONSTRAINT `FK_79fcda463dda7525c1cbfad6a9a` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Các ràng buộc cho bảng `tutorial_registrations`
+--
+ALTER TABLE `tutorial_registrations`
+  ADD CONSTRAINT `FK_689b63ace389a1fa6ddaac5988f` FOREIGN KEY (`tutorialId`) REFERENCES `library_tutorials` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
+  ADD CONSTRAINT `FK_f5a9698f8a958210f3f35381cf1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

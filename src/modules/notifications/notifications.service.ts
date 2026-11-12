@@ -72,6 +72,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    void this.seedDefaultTemplates();
     this.timer = setTimeout(() => {
       void this.runScheduledTasks();
       this.timer = setInterval(() => void this.runScheduledTasks(), 24 * 60 * 60 * 1000);
@@ -91,9 +92,9 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     if (this.reservationTimer) clearInterval(this.reservationTimer);
   }
 
-  
   async getTemplates() {
     if (!this.templateRepository) return [];
+    await this.seedDefaultTemplates();
     return this.templateRepository.find({ order: { id: 'ASC' } });
   }
 
@@ -105,32 +106,46 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
   private async seedDefaultTemplates() {
     if (!this.templateRepository) return;
-    const count = await this.templateRepository.count();
-    if (count > 0) return;
 
     const defaults = [
       {
         code: 'DUE_REMINDER',
-        name: 'Nhắc nhở sách sắp đến hạn',
+        name: 'Nhắc nhở sách sắp đến hạn trả',
         channel: 'EMAIL',
         subject: 'Thư viện: Sách mượn sắp đến hạn hoàn trả',
-        content: 'Kính gửi {ten_doc_gia}, đầu sách "{ten_sach}" của bạn sắp đến hạn trả vào ngày {ngay_het_han}. Vui lòng sắp xếp trả sách hoặc truy cập hệ thống để gia hạn trực tuyến.',
+        content: 'Kính gửi {TEN_DOC_GIA}, đầu sách "{TEN_SACH}" của bạn sắp đến hạn trả vào ngày {NGAY_HET_HAN}. Vui lòng sắp xếp trả sách hoặc truy cập hệ thống thư viện để gia hạn trực tuyến.',
         isActive: true,
       },
       {
         code: 'OVERDUE_ALERT',
-        name: 'Cảnh báo sách mượn quá hạn',
+        name: 'Cảnh báo sách mượn quá hạn & Báo phạt',
         channel: 'EMAIL',
-        subject: 'Cảnh báo: Sách mượn đã quá hạn hoàn trả',
-        content: 'Kính gửi {ten_doc_gia}, cuốn sách "{ten_sach}" đã quá hạn vào ngày {ngay_het_han}. Tiền phạt phát sinh hiện tại: {so_tien_phat} VNĐ. Đề nghị bạn hoàn trả ngay.',
+        subject: 'Cảnh báo: Sách mượn đã quá hạn hoàn trả & Báo nộp phạt',
+        content: 'Kính gửi {TEN_DOC_GIA}, cuốn sách "{TEN_SACH}" đã quá hạn hoàn trả vào ngày {NGAY_HET_HAN}. Tiền phạt phát sinh hiện tại: {SO_TIEN_PHAT} VNĐ. Đề nghị bạn hoàn trả ngay tại quầy hoặc thanh toán trực tuyến.',
+        isActive: true,
+      },
+      {
+        code: 'FINE_NOTICE',
+        name: 'Thông báo nộp phạt trễ hạn',
+        channel: 'EMAIL',
+        subject: 'Thông báo: Phát sinh phí phạt trễ hạn sách "{TEN_SACH}"',
+        content: 'Kính gửi {TEN_DOC_GIA}, hệ thống ghi nhận khoản tiền phạt phát sinh cho cuốn sách "{TEN_SACH}" là {SO_TIEN_PHAT} VNĐ do quá hạn ngày {NGAY_HET_HAN}. Vui lòng quét mã QR thanh toán hoặc nộp phạt trực tiếp tại quầy thư viện.',
         isActive: true,
       },
       {
         code: 'HOLD_READY',
-        name: 'Sách đặt trước đã có sẵn tại quầy',
-        channel: 'ZALO',
-        subject: 'Sách đặt trước của bạn đã sẵn sàng',
-        content: 'Chào {ten_doc_gia}, cuốn sách "{ten_sach}" bạn đã đặt giữ chỗ hiện đã có sẵn tại quầy thư viện. Hạn giữ sách đến hết ngày {ngay_het_han_giu}.',
+        name: 'Sách đặt trước đã có sẵn tại quầy (24h)',
+        channel: 'EMAIL',
+        subject: 'Xác nhận giữ chỗ: Cuốn sách "{TEN_SACH}" đã sẵn sàng tại quầy',
+        content: 'Kính gửi {TEN_DOC_GIA}, cuốn sách "{TEN_SACH}" bạn đã đặt giữ chỗ hiện đã có bản sao sẵn sàng tại quầy thư viện. Hạn giữ sách đến hết {NGAY_HET_HAN_GIU} (trong vòng 24 giờ). Vui lòng mang thẻ thư viện {MA_THE} đến nhận sách.',
+        isActive: true,
+      },
+      {
+        code: 'RESERVATION_CONFIRM',
+        name: 'Xác nhận đăng ký giữ chỗ sách',
+        channel: 'EMAIL',
+        subject: 'Xác nhận: Đã tiếp nhận đăng ký đặt giữ sách "{TEN_SACH}"',
+        content: 'Kính gửi {TEN_DOC_GIA}, bạn đã đăng ký đặt giữ chỗ thành công cho cuốn sách "{TEN_SACH}". Hệ thống sẽ tự động gửi email thông báo ngay khi có sách hoàn trả vào kho.',
         isActive: true,
       },
       {
@@ -138,7 +153,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         name: 'Đề xuất mua sách được duyệt',
         channel: 'EMAIL',
         subject: 'Đề xuất mua sách của bạn đã được phê duyệt',
-        content: 'Chào {ten_doc_gia}, thư viện đã phê duyệt đề xuất bổ sung cuốn sách "{ten_sach}". Sách sẽ được nhập kho và thông báo tới bạn sớm nhất.',
+        content: 'Chào {TEN_DOC_GIA}, thư viện đã phê duyệt đề xuất bổ sung cuốn sách "{TEN_SACH}". Sách sẽ được nhập kho và thông báo tới bạn sớm nhất.',
         isActive: true,
       },
       {
@@ -146,13 +161,18 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         name: 'Nhắc gia hạn thẻ thư viện',
         channel: 'SMS',
         subject: 'Thẻ thư viện sắp hết hạn',
-        content: 'Kính gửi {ten_doc_gia}, thẻ thư viện số {ma_the} của bạn sẽ hết hiệu lực vào ngày {ngay_het_han}. Vui lòng liên hệ quầy hoặc gia hạn qua cổng cá nhân.',
+        content: 'Kính gửi {TEN_DOC_GIA}, thẻ thư viện số {MA_THE} của bạn sẽ hết hiệu lực vào ngày {NGAY_HET_HAN}. Vui lòng liên hệ quầy hoặc gia hạn qua cổng cá nhân.',
         isActive: true,
       },
     ];
 
     for (const d of defaults) {
-      await this.templateRepository.save(this.templateRepository.create(d));
+      try {
+        const existing = await this.templateRepository.findOneBy({ code: d.code });
+        if (!existing) {
+          await this.templateRepository.save(this.templateRepository.create(d));
+        }
+      } catch {}
     }
   }
 
@@ -361,8 +381,8 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     return { subject, content, channel };
   }
 
-  async testTemplate(body: { id?: number; code?: string; subject?: string; content?: string; email: string }) {
-    const targetEmail = (body.email || '').trim();
+  async testTemplate(body: { id?: number; code?: string; subject?: string; content?: string; email?: string; to?: string; variables?: Record<string, string> }) {
+    const targetEmail = (body.email || body.to || '').trim();
     if (!targetEmail) throw new BadRequestException('Vui lòng nhập địa chỉ email nhận thư thử nghiệm');
 
     let subject = body.subject || '';
@@ -386,12 +406,13 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       MA_THE: 'TV-10088',
       NGAY_HET_HAN_GIU: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString('vi-VN'),
       MA_PHIEU_MUON: '#1052',
+      ...body.variables,
     };
 
     for (const [key, val] of Object.entries(sampleVars)) {
       const reg = new RegExp(`\\{${key}\\}`, 'gi');
-      subject = subject.replace(reg, val);
-      content = content.replace(reg, val);
+      subject = subject.replace(reg, String(val));
+      content = content.replace(reg, String(val));
     }
 
     const { mailer, emailFrom } = await this.getMailerInfo();
