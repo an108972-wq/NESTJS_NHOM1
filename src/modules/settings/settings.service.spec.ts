@@ -1,5 +1,5 @@
 import { SettingsService } from './settings.service';
-import { vi } from 'vitest';
+import { vi, describe, expect, it } from 'vitest';
 
 describe('SettingsService', () => {
   const defaultSettings = {
@@ -42,5 +42,51 @@ describe('SettingsService', () => {
       ...defaultSettings,
       renewalDays: 7,
     });
+  });
+
+  it('executes triggerAutomationRules and returns summary', async () => {
+    const repository = {
+      findOneBy: vi.fn().mockResolvedValue({ ...defaultSettings, autoLockOverdueDays: 30, enableAutoLockOverdue: true }),
+    };
+    const mockBorrowRepo = {
+      find: vi.fn().mockResolvedValue([{ id: 1, user: { id: 99, isActive: true } }]),
+      createQueryBuilder: vi.fn().mockReturnValue({
+        leftJoinAndSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getMany: vi.fn().mockResolvedValue([]),
+      }),
+    };
+    const mockUserRepo = { update: vi.fn().mockResolvedValue({ affected: 1 }) };
+    const service = new SettingsService(
+      repository as never,
+      undefined,
+      mockUserRepo as never,
+      mockBorrowRepo as never,
+    );
+
+    const result = await service.triggerAutomationRules();
+    expect(result.success).toBe(true);
+    expect(result.lockedCount).toBe(1);
+    expect(mockUserRepo.update).toHaveBeenCalled();
+  });
+
+  it('generates database backup SQL and updates lastBackupAt', async () => {
+    const repository = {
+      findOneBy: vi.fn().mockResolvedValue({ ...defaultSettings }),
+      update: vi.fn().mockResolvedValue({ affected: 1 }),
+    };
+    const mockDataSource = {
+      query: vi.fn().mockImplementation((query: string) => {
+        if (query.includes('library_settings')) return Promise.resolve([{ id: 1, maxActiveLoans: 5 }]);
+        return Promise.resolve([]);
+      }),
+    };
+    const service = new SettingsService(repository as never, mockDataSource as never);
+
+    const backup = await service.generateDatabaseBackupSql();
+    expect(backup.filename).toMatch(/^library_backup_\d+\.sql$/);
+    expect(backup.sql).toContain('INSERT INTO `library_settings`');
+    expect(repository.update).toHaveBeenCalled();
   });
 });

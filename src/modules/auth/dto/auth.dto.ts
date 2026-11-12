@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -44,10 +45,59 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
+
+  @IsOptional()
+  @IsString()
+  captchaId?: string;
+
+  @IsOptional()
+  @IsString()
+  captchaAnswer?: string;
 }
 
 export class RefreshTokenDto {
   @IsString()
   @IsNotEmpty()
   refreshToken: string;
+}
+
+export class Verify2faDto {
+  @IsString()
+  @IsNotEmpty()
+  mfaToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(4)
+  @MaxLength(10)
+  code: string;
+}
+
+export class ForgotPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  usernameOrEmail: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  usernameOrEmail: string;
+
+  @IsString()
+  @IsNotEmpty()
+  otp: string;
+
+  @IsString()
+  @MinLength(6, { message: 'Mật khẩu mới phải chứa ít nhất 6 ký tự' })
+  newPassword: string;
+}
+
+export class Toggle2faDto {
+  @IsBoolean()
+  enable: boolean;
 }

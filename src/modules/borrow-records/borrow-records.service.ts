@@ -1,3 +1,4 @@
+import { EmailDeliveryStatus, Notification, NotificationType } from '../notifications/entities/notification.entity';
 import {
   BadRequestException,
   ForbiddenException,
@@ -25,7 +26,7 @@ import {
 } from './entities/borrow-record.entity';
 import { FinePayment, PaymentMethod, PaymentStatus } from '../payments/entities/payment.entity';
 import { SettingsService } from '../settings/settings.service';
-import { UserRole } from '../../common/constants/user-role';
+import { UserRole, READER_GROUP_LIMITS } from '../../common/constants/user-role';
 import { isLibraryCardExpired } from '../users/library-card';
 import { FineViolation, FineViolationType } from './entities/fine-violation.entity';
 import { FineAdjustment } from './entities/fine-adjustment.entity';
@@ -61,6 +62,75 @@ export class BorrowRecordsService {
       order: { id: 'DESC' },
     });
     return records.map((record) => this.publicRecord(record));
+  }
+
+
+  async checkFineThresholdsAndLock() {
+    const settings = await this.settingsService.getSettings();
+    const threshold = Number(settings.fineLockThreshold ?? 50000);
+
+    const [borrowFines, manualFines] = await Promise.all([
+      this.borrowRepo.find({
+        where: { fineStatus: 'UNPAID' },
+        relations: { user: true },
+      }),
+      this.fineViolationRepo.find({
+        where: { fineStatus: 'UNPAID' },
+        relations: { user: true },
+      }),
+    ]);
+
+    const userDebtMap = new Map<number, { user: User; totalDebt: number }>();
+    for (const b of borrowFines) {
+      if (!b.user) continue;
+      const current = userDebtMap.get(b.user.id) || { user: b.user, totalDebt: 0 };
+      current.totalDebt += Number(b.fineAmount || 0);
+      userDebtMap.set(b.user.id, current);
+    }
+    for (const m of manualFines) {
+      if (!m.user) continue;
+      const current = userDebtMap.get(m.user.id) || { user: m.user, totalDebt: 0 };
+      current.totalDebt += Number(m.fineAmount || 0);
+      userDebtMap.set(m.user.id, current);
+    }
+
+    let lockedCount = 0;
+    const lockedUsers: Array<{ id: number; fullName: string; totalDebt: number }> = [];
+    const notifRepo = this.dataSource.getRepository(Notification);
+
+    for (const [, info] of userDebtMap.entries()) {
+      if (info.totalDebt >= threshold && info.user.isActive) {
+        info.user.isActive = false;
+        await this.userRepo.save(info.user);
+        lockedCount++;
+        lockedUsers.push({
+          id: info.user.id,
+          fullName: info.user.fullName || info.user.username,
+          totalDebt: info.totalDebt,
+        });
+
+        await notifRepo.save(
+          notifRepo.create({
+            user: info.user,
+            borrowRecord: null,
+            reservation: null,
+            type: NotificationType.OVERDUE,
+            title: 'Tài khoản bị tạm khóa do nợ phạt quá ngưỡng',
+            message: `Tài khoản của bạn đã bị tạm khóa do tổng tiền phạt (${info.totalDebt.toLocaleString('vi-VN')} đ) vượt ngưỡng cho phép (${threshold.toLocaleString('vi-VN')} đ). Vui lòng thanh toán tại quầy hoặc qua VietQR/Ví điện tử để kích hoạt lại.`,
+            emailStatus: EmailDeliveryStatus.NOT_CONFIGURED,
+            emailError: null,
+            readAt: null,
+          }),
+        );
+      }
+    }
+
+    return {
+      message: `Đã kiểm tra ngưỡng nợ phạt (${threshold.toLocaleString('vi-VN')} đ). Khóa tạm thời ${lockedCount} tài khoản vượt ngưỡng.`,
+      threshold,
+      lockedCount,
+      lockedUsers,
+    };
   }
 
   async findFines() {
@@ -169,8 +239,13 @@ export class BorrowRecordsService {
           payment.borrowRecord?.user?.username ||
           payment.violation?.user?.fullName ||
           payment.violation?.user?.username,
+        readerPhone: payment.borrowRecord?.user?.phone || payment.violation?.user?.phone || '',
+        readerEmail: payment.borrowRecord?.user?.email || payment.violation?.user?.email || '',
+        readerCardNumber: payment.borrowRecord?.user?.cardNumber || payment.violation?.user?.cardNumber || `TV-${payment.borrowRecord?.user?.id || payment.violation?.user?.id || ''}`,
         bookTitle: payment.borrowRecord?.book?.title || payment.violation?.copy?.book?.title,
         barcode: payment.borrowRecord?.copy?.barcode || payment.violation?.copy?.barcode,
+        violationType: payment.violation?.type || (payment.borrowRecord?.returnCondition !== ReturnCondition.NORMAL ? payment.borrowRecord?.returnCondition : 'LATE'),
+        description: payment.violation?.description || (payment.borrowRecord?.daysLate ? `Quá hạn ${payment.borrowRecord?.daysLate} ngày` : 'Phạt vi phạm quy chế'),
         amount: Number(payment.amount),
         status: payment.status,
         paymentMethod: payment.paymentMethod,
@@ -243,15 +318,81 @@ export class BorrowRecordsService {
     });
   }
 
+  async checkAndUnlockReaderIfSettled(
+    userId: number,
+    manager?: DataSource['manager'],
+  ): Promise<{ unlocked: boolean; message?: string }> {
+    const mgr = manager || this.dataSource.manager;
+    const user = await mgr.findOne(User, { where: { id: userId } });
+    if (!user || user.role !== UserRole.READER) {
+      return { unlocked: false };
+    }
+
+    const isLocked = !user.isActive || Boolean(user.lockoutUntil && new Date(user.lockoutUntil) > new Date());
+    if (!isLocked) {
+      return { unlocked: false };
+    }
+
+    const [unpaidBorrowFines, unpaidViolations] = await Promise.all([
+      mgr.count(BorrowRecord, {
+        where: { user: { id: userId }, fineStatus: 'UNPAID' },
+      }),
+      mgr.count(FineViolation, {
+        where: { user: { id: userId }, fineStatus: 'UNPAID' },
+      }),
+    ]);
+
+    const overdueLoansCount = await mgr.count(BorrowRecord, {
+      where: {
+        user: { id: userId },
+        status: BorrowStatus.BORROWED,
+        dueDate: LessThan(new Date()),
+      },
+    });
+
+    if (unpaidBorrowFines === 0 && unpaidViolations === 0 && overdueLoansCount === 0) {
+      user.isActive = true;
+      user.lockoutUntil = null;
+      user.failedLoginAttempts = 0;
+      await mgr.save(user);
+
+      try {
+        const notifRepo = mgr.getRepository(Notification);
+        await notifRepo.save(
+          notifRepo.create({
+            user,
+            borrowRecord: null,
+            reservation: null,
+            type: NotificationType.DUE_SOON,
+            title: 'Tài khoản độc giả đã được tự động mở khóa',
+            message: `Chào ${user.fullName || user.username}, bạn đã hoàn tất nộp đủ các khoản tiền phạt và không còn sách mượn quá hạn. Tài khoản thư viện của bạn đã được hệ thống tự động mở khóa thành công!`,
+            emailStatus: EmailDeliveryStatus.NOT_CONFIGURED,
+            emailError: null,
+            readAt: null,
+          }),
+        );
+      } catch (err) {
+        // Notification is non-fatal
+      }
+
+      return {
+        unlocked: true,
+        message: `Độc giả ${user.fullName || user.username} đã hoàn thành nộp phạt và tài khoản đã được tự động mở khóa!`,
+      };
+    }
+
+    return { unlocked: false };
+  }
+
   async collectManualFine(
     fineId: number,
-    paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR,
+    paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR | PaymentMethod.E_WALLET,
     txnRef: string | undefined,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const violation = await manager.findOne(FineViolation, {
         where: { id: fineId },
-        relations: { user: true },
+        relations: { user: true, copy: { book: true } },
         lock: { mode: 'pessimistic_write' },
       });
       if (!violation) throw new NotFoundException('Không tìm thấy phiếu vi phạm');
@@ -259,9 +400,12 @@ export class BorrowRecordsService {
         throw new BadRequestException('Phiếu vi phạm không có khoản phạt cần thu');
       }
       await this.failPendingPayments(manager, { violation: { id: fineId } });
+      const now = new Date();
+      const codeDate = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const generatedTxn = txnRef?.trim() || `BL-${codeDate}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const payment = await manager.save(
         manager.create(FinePayment, {
-          txnRef: txnRef || `MANUAL-${randomUUID().replace(/-/g, '')}`,
+          txnRef: generatedTxn,
           borrowRecord: null,
           violation,
           amount: violation.fineAmount,
@@ -269,12 +413,30 @@ export class BorrowRecordsService {
           paymentMethod,
           vnpayTransactionNo: null,
           responseCode: null,
-          paidAt: new Date(),
+          paidAt: now,
         }),
       );
       violation.fineStatus = 'PAID';
       await manager.save(violation);
-      return payment;
+      const unlockResult = await this.checkAndUnlockReaderIfSettled(violation.user.id, manager);
+      return {
+        ...payment,
+        receipt: {
+          receiptNumber: payment.txnRef,
+          paidAt: payment.paidAt,
+          amount: Number(payment.amount),
+          paymentMethod: payment.paymentMethod,
+          readerName: violation.user?.fullName || violation.user?.username || 'Độc giả',
+          readerPhone: violation.user?.phone || violation.user?.email || '',
+          readerCardNumber: violation.user?.cardNumber || `TV-${violation.user?.id || ''}`,
+          bookTitle: violation.copy?.book?.title || 'Vi phạm nội quy thư viện',
+          barcode: violation.copy?.barcode || '',
+          violationType: violation.type,
+          reason: violation.description || `Vi phạm: ${violation.type}`,
+        },
+        accountUnlocked: unlockResult.unlocked,
+        unlockMessage: unlockResult.message,
+      };
     });
   }
 
@@ -289,10 +451,12 @@ export class BorrowRecordsService {
       const target = type === 'BORROW'
         ? await manager.findOne(BorrowRecord, {
             where: { id },
+            relations: { user: true },
             lock: { mode: 'pessimistic_write' },
           })
         : await manager.findOne(FineViolation, {
             where: { id },
+            relations: { user: true },
             lock: { mode: 'pessimistic_write' },
           });
       if (!target) throw new NotFoundException('Không tìm thấy khoản phạt');
@@ -321,7 +485,19 @@ export class BorrowRecordsService {
       target.fineAmount = Number(target.fineAmount) - amount;
       if (target.fineAmount === 0) target.fineStatus = 'WAIVED';
       await manager.save(target);
-      return { ...target, adjustment, ...relation };
+
+      let unlockResult: { unlocked: boolean; message?: string } = { unlocked: false };
+      if (target.user) {
+        unlockResult = await this.checkAndUnlockReaderIfSettled(target.user.id, manager);
+      }
+
+      return {
+        ...target,
+        adjustment,
+        ...relation,
+        accountUnlocked: unlockResult.unlocked,
+        unlockMessage: unlockResult.message,
+      };
     });
   }
 
@@ -372,9 +548,11 @@ export class BorrowRecordsService {
           status: In([BorrowStatus.PENDING, BorrowStatus.BORROWED]),
         },
       });
+      const groupQuota = user.readerGroup && settings.readerGroupQuotas?.[user.readerGroup];
+      const maxForGroup = groupQuota?.maxActiveLoans ?? settings.maxActiveLoans;
       const activeLoanLimit = Math.min(
-        user.maxActiveLoans ?? settings.maxActiveLoans,
-        settings.maxActiveLoans,
+        user.maxActiveLoans ?? maxForGroup,
+        Math.max(settings.maxActiveLoans, maxForGroup),
       );
       if (activeLoanCount >= activeLoanLimit) {
         throw new BadRequestException(
@@ -484,9 +662,11 @@ export class BorrowRecordsService {
           status: In([BorrowStatus.PENDING, BorrowStatus.BORROWED]),
         },
       });
+      const groupQuota = user.readerGroup && settings.readerGroupQuotas?.[user.readerGroup];
+      const maxForGroup = groupQuota?.maxActiveLoans ?? settings.maxActiveLoans;
       const activeLoanLimit = Math.min(
-        user.maxActiveLoans ?? settings.maxActiveLoans,
-        settings.maxActiveLoans,
+        user.maxActiveLoans ?? maxForGroup,
+        Math.max(settings.maxActiveLoans, maxForGroup),
       );
       if (activeLoanCount + normalizedBarcodes.length > activeLoanLimit) {
         throw new BadRequestException(
@@ -570,7 +750,9 @@ export class BorrowRecordsService {
       const settings = await this.settingsService.getSettings();
       const approvedAt = new Date();
       const dueDate = new Date(approvedAt);
-      dueDate.setDate(dueDate.getDate() + settings.borrowDays);
+      const groupQuota = record.user?.readerGroup && settings.readerGroupQuotas?.[record.user.readerGroup];
+      const borrowDuration = groupQuota?.borrowDays ?? settings.borrowDays;
+      dueDate.setDate(dueDate.getDate() + borrowDuration);
       record.status = BorrowStatus.BORROWED;
       record.approvedAt = approvedAt;
       record.dueDate = dueDate;
@@ -666,11 +848,13 @@ export class BorrowRecordsService {
       if (condition !== ReturnCondition.NORMAL) {
         record.fineAmount += damageFineAmount ?? 0;
       }
+      let paymentRecord: FinePayment | null = null;
       if (record.fineAmount > 0) {
         record.fineStatus = collectFineAtCounter ? 'PAID' : 'UNPAID';
-        await manager.save(
+        const codeDate = returnDate.toISOString().slice(0, 10).replace(/-/g, '');
+        paymentRecord = await manager.save(
           manager.create(FinePayment, {
-            txnRef: randomUUID().replace(/-/g, ''),
+            txnRef: `BL-${codeDate}-${randomUUID().slice(0, 6).toUpperCase()}`,
             borrowRecord: record,
             amount: record.fineAmount,
             status: collectFineAtCounter ? PaymentStatus.PAID : PaymentStatus.INITIATED,
@@ -711,7 +895,28 @@ export class BorrowRecordsService {
         record.book.availableCopies += 1;
         await manager.save(record.book);
       }
-      return this.publicRecord(await manager.save(record));
+      const saved = await manager.save(record);
+      let unlockResult: { unlocked: boolean; message?: string } = { unlocked: false };
+      if (collectFineAtCounter && record.fineAmount > 0 && record.user) {
+        unlockResult = await this.checkAndUnlockReaderIfSettled(record.user.id, manager);
+      }
+      return {
+        ...this.publicRecord(saved),
+        accountUnlocked: unlockResult.unlocked,
+        unlockMessage: unlockResult.message,
+        receipt: collectFineAtCounter && paymentRecord ? {
+          receiptNumber: paymentRecord.txnRef,
+          paidAt: paymentRecord.paidAt,
+          amount: Number(paymentRecord.amount),
+          paymentMethod: paymentRecord.paymentMethod,
+          readerName: record.user?.fullName || record.user?.username || 'Độc giả',
+          readerPhone: record.user?.phone || record.user?.email || '',
+          readerCardNumber: record.user?.cardNumber || `TV-${record.user?.id || ''}`,
+          bookTitle: record.book?.title || 'Sách mượn thư viện',
+          barcode: returnedCopy?.barcode || record.copy?.barcode || '',
+          reason: condition !== ReturnCondition.NORMAL ? `Hư hỏng (${condition}) & Trễ hạn` : 'Phí phạt trễ hạn mượn sách',
+        } : null,
+      };
     });
   }
 
@@ -735,8 +940,7 @@ export class BorrowRecordsService {
     recordId: number,
     requesterId: number,
     isStaff: boolean,
-    paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR | PaymentMethod.MANUAL =
-      PaymentMethod.MANUAL,
+    paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR | PaymentMethod.E_WALLET | PaymentMethod.MANUAL = PaymentMethod.MANUAL,
     txnRef?: string,
   ) {
     return this.dataSource.transaction(async (manager) => {
@@ -752,9 +956,12 @@ export class BorrowRecordsService {
         throw new BadRequestException('Số tiền phạt cần thu không hợp lệ');
       }
       await this.failPendingPayments(manager, { borrowRecord: { id: recordId } });
-      await manager.save(
+      const now = new Date();
+      const codeDate = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const generatedTxn = txnRef?.trim() || `BL-${codeDate}-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const payment = await manager.save(
         manager.create(FinePayment, {
-          txnRef: txnRef || `MANUAL-${randomUUID().replace(/-/g, '')}`,
+          txnRef: generatedTxn,
           borrowRecord: record,
           violation: null,
           amount: record.fineAmount,
@@ -762,11 +969,34 @@ export class BorrowRecordsService {
           paymentMethod,
           vnpayTransactionNo: null,
           responseCode: null,
-          paidAt: new Date(),
+          paidAt: now,
         }),
       );
       record.fineStatus = 'PAID';
-      return this.publicRecord(await manager.save(record));
+      const saved = await manager.save(record);
+      let unlockResult: { unlocked: boolean; message?: string } = { unlocked: false };
+      if (record.user) {
+        unlockResult = await this.checkAndUnlockReaderIfSettled(record.user.id, manager);
+      }
+      return {
+        ...this.publicRecord(saved),
+        accountUnlocked: unlockResult.unlocked,
+        unlockMessage: unlockResult.message,
+        receipt: {
+          receiptNumber: payment.txnRef,
+          paidAt: payment.paidAt,
+          amount: Number(payment.amount),
+          paymentMethod: payment.paymentMethod,
+          readerName: record.user?.fullName || record.user?.username || 'Độc giả',
+          readerPhone: record.user?.phone || record.user?.email || '',
+          readerCardNumber: record.user?.cardNumber || `TV-${record.user?.id || ''}`,
+          bookTitle: record.book?.title || 'Sách mượn thư viện',
+          barcode: record.copy?.barcode || '',
+          reason: record.returnCondition !== ReturnCondition.NORMAL
+            ? `Hư hỏng/Mất sách (${record.returnCondition}) & Phí quá hạn`
+            : 'Phí phạt trễ hạn mượn sách',
+        },
+      };
     });
   }
 

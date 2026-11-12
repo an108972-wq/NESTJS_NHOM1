@@ -56,7 +56,7 @@ describe('BooksController', () => {
     findLocations.mockResolvedValue(locations);
 
     await expect(controller.findLocations()).resolves.toEqual(locations);
-    expect(findLocations).toHaveBeenCalledOnce();
+    expect(findLocations).toHaveBeenCalledTimes(1);
   });
 
   it('rejects unsupported inventory statuses', () => {

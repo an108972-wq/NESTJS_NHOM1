@@ -52,6 +52,12 @@ export class BorrowRecordsController {
     return this.borrowService.borrowManyByBarcodes(dto.userId, dto.barcodes);
   }
 
+  @Post('fines/check-thresholds')
+  @Roles(...COUNTER_ROLES)
+  checkThresholds() {
+    return this.borrowService.checkFineThresholdsAndLock();
+  }
+
   @Get('fines')
   @Roles(...COUNTER_ROLES)
   findFines() {

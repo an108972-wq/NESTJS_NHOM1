@@ -14,6 +14,8 @@ import {
   BorrowStatus,
 } from '../borrow-records/entities/borrow-record.entity';
 import { FinePayment, PaymentMethod, PaymentStatus } from './entities/payment.entity';
+import { User } from '../users/entities/user.entity';
+import { FineViolation } from '../borrow-records/entities/fine-violation.entity';
 
 type VnpayParams = Record<string, string>;
 
@@ -106,6 +108,7 @@ export class PaymentsService {
     const alreadyConfirmed = await this.dataSource.transaction(async (manager) => {
       const record = await manager.findOne(BorrowRecord, {
         where: { id: payment.borrowRecord.id },
+        relations: { user: true },
         lock: { mode: 'pessimistic_write' },
       });
       if (!record) throw new NotFoundException('Không tìm thấy phiếu mượn');
@@ -129,6 +132,22 @@ export class PaymentsService {
       if (succeeded) {
         record.fineStatus = 'PAID';
         await manager.save(record);
+
+        if (record.user) {
+          const user = await manager.findOne(User, { where: { id: record.user.id } });
+          if (user && (!user.isActive || Boolean(user.lockoutUntil && new Date(user.lockoutUntil) > new Date()))) {
+            const [unpaidBorrow, unpaidViolations] = await Promise.all([
+              manager.count(BorrowRecord, { where: { user: { id: user.id }, fineStatus: 'UNPAID' } }),
+              manager.count(FineViolation, { where: { user: { id: user.id }, fineStatus: 'UNPAID' } }),
+            ]);
+            if (unpaidBorrow === 0 && unpaidViolations === 0) {
+              user.isActive = true;
+              user.lockoutUntil = null;
+              user.failedLoginAttempts = 0;
+              await manager.save(user);
+            }
+          }
+        }
       }
       return false;
     });

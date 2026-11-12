@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, DeleteDateColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Category } from '../../categories/entities/category.entity';
 import { BookCopy } from './book-copy.entity';
 import { Review } from '../../reviews/entities/review.entity';
@@ -27,6 +27,31 @@ export class Book {
   @Column({ type: 'varchar', length: 2048, nullable: true })
   coverImageUrl?: string | null;
 
+  @Column({ type: 'varchar', length: 2048, nullable: true })
+  pdfUrl?: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: ['PUBLIC', 'READER_ONLY', 'NO_DOWNLOAD'],
+    default: 'PUBLIC',
+  })
+  pdfPermission?: string;
+
+  @Column({ type: 'varchar', length: 10, default: 'PDF' })
+  digitalFormat?: string;
+
+  @Column({ type: 'int', default: 5 })
+  previewPages?: number;
+
+  @Column({ type: 'int', default: 0 })
+  digitalViews?: number;
+
+  @Column({ type: 'int', default: 0 })
+  digitalDownloads?: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 80000, nullable: true })
+  price?: number | null;
+
   @Column({ type: 'int', default: 1 })
   totalCopies: number;
 
@@ -41,6 +66,12 @@ export class Book {
 
   @Column({ nullable: true })
   aisle?: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @DeleteDateColumn({ nullable: true })
   deletedAt?: Date | null;

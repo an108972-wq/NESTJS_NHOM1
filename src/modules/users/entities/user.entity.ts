@@ -33,6 +33,15 @@ export class User {
   @Column({ type: 'int', default: 5 })
   maxActiveLoans: number;
 
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  cardNumber?: string | null;
+
+  @Column({ type: 'varchar', length: 30, default: 'STUDENT', nullable: true })
+  readerGroup?: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  customPermissions?: string | null;
+
   @Column({ type: 'date', nullable: true })
   libraryCardIssuedAt?: Date | null;
 
@@ -41,6 +50,27 @@ export class User {
 
   @Column({ nullable: true })
   currentHashedRefreshToken: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  isTwoFactorEnabled: boolean;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  twoFactorTempCode?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  twoFactorCodeExpiresAt?: Date | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  passwordResetToken?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  passwordResetExpiresAt?: Date | null;
+
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts: number;
+
+  @Column({ type: 'datetime', nullable: true })
+  lockoutUntil?: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

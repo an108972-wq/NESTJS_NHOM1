@@ -17,4 +17,17 @@ describe('UpdateLibrarySettingsDto', () => {
 
     expect(validateSync(dto).some(({ property }) => property === 'renewalDays')).toBe(true);
   });
+
+  it('validates optional SMS OTP configuration parameters', () => {
+    const dto = plainToInstance(UpdateLibrarySettingsDto, {
+      smsProvider: 'ESMS',
+      smsApiKey: 'key-12345',
+      smsApiSecret: 'secret-67890',
+      smsBrandName: 'THUVIEN_UNI',
+      enableSmsOtp: true,
+    });
+    expect(dto.smsProvider).toBe('ESMS');
+    expect(dto.enableSmsOtp).toBe(true);
+    expect(validateSync(dto)).toHaveLength(0);
+  });
 });

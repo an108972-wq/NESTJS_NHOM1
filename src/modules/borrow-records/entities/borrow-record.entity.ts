@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Book } from '../../books/entities/book.entity';
 import { BookCopy } from '../../books/entities/book-copy.entity';
@@ -58,4 +58,10 @@ export class BorrowRecord {
 
   @Column({ default: 'NONE' }) // NONE | UNPAID | PAID
   fineStatus: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

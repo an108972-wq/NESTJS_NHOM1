@@ -15,8 +15,18 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { AcquisitionsModule } from './modules/acquisitions/acquisitions.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { DevicesModule } from './modules/devices/devices.module';
+import { StudyRoomsModule } from './modules/study-rooms/study-rooms.module';
+import { LockersModule } from './modules/lockers/lockers.module';
+import { AiModule } from './modules/ai/ai.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
+  controllers: [AppController],
+  providers: [AppService],
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
@@ -43,6 +53,12 @@ import { SettingsModule } from './modules/settings/settings.module';
     NotificationsModule,
     PaymentsModule,
     SettingsModule,
+    AcquisitionsModule,
+    AuditLogsModule,
+    DevicesModule,
+    StudyRoomsModule,
+    LockersModule,
+    AiModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -2,8 +2,8 @@ import { IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator'
 import { PaymentMethod } from '../../payments/entities/payment.entity';
 
 export class CollectFineDto {
-  @IsIn([PaymentMethod.CASH, PaymentMethod.VIETQR])
-  paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR;
+  @IsIn([PaymentMethod.CASH, PaymentMethod.VIETQR, PaymentMethod.E_WALLET])
+  paymentMethod: PaymentMethod.CASH | PaymentMethod.VIETQR | PaymentMethod.E_WALLET;
 
   @IsOptional()
   @IsString()

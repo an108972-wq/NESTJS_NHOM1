@@ -19,7 +19,7 @@ import { CreateStaffReservationDto } from './dto/create-staff-reservation.dto';
 @Controller('reservations')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReservationsController {
-  constructor(private readonly reservationsService: ReservationsService) {}
+  constructor(private readonly reservationsService: ReservationsService) { }
 
   @Get('mine')
   @Roles(...STAFF_ROLES, UserRole.READER)
@@ -39,10 +39,23 @@ export class ReservationsController {
     return this.reservationsService.reserve(dto.userId, dto.bookId);
   }
 
+
+  @Post('expire-check')
+  @Roles(...COUNTER_ROLES)
+  expireCheck() {
+    return this.reservationsService.expireReadyReservations();
+  }
+
   @Post(':id/ready')
   @Roles(...COUNTER_ROLES)
   markReady(@Param('id', ParseIntPipe) id: number) {
     return this.reservationsService.markReady(id);
+  }
+
+  @Post(':id/send-ready-email')
+  @Roles(...COUNTER_ROLES)
+  sendReadyEmail(@Param('id', ParseIntPipe) id: number) {
+    return this.reservationsService.sendReadyEmail(id);
   }
 
   @Post('books/:bookId')

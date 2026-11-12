@@ -20,6 +20,7 @@ export enum PaymentMethod {
   MANUAL = 'MANUAL',
   CASH = 'CASH',
   VIETQR = 'VIETQR',
+  E_WALLET = 'E_WALLET',
 }
 
 @Entity('fine_payments')

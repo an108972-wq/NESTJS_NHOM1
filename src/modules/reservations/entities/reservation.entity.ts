@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { BookCopy } from '../../books/entities/book-copy.entity';
 import { Book } from '../../books/entities/book.entity';
@@ -42,4 +43,7 @@ export class Reservation {
 
   @Column({ type: 'datetime', nullable: true })
   expiresAt: Date | null;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

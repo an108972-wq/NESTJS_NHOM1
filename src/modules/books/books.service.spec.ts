@@ -214,4 +214,37 @@ describe('BooksService', () => {
     ).rejects.toThrow('đã thanh lý không thể được khôi phục');
     expect(transactionManager.save).not.toHaveBeenCalled();
   });
+
+  it('bulk updates copy statuses for inventory audit', async () => {
+    const book = { id: 4, availableCopies: 2, totalCopies: 2 } as Book;
+    const copy = { id: 12, barcode: 'COPY-1', book, status: BookCopyStatus.AVAILABLE } as BookCopy;
+    copyRepository.findOne = vi.fn().mockResolvedValue(copy);
+
+    const result = await service.bulkUpdateAuditCopies({
+      barcodes: ['COPY-1'],
+      status: BookCopyStatus.LOST,
+      reason: 'Audit missing',
+    });
+
+    expect(result.updatedCount).toBe(1);
+    expect(copy.status).toBe(BookCopyStatus.LOST);
+    expect(book.availableCopies).toBe(1);
+  });
+
+  it('relocates copies to a target shelf', async () => {
+    const copy = { id: 13, barcode: 'COPY-2', shelf: 'A1', floor: '1', aisle: 'Dãy 1' } as BookCopy;
+    copyRepository.findOne = vi.fn().mockResolvedValue(copy);
+
+    const result = await service.relocateAuditCopies({
+      barcodes: ['COPY-2'],
+      floor: '3',
+      aisle: 'Dãy B',
+      shelf: 'A2',
+    });
+
+    expect(result.updatedCount).toBe(1);
+    expect(copy.floor).toBe('3');
+    expect(copy.aisle).toBe('Dãy B');
+    expect(copy.shelf).toBe('A2');
+  });
 });

@@ -20,6 +20,9 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
+import { MergeCategoriesDto } from './dto/merge-categories.dto.js';
+import { MoveBooksCategoryDto } from './dto/move-books.dto.js';
+import { Request } from '@nestjs/common';
 import { CategoriesService } from './categories.service.js';
 
 @Controller('categories')
@@ -47,6 +50,24 @@ export class CategoriesController {
       throw new BadRequestException('Chỉ chấp nhận tệp CSV hoặc XLSX');
     }
     return this.categoriesService.importCategories(file.buffer, extension);
+  }
+
+  @Post('merge')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  mergeCategories(@Body() dto: MergeCategoriesDto, @Request() req: any) {
+    return this.categoriesService.mergeCategories(dto, req.user);
+  }
+
+  @Post(':id/move-books')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  moveBooks(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MoveBooksCategoryDto,
+    @Request() req: any,
+  ) {
+    return this.categoriesService.moveBooks(id, dto.targetCategoryId, req.user);
   }
 
   @Get()

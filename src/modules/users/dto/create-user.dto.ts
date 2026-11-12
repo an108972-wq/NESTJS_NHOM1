@@ -36,4 +36,16 @@ export class CreateUserDto {
   @Min(1)
   @Max(50)
   maxActiveLoans?: number;
+
+  @IsOptional()
+  @IsString()
+  cardNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  readerGroup?: string;
+
+  @IsOptional()
+  @IsString()
+  customPermissions?: string;
 }

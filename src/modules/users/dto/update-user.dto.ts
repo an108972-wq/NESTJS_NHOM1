@@ -40,4 +40,16 @@ export class UpdateUserDto {
   @IsOptional()
   @IsDateString()
   libraryCardExpiresAt?: string | null;
+
+  @IsOptional()
+  @IsString()
+  cardNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  readerGroup?: string;
+
+  @IsOptional()
+  @IsString()
+  customPermissions?: string;
 }

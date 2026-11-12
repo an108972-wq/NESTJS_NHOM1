@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
 import { Book } from './book.entity';
 
 export enum BookCopyStatus {
@@ -31,6 +31,15 @@ export class BookCopy {
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   aisle?: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastAuditedAt?: Date | null;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @ManyToOne(() => Book, (book) => book.copies, { onDelete: 'CASCADE' })
   book: Book;

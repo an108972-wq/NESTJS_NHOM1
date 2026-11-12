@@ -3,6 +3,8 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, LessThan, Repository } from 'typeorm';
@@ -16,10 +18,24 @@ import { UserRole } from '../../common/constants/user-role';
 import { isLibraryCardExpired } from '../users/library-card';
 import { SettingsService } from '../settings/settings.service';
 import { FineViolation } from '../borrow-records/entities/fine-violation.entity';
+import { createTransport } from 'nodemailer';
 
 @Injectable()
-export class ReservationsService {
+export class ReservationsService implements OnModuleInit, OnModuleDestroy {
   private readonly holdHours = 24;
+  private autoExpireTimer?: NodeJS.Timeout;
+
+  onModuleInit() {
+    this.autoExpireTimer = setInterval(() => {
+      void this.expireReadyReservations();
+    }, 10 * 60 * 1000);
+    this.autoExpireTimer.unref();
+    setTimeout(() => void this.expireReadyReservations(), 15000);
+  }
+
+  onModuleDestroy() {
+    if (this.autoExpireTimer) clearInterval(this.autoExpireTimer);
+  }
 
   constructor(
     @InjectRepository(Reservation)
@@ -32,7 +48,7 @@ export class ReservationsService {
     private readonly fineViolationRepository: Repository<FineViolation>,
     private readonly dataSource: DataSource,
     private readonly settingsService: SettingsService,
-  ) {}
+  ) { }
 
   async reserve(userId: number, bookId: number) {
     const unpaidFine = await this.borrowRepository.findOne({
@@ -117,24 +133,39 @@ export class ReservationsService {
     }));
   }
 
-  findAll() {
-    return this.reservationRepository.find({
+  async findAll() {
+    const reservations = await this.reservationRepository.find({
       relations: { user: true, book: true, copy: true },
       order: { createdAt: 'ASC' },
-    }).then((reservations) => {
-      const positions = new Map<number, number>();
-      return reservations.map((reservation) => {
-        let queuePosition: number | null = null;
-        if (reservation.status === ReservationStatus.WAITING) {
-          queuePosition = (positions.get(reservation.book.id) || 0) + 1;
-          positions.set(reservation.book.id, queuePosition);
-        }
-        return {
-          ...reservation,
-          queuePosition,
-          user: this.publicUser(reservation.user),
-        };
-      });
+    });
+    const positions = new Map<number, number>();
+    const notifRepo = this.dataSource.getRepository(Notification);
+    const readyNotifs = await notifRepo.find({
+      where: { type: NotificationType.RESERVATION_READY },
+      relations: { reservation: true },
+      order: { createdAt: 'DESC' },
+    });
+    const notifMap = new Map<number, Notification>();
+    for (const n of readyNotifs) {
+      if (n.reservation && !notifMap.has(n.reservation.id)) {
+        notifMap.set(n.reservation.id, n);
+      }
+    }
+
+    return reservations.map((reservation) => {
+      let queuePosition: number | null = null;
+      if (reservation.status === ReservationStatus.WAITING) {
+        queuePosition = (positions.get(reservation.book.id) || 0) + 1;
+        positions.set(reservation.book.id, queuePosition);
+      }
+      const notif = notifMap.get(reservation.id);
+      return {
+        ...reservation,
+        queuePosition,
+        emailStatus: notif?.emailStatus || null,
+        emailError: notif?.emailError || null,
+        user: this.publicUser(reservation.user),
+      };
     });
   }
 
@@ -317,6 +348,11 @@ export class ReservationsService {
       await manager.save(book);
       const saved = await manager.save(reservation);
       await this.createReadyNotification(manager, reservation, book);
+      setTimeout(() => {
+        try {
+          void this.sendReadyEmail(reservation.id).catch(() => {});
+        } catch {}
+      }, 200);
       return { ...saved, user: this.publicUser(saved.user) };
     });
   }
@@ -358,6 +394,7 @@ export class ReservationsService {
     const expired = await this.reservationRepository.find({
       where: { status: ReservationStatus.READY, expiresAt: LessThan(new Date()) },
     });
+    let count = 0;
     for (const candidate of expired) {
       await this.dataSource.transaction(async (manager) => {
         const reservation = await manager.findOne(Reservation, {
@@ -385,8 +422,13 @@ export class ReservationsService {
           reservation.book.availableCopies += 1;
           await manager.save(reservation.book);
         }
+        count++;
       });
     }
+    return {
+      message: 'Kiểm tra thời gian giữ chỗ hoàn tất',
+      expiredCount: count,
+    };
   }
 
   async assignNextWaitingReservation(
@@ -422,10 +464,152 @@ export class ReservationsService {
     await manager.save(copy);
     await manager.save(next);
     await this.createReadyNotification(manager, next, book);
+    setTimeout(() => {
+      try {
+        void this.sendReadyEmail(next.id).catch(() => {});
+      } catch {}
+    }, 200);
     return true;
   }
 
+  async sendReadyEmail(reservationId: number): Promise<{ success: boolean; message: string }> {
+    if (!this.reservationRepository || typeof this.reservationRepository.findOne !== 'function') {
+      return { success: false, message: 'Repository not ready' };
+    }
+    const reservation = await this.reservationRepository.findOne({
+      where: { id: reservationId },
+      relations: { user: true, book: true, copy: true },
+    });
+    if (!reservation) {
+      throw new NotFoundException('Không tìm thấy yêu cầu giữ sách');
+    }
+    if (reservation.status !== ReservationStatus.READY) {
+      throw new BadRequestException('Chỉ có thể gửi email thông báo khi yêu cầu giữ sách đang ở trạng thái READY');
+    }
+
+    const user = reservation.user;
+    if (!user || !user.email) {
+      return { success: false, message: 'Độc giả chưa có địa chỉ email để nhận thông báo' };
+    }
+
+    const notifRepo = this.dataSource.getRepository(Notification);
+    let notif = await notifRepo.findOne({
+      where: { reservation: { id: reservation.id }, type: NotificationType.RESERVATION_READY },
+      order: { createdAt: 'DESC' },
+    });
+
+    const formattedExpiry = reservation.expiresAt
+      ? new Intl.DateTimeFormat('vi-VN', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(reservation.expiresAt)
+      : 'sau 24 giờ';
+
+    const shelfLocation = [
+      reservation.copy?.shelf && `Kệ ${reservation.copy.shelf}`,
+      reservation.copy?.floor && `Tầng ${reservation.copy.floor}`,
+      reservation.copy?.aisle,
+    ].filter(Boolean).join(' · ') || 'Kệ giữ chỗ đặt trước tại quầy thư viện';
+
+    let mailer: any = null;
+    let emailFrom = process.env.SMTP_FROM || 'thuvien@daihoc.edu.vn';
+
+    if (this.settingsService) {
+      try {
+        const settings = await this.settingsService.getSettings();
+        if (settings.smtpHost && settings.smtpUser && settings.smtpPassword) {
+          mailer = createTransport({
+            host: settings.smtpHost,
+            port: settings.smtpPort || 587,
+            secure: Boolean(settings.smtpSecure),
+            auth: { user: settings.smtpUser, pass: settings.smtpPassword },
+          });
+          emailFrom = settings.smtpFrom || settings.smtpUser;
+        }
+      } catch (err) {
+        // Fallback
+      }
+    }
+
+    if (!mailer && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+      mailer = createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+      });
+      emailFrom = process.env.SMTP_FROM || process.env.SMTP_USER;
+    }
+
+    if (!mailer) {
+      if (notif) {
+        notif.emailStatus = EmailDeliveryStatus.NOT_CONFIGURED;
+        notif.emailError = 'Máy chủ SMTP chưa được cấu hình';
+        await notifRepo.save(notif);
+      }
+      return { success: false, message: 'Chưa cấu hình máy chủ SMTP gửi thư' };
+    }
+
+    try {
+      await mailer.sendMail({
+        from: emailFrom,
+        to: user.email,
+        subject: `[THƯ VIỆN] Sách đặt trước "${reservation.book.title}" đã sẵn sàng trên kệ (Thời hạn: 24 giờ)`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;">
+            <div style="text-align:center;padding-bottom:16px;border-bottom:2px solid #0f766e;">
+              <h2 style="color:#0f766e;margin:0;">📚 HỆ THỐNG THƯ VIỆN SỐ</h2>
+              <p style="color:#64748b;margin:4px 0 0 0;font-size:13px;">Thông báo tự động về sách đặt trước đã có sẵn trên kệ</p>
+            </div>
+            <div style="padding:20px 0;">
+              <p>Kính gửi bạn đọc <strong>${user.fullName || user.username}</strong>,</p>
+              <p>Đầu sách bạn đăng ký đặt giữ trong hàng đợi FIFO hiện đã có bản sao sẵn sàng trên kệ giữ chỗ tại quầy thư viện:</p>
+              <div style="background:#f0fdf4;border-left:4px solid #10b981;padding:14px;border-radius:6px;margin:16px 0;">
+                <h3 style="margin:0 0 8px 0;color:#065f46;">📖 ${reservation.book.title}</h3>
+                ${reservation.copy?.barcode ? `<div style="font-size:13px;color:#334155;margin-bottom:4px;">Mã vạch (Barcode): <code>${reservation.copy.barcode}</code></div>` : ''}
+                <div style="font-size:13px;color:#334155;margin-bottom:4px;">Vị trí kệ nhận sách: <strong>${shelfLocation}</strong></div>
+                <div style="font-size:15px;color:#b91c1c;font-weight:700;margin-top:10px;">
+                  ⏰ Thời hạn hết hiệu lực giữ chỗ: ${formattedExpiry} (Sau 24 giờ)
+                </div>
+              </div>
+              <div style="background:#fffbeb;border:1px solid #fef3c7;padding:12px;border-radius:6px;font-size:13px;color:#92400e;line-height:1.5;">
+                ⚠️ <strong>Lưu ý quan trọng:</strong> Thời hạn giữ sách tối đa là <strong>24 giờ</strong> kể từ thời điểm gửi thông báo. Sau 24 giờ, nếu bạn không đến nhận tại quầy, yêu cầu giữ chỗ sẽ <strong>tự động hết hiệu lực</strong> và sách sẽ được chuyển quyền mượn cho bạn đọc tiếp theo trong danh sách chờ FIFO.
+              </div>
+            </div>
+            <div style="border-top:1px solid #e2e8f0;padding-top:16px;font-size:12px;color:#94a3b8;text-align:center;">
+              Đây là thư thông báo tự động từ Hệ thống Quản lý Thư viện. Vui lòng không trả lời thư này.
+            </div>
+          </div>
+        `,
+      });
+
+      if (notif) {
+        notif.emailStatus = EmailDeliveryStatus.SENT;
+        notif.emailError = null;
+        await notifRepo.save(notif);
+      }
+      return { success: true, message: `Đã gửi thành công email thông báo giữ chỗ 24h tới "${user.email}"` };
+    } catch (err: any) {
+      if (notif) {
+        notif.emailStatus = EmailDeliveryStatus.FAILED;
+        notif.emailError = err.message;
+        await notifRepo.save(notif);
+      }
+      return { success: false, message: `Lỗi gửi email: ${err.message}` };
+    }
+  }
+
   private async createReadyNotification(manager: EntityManager, reservation: Reservation, book: Book) {
+    const formattedExpiry = reservation.expiresAt
+      ? new Intl.DateTimeFormat('vi-VN', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(reservation.expiresAt)
+      : 'sau 24 giờ';
+    const shelfInfo = reservation.copy?.shelf ? ` (Vị trí: Kệ ${reservation.copy.shelf})` : '';
+
     await manager.save(
       Notification,
       manager.create(Notification, {
@@ -433,8 +617,8 @@ export class ReservationsService {
         borrowRecord: null,
         reservation,
         type: NotificationType.RESERVATION_READY,
-        title: 'Sách bạn đặt giữ đã sẵn sàng',
-        message: `Sách "${book.title}" đã có bản sao dành cho bạn. Vui lòng nhận trước ${reservation.expiresAt?.toLocaleString('vi-VN')}.`,
+        title: `[THƯ VIỆN] Sách đặt trước "${book.title}" đã sẵn sàng trên kệ`,
+        message: `Sách "${book.title}"${shelfInfo} đã có bản sao sẵn sàng trên kệ tại quầy thư viện. Thời hạn giữ chỗ: 24 giờ (đến hết ${formattedExpiry}). Vui lòng nhận sách trước thời hạn trên; sau 24 giờ yêu cầu giữ chỗ sẽ tự động bị hủy.`,
         emailStatus: EmailDeliveryStatus.NOT_CONFIGURED,
         emailError: null,
         readAt: null,

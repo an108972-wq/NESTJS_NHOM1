@@ -60,6 +60,13 @@ export class PublishersController {
     return this.publishersService.findOne(id);
   }
 
+  @Get(':id/budget-summary')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  getBudgetSummary(@Param('id', ParseIntPipe) id: number) {
+    return this.publishersService.getBudgetSummary(id);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...INVENTORY_ROLES)

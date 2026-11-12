@@ -149,7 +149,7 @@ describe('BorrowRecordsService', () => {
       isActive: true,
       role: UserRole.READER,
       libraryCardExpiresAt: '2000-01-01',
-    } as User;
+    } as unknown as User;
     manager.findOne.mockImplementation((entity) =>
       Promise.resolve(entity === User ? expiredReader : book),
     );
@@ -202,7 +202,7 @@ describe('BorrowRecordsService', () => {
   });
 
   it('extends the due date by the configured renewal interval', async () => {
-    const dueDate = new Date(2026, 10, 10);
+    const dueDate = new Date(Date.now() + 5 * 86_400_000);
     const record = {
       id: 12,
       status: BorrowStatus.BORROWED,

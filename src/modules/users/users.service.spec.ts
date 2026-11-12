@@ -33,7 +33,7 @@ describe('UsersService', () => {
       save: vi.fn(async (value) => value),
     };
     borrowRepository = { count: vi.fn().mockResolvedValue(2) };
-    reservationsRepository = { find: vi.fn().mockResolvedValue([]) };
+    reservationsRepository = { find: vi.fn().mockResolvedValue([]), update: vi.fn().mockResolvedValue({ affected: 1 }) };
     fineViolationRepository = { find: vi.fn().mockResolvedValue([]) };
     manager = {
       findOne: vi.fn().mockResolvedValue(user),
@@ -155,5 +155,37 @@ describe('UsersService', () => {
     expect(approved.approvedAt).toBeInstanceOf(Date);
     expect(approved.libraryCardIssuedAt).toBeInstanceOf(Date);
     expect(usersRepository.save).toHaveBeenCalledWith(user);
+  });
+  it('reissues a digital library card with barcode/number and 1-year expiry', async () => {
+    const reissued = await service.reissueLibraryCard(user.id);
+    expect(reissued.cardNumber).toMatch(/^TV-\d{5}-\d{4}$/);
+    expect(reissued.libraryCardIssuedAt).toBeInstanceOf(Date);
+    expect(reissued.libraryCardExpiresAt).toBeInstanceOf(Date);
+    expect(reissued.isActive).toBe(true);
+  });
+
+  it('synchronously cancels pending waiting reservations when locking account', async () => {
+    user.isActive = true;
+    const locked = await service.updateStatus(user.id, false);
+    expect(locked.isActive).toBe(false);
+    expect(reservationsRepository.update).toHaveBeenCalledWith(
+      { user: { id: user.id }, status: 'WAITING' },
+      { status: 'CANCELLED' },
+    );
+  });
+
+  it('applies reader group default loan limits for lecturer', async () => {
+    usersRepository.findOneBy = vi.fn().mockResolvedValue(null);
+    usersRepository.create = vi.fn((data) => ({ ...data, id: 99 }));
+
+    const created = await service.create({
+      username: 'lecturer1',
+      password: 'password123',
+      readerGroup: 'LECTURER',
+      role: UserRole.READER,
+    });
+
+    expect(created.readerGroup).toBe('LECTURER');
+    expect(created.maxActiveLoans).toBe(15);
   });
 });

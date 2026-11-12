@@ -53,7 +53,7 @@ describe('ReservationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReservationsService,
-        { provide: getRepositoryToken(Reservation), useValue: {} },
+        { provide: getRepositoryToken(Reservation), useValue: { findOne: vi.fn().mockResolvedValue(null) } },
         { provide: getRepositoryToken(User), useValue: {} },
         { provide: getRepositoryToken(BorrowRecord), useValue: {} },
         { provide: getRepositoryToken(FineViolation), useValue: { findOne: vi.fn().mockResolvedValue(null) } },

@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
+import { Optional } from '@nestjs/common';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { MergeCategoriesDto } from './dto/merge-categories.dto.js';
+import { MoveBooksCategoryDto } from './dto/move-books.dto.js';
 import importReadXlsxFile = require('read-excel-file/node');
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
@@ -12,9 +16,10 @@ export class CategoriesService {
   constructor(
     @InjectRepository(Category) private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Book) private readonly bookRepository: Repository<Book>,
-  ) { }
+    @Optional() private readonly auditLogsService?: AuditLogsService,
+  ) {}
 
-  async create(dto: CreateCategoryDto) {
+  async create(dto: CreateCategoryDto, performer?: any) {
     const trimmedName = dto.name.trim();
     if (await this.categoryRepository.findOneBy({ name: trimmedName })) {
       throw new BadRequestException('Thể loại đã tồn tại');
@@ -33,24 +38,44 @@ export class CategoriesService {
       ddcCode: dto.ddcCode?.trim() || undefined,
       parentId,
     });
-    return this.categoryRepository.save(category);
+    const saved = await this.categoryRepository.save(category);
+
+    if (this.auditLogsService) {
+      await this.auditLogsService.log({
+        action: 'CREATE_CATEGORY',
+        module: 'CATEGORIES',
+        description: `Tạo thể loại mới "${saved.name}"${saved.ddcCode ? ' [DDC: ' + saved.ddcCode + ']' : ''}`,
+        performerId: performer?.userId || performer?.id,
+        performerName: performer?.username,
+        performerRole: performer?.role,
+      });
+    }
+
+    return saved;
   }
 
   async findAll(search?: string) {
     const categories = await this.categoryRepository
       .createQueryBuilder('category')
       .leftJoinAndSelect('category.parent', 'parent')
+      .leftJoinAndSelect('category.children', 'children')
       .leftJoinAndSelect('category.books', 'book', 'book.deletedAt IS NULL')
       .leftJoinAndSelect('book.copies', 'copy')
       .orderBy('category.name', 'ASC')
       .getMany();
 
-    let result = categories.map((cat) => {
+    const flatList = categories.map((cat) => {
       const books = cat.books || [];
       const bookCount = books.length;
       const totalCopies = books.reduce((sum, b) => {
         const copyCount = b.copies && b.copies.length ? b.copies.length : (b.totalCopies || 0);
         return sum + copyCount;
+      }, 0);
+      const availableCopies = books.reduce((sum, b) => {
+        const available = b.copies && b.copies.length
+          ? b.copies.filter((c: any) => c.status === 'AVAILABLE').length
+          : (b.availableCopies || 0);
+        return sum + available;
       }, 0);
 
       return {
@@ -61,19 +86,22 @@ export class CategoriesService {
         parentId: cat.parentId,
         parent: cat.parent
           ? {
-            id: cat.parent.id,
-            name: cat.parent.name,
-            ddcCode: cat.parent.ddcCode,
-          }
+              id: cat.parent.id,
+              name: cat.parent.name,
+              ddcCode: cat.parent.ddcCode,
+            }
           : null,
+        parentName: cat.parent ? cat.parent.name : null,
+        childrenCount: cat.children?.length || 0,
         bookCount,
         totalCopies,
+        availableCopies,
       };
     });
 
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
-      result = result.filter(
+      return flatList.filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
           (c.ddcCode && c.ddcCode.toLowerCase().includes(q)) ||
@@ -82,7 +110,38 @@ export class CategoriesService {
       );
     }
 
-    return result;
+    // Tổ chức danh mục phân cấp theo thứ tự: Gốc -> Các con trực tiếp thụt vào
+    const rootCategories = flatList.filter((c) => !c.parentId);
+    const childrenMap = new Map<number, typeof flatList>();
+    for (const c of flatList) {
+      if (c.parentId) {
+        const list = childrenMap.get(c.parentId) || [];
+        list.push(c);
+        childrenMap.set(c.parentId, list);
+      }
+    }
+
+    const hierarchicalList: Array<typeof flatList[0] & { level: number }> = [];
+    const traverse = (item: typeof flatList[0], level: number) => {
+      hierarchicalList.push({ ...item, level });
+      const children = childrenMap.get(item.id) || [];
+      for (const child of children) {
+        traverse(child, level + 1);
+      }
+    };
+
+    for (const root of rootCategories) {
+      traverse(root, 0);
+    }
+
+    // Bổ sung những danh mục độc lập nếu parentId không tìm thấy
+    for (const item of flatList) {
+      if (!hierarchicalList.some((h) => h.id === item.id)) {
+        hierarchicalList.push({ ...item, level: 0 });
+      }
+    }
+
+    return hierarchicalList;
   }
 
   async findOne(id: number) {
@@ -121,6 +180,15 @@ export class CategoriesService {
       if (dto.parentId) {
         const parent = await this.categoryRepository.findOneBy({ id: dto.parentId });
         if (!parent) throw new BadRequestException('Thể loại cha không tồn tại');
+        // Kiểm tra vòng lặp phân cấp
+        let currentAncestorId: number | null = parent.parentId;
+        while (currentAncestorId) {
+          if (currentAncestorId === id) {
+            throw new BadRequestException('Không thể chọn thể loại này làm cha vì sẽ tạo vòng lặp phân cấp');
+          }
+          const ancestor = await this.categoryRepository.findOneBy({ id: currentAncestorId });
+          currentAncestorId = ancestor?.parentId || null;
+        }
         category.parentId = parent.id;
       } else {
         category.parentId = null;
@@ -130,7 +198,120 @@ export class CategoriesService {
     return this.categoryRepository.save(category);
   }
 
-  async remove(id: number) {
+  async mergeCategories(dto: MergeCategoriesDto, performer?: any) {
+    const target = await this.categoryRepository.findOne({
+      where: { id: dto.targetCategoryId },
+    });
+    if (!target) throw new NotFoundException('Thể loại đích không tồn tại');
+
+    const sourceIds = dto.sourceCategoryIds.filter((id) => id !== dto.targetCategoryId);
+    if (!sourceIds.length) {
+      throw new BadRequestException('Vui lòng chọn ít nhất một thể loại nguồn khác với thể loại đích');
+    }
+
+    const sources = await this.categoryRepository.find({
+      where: { id: In(sourceIds) },
+    });
+    if (!sources.length) {
+      throw new BadRequestException('Không tìm thấy thể loại nguồn cần gộp');
+    }
+
+    const sourceNames = sources.map((s) => s.name).join(', ');
+
+    // 1. Chuyển toàn bộ sách sang thể loại đích
+    const booksCount = await this.bookRepository.count({
+      where: { category: { id: In(sourceIds) } },
+    });
+    if (booksCount > 0) {
+      await this.bookRepository
+        .createQueryBuilder()
+        .update(Book)
+        .set({ category: { id: target.id } })
+        .where('categoryId IN (:...ids)', { ids: sourceIds })
+        .execute();
+    }
+
+    // 2. Chuyển các thể loại con sang thể loại đích
+    await this.categoryRepository
+      .createQueryBuilder()
+      .update(Category)
+      .set({ parentId: target.id })
+      .where('parentId IN (:...ids)', { ids: sourceIds })
+      .execute();
+
+    // 3. Xóa các thể loại nguồn nếu deleteSourceCategories = true (mặc định)
+    const shouldDelete = dto.deleteSourceCategories !== false;
+    if (shouldDelete) {
+      await this.categoryRepository.delete({ id: In(sourceIds) });
+    }
+
+    const description = `Gộp ${sources.length} thể loại [${sourceNames}] vào "${target.name}". Đã di chuyển ${booksCount} đầu sách.${shouldDelete ? ' Đã xóa danh mục nguồn cũ.' : ''}`;
+
+    if (this.auditLogsService) {
+      await this.auditLogsService.log({
+        action: 'MERGE_CATEGORIES',
+        module: 'CATEGORIES',
+        description,
+        performerId: performer?.userId || performer?.id,
+        performerName: performer?.username,
+        performerRole: performer?.role,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Đã gộp thành công ${sources.length} thể loại vào "${target.name}". Đã chuyển ${booksCount} đầu sách.`,
+      movedBooksCount: booksCount,
+      targetCategory: target,
+    };
+  }
+
+  async moveBooks(sourceId: number, targetId: number, performer?: any) {
+    if (sourceId === targetId) {
+      throw new BadRequestException('Thể loại nguồn và đích không thể trùng nhau');
+    }
+    const [source, target] = await Promise.all([
+      this.findOne(sourceId),
+      this.findOne(targetId),
+    ]);
+
+    const booksCount = await this.bookRepository.count({
+      where: { category: { id: sourceId } },
+    });
+    if (booksCount === 0) {
+      return {
+        success: true,
+        message: `Thể loại "${source.name}" hiện không có đầu sách nào để chuyển.`,
+        movedBooksCount: 0,
+      };
+    }
+
+    await this.bookRepository
+      .createQueryBuilder()
+      .update(Book)
+      .set({ category: { id: target.id } })
+      .where('categoryId = :sourceId', { sourceId })
+      .execute();
+
+    if (this.auditLogsService) {
+      await this.auditLogsService.log({
+        action: 'MOVE_BOOKS',
+        module: 'CATEGORIES',
+        description: `Chuyển toàn bộ ${booksCount} đầu sách từ thể loại "${source.name}" sang "${target.name}"`,
+        performerId: performer?.userId || performer?.id,
+        performerName: performer?.username,
+        performerRole: performer?.role,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Đã chuyển toàn bộ ${booksCount} đầu sách từ "${source.name}" sang "${target.name}".`,
+      movedBooksCount: booksCount,
+    };
+  }
+
+  async remove(id: number, performer?: any) {
     const category = await this.findOne(id);
 
     // 1. Ràng buộc: Không cho phép xóa nếu đang có sách thuộc thể loại đó

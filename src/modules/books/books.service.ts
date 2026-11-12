@@ -1,6 +1,9 @@
+import { FavoriteBook } from './entities/favorite-book.entity';
+import { Optional } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   BadRequestException,
+  ForbiddenException,
   HttpException,
   Injectable,
   NotFoundException,
@@ -36,7 +39,10 @@ export class BooksService {
     private readonly publisherRepository: Repository<Publisher>,
     private readonly dataSource: DataSource,
     private readonly reservationsService: ReservationsService,
-  ) {}
+    @Optional()
+    @InjectRepository(FavoriteBook)
+    private readonly favoriteRepo?: Repository<FavoriteBook>,
+  ) { }
 
   async create(dto: CreateBookDto) {
     const totalCopies = dto.totalCopies ?? 1;
@@ -273,8 +279,8 @@ export class BooksService {
       [...new Set([...books, ...copies]
         .map((item) => item[field]?.trim())
         .filter((value): value is string => Boolean(value)))].sort((a, b) =>
-        a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }),
-      );
+          a.localeCompare(b, 'vi', { numeric: true, sensitivity: 'base' }),
+        );
     return {
       shelves: values('shelf'),
       floors: values('floor'),
@@ -497,6 +503,389 @@ export class BooksService {
       book,
       status,
       barcode: `COPY-${randomUUID()}`,
+      shelf: book.shelf || null,
+      floor: book.floor || null,
+      aisle: book.aisle || null,
     });
   }
+
+  async runInventoryAudit(dto: {
+    floor?: string;
+    aisle?: string;
+    shelf?: string;
+    scannedBarcodes: string[];
+  }) {
+    const { floor, aisle, shelf, scannedBarcodes = [] } = dto;
+    const qb = this.copyRepository
+      .createQueryBuilder('copy')
+      .leftJoinAndSelect('copy.book', 'book')
+      .where('copy.status != :lostStatus', { lostStatus: BookCopyStatus.LOST })
+      .andWhere('copy.status != :disposedStatus', { disposedStatus: BookCopyStatus.DISPOSED });
+
+    if (floor && floor.trim()) {
+      qb.andWhere('(copy.floor = :floor OR (copy.floor IS NULL AND book.floor = :floor))', { floor: floor.trim() });
+    }
+    if (aisle && aisle.trim()) {
+      qb.andWhere('(copy.aisle = :aisle OR (copy.aisle IS NULL AND book.aisle = :aisle))', { aisle: aisle.trim() });
+    }
+    if (shelf && shelf.trim()) {
+      qb.andWhere('(copy.shelf = :shelf OR (copy.shelf IS NULL AND book.shelf = :shelf))', { shelf: shelf.trim() });
+    }
+
+    const expectedCopies = await qb.getMany();
+    const expectedMap = new Map(expectedCopies.map((c) => [c.barcode, c]));
+    const scannedSet = new Set(scannedBarcodes.map((b) => b.trim()).filter(Boolean));
+
+    const matched: any[] = [];
+    const misplaced: any[] = [];
+    const unknown: any[] = [];
+
+    for (const barcode of scannedSet) {
+      if (expectedMap.has(barcode)) {
+        const copy = expectedMap.get(barcode)!;
+        matched.push({
+          barcode: copy.barcode,
+          title: copy.book?.title || 'Chưa có tiêu đề',
+          author: copy.book?.author || '—',
+          shelf: copy.shelf || copy.book?.shelf || '—',
+          floor: copy.floor || copy.book?.floor || '—',
+          aisle: copy.aisle || copy.book?.aisle || '—',
+          status: copy.status,
+        });
+      } else {
+        const copy = await this.copyRepository.findOne({
+          where: { barcode },
+          relations: { book: true },
+        });
+        if (copy) {
+          misplaced.push({
+            barcode: copy.barcode,
+            title: copy.book?.title || 'Chưa có tiêu đề',
+            author: copy.book?.author || '—',
+            currentLocation: {
+              shelf: copy.shelf || copy.book?.shelf || 'Chưa gán',
+              floor: copy.floor || copy.book?.floor || 'Chưa gán',
+              aisle: copy.aisle || copy.book?.aisle || 'Chưa gán',
+            },
+            status: copy.status,
+          });
+        } else {
+          unknown.push({ barcode });
+        }
+      }
+    }
+
+    const missing: any[] = [];
+    for (const [barcode, copy] of expectedMap.entries()) {
+      if (!scannedSet.has(barcode)) {
+        missing.push({
+          barcode: copy.barcode,
+          title: copy.book?.title || 'Chưa có tiêu đề',
+          author: copy.book?.author || '—',
+          shelf: copy.shelf || copy.book?.shelf || '—',
+          floor: copy.floor || copy.book?.floor || '—',
+          aisle: copy.aisle || copy.book?.aisle || '—',
+          status: copy.status,
+        });
+      }
+    }
+
+    // Ghi nhận mốc thời gian kiểm kê thực tế vào database cho các bản sao đã quét
+    if (scannedSet.size > 0) {
+      const scannedList = Array.from(scannedSet);
+      try {
+        for (let i = 0; i < scannedList.length; i += 50) {
+          const chunk = scannedList.slice(i, i + 50);
+          await this.copyRepository
+            .createQueryBuilder()
+            .update(BookCopy)
+            .set({ lastAuditedAt: new Date() })
+            .where('barcode IN (:...barcodes)', { barcodes: chunk })
+            .execute();
+        }
+      } catch {
+        // Bỏ qua nếu cột lastAuditedAt chưa có hoặc DB đang bận
+      }
+    }
+
+    return {
+      totalExpected: expectedCopies.length,
+      totalScanned: scannedSet.size,
+      matchedCount: matched.length,
+      misplacedCount: misplaced.length,
+      missingCount: missing.length,
+      unknownCount: unknown.length,
+      matched,
+      misplaced,
+      missing,
+      unknown,
+    };
+  }
+
+  async bulkUpdateAuditCopies(dto: {
+    barcodes: string[];
+    status: BookCopyStatus;
+    reason?: string;
+  }) {
+    const { barcodes = [], status } = dto;
+    if (!barcodes.length) {
+      throw new BadRequestException('Danh sách mã vạch không được để trống');
+    }
+    return this.dataSource.transaction(async (manager) => {
+      let updatedCount = 0;
+      for (const barcode of barcodes) {
+        const copy = (await manager.findOne(BookCopy, {
+          where: { barcode },
+          relations: { book: true },
+        })) || (await this.copyRepository.findOne({
+          where: { barcode },
+          relations: { book: true },
+        }));
+        if (!copy) continue;
+        if ([BookCopyStatus.BORROWED, BookCopyStatus.RESERVED].includes(copy.status)) {
+          continue;
+        }
+        const previousStatus = copy.status;
+        if (previousStatus === status) continue;
+
+        copy.status = status;
+        await manager.save(copy);
+
+        if (copy.book) {
+          if (previousStatus === BookCopyStatus.AVAILABLE) {
+            copy.book.availableCopies = Math.max(0, copy.book.availableCopies - 1);
+            await manager.save(copy.book);
+          } else if (status === BookCopyStatus.AVAILABLE) {
+            copy.book.availableCopies += 1;
+            await manager.save(copy.book);
+          }
+        }
+        updatedCount++;
+      }
+      return {
+        message: `Đã cập nhật trạng thái ${updatedCount} bản sao thành ${status}`,
+        updatedCount,
+      };
+    });
+  }
+
+  async relocateAuditCopies(dto: {
+    barcodes: string[];
+    floor?: string;
+    aisle?: string;
+    shelf?: string;
+  }) {
+    const { barcodes = [], floor, aisle, shelf } = dto;
+    if (!barcodes.length) {
+      throw new BadRequestException('Danh sách mã vạch không được để trống');
+    }
+    let updatedCount = 0;
+    for (const barcode of barcodes) {
+      const copy = await this.copyRepository.findOne({ where: { barcode } });
+      if (!copy) continue;
+      if (floor !== undefined) copy.floor = floor ? floor.trim() : null;
+      if (aisle !== undefined) copy.aisle = aisle ? aisle.trim() : null;
+      if (shelf !== undefined) copy.shelf = shelf ? shelf.trim() : null;
+      await this.copyRepository.save(copy);
+      updatedCount++;
+    }
+    return {
+      message: `Đã cập nhật vị trí cho ${updatedCount} bản sao thành công`,
+      updatedCount,
+    };
+  }
+
+  async getShelvesSummary() {
+    try {
+      const booksWithoutCopies = await this.bookRepository
+        .createQueryBuilder('b')
+        .leftJoin('b.copies', 'c')
+        .where('c.id IS NULL')
+        .getMany();
+      for (const b of booksWithoutCopies) {
+        await this.ensureCopies(b);
+      }
+    } catch (_) { }
+
+    const qb = this.copyRepository
+      .createQueryBuilder('copy')
+      .leftJoin('copy.book', 'book')
+      .select([
+        "COALESCE(NULLIF(TRIM(copy.floor), ''), NULLIF(TRIM(book.floor), ''), 'Chưa phân tầng') AS floor",
+        "COALESCE(NULLIF(TRIM(copy.aisle), ''), NULLIF(TRIM(book.aisle), ''), 'Chưa phân dãy') AS aisle",
+        "COALESCE(NULLIF(TRIM(copy.shelf), ''), NULLIF(TRIM(book.shelf), ''), 'Chưa phân kệ') AS shelf",
+        'COUNT(copy.id) AS totalCopies',
+        "SUM(CASE WHEN copy.status = 'AVAILABLE' THEN 1 ELSE 0 END) AS availableCopies",
+        "SUM(CASE WHEN copy.status = 'BORROWED' THEN 1 ELSE 0 END) AS borrowedCopies",
+        "SUM(CASE WHEN copy.status = 'LOST' THEN 1 ELSE 0 END) AS lostCopies",
+        'COUNT(DISTINCT book.id) AS distinctBooks',
+      ])
+      .groupBy("COALESCE(NULLIF(TRIM(copy.floor), ''), NULLIF(TRIM(book.floor), ''), 'Chưa phân tầng'), COALESCE(NULLIF(TRIM(copy.aisle), ''), NULLIF(TRIM(book.aisle), ''), 'Chưa phân dãy'), COALESCE(NULLIF(TRIM(copy.shelf), ''), NULLIF(TRIM(book.shelf), ''), 'Chưa phân kệ')")
+      .orderBy('floor', 'ASC')
+      .addOrderBy('aisle', 'ASC')
+      .addOrderBy('shelf', 'ASC');
+
+    const rows = await qb.getRawMany();
+    return rows.map((r, index) => ({
+      id: index + 1,
+      floor: r.floor,
+      aisle: r.aisle,
+      shelf: r.shelf,
+      totalCopies: Number(r.totalCopies) || 0,
+      availableCopies: Number(r.availableCopies) || 0,
+      borrowedCopies: Number(r.borrowedCopies) || 0,
+      lostCopies: Number(r.lostCopies) || 0,
+      distinctBooks: Number(r.distinctBooks) || 0,
+    }));
+  }
+
+  async getBooksOnShelf(floor?: string, aisle?: string, shelf?: string, bookId?: number) {
+    const qb = this.copyRepository
+      .createQueryBuilder('copy')
+      .leftJoinAndSelect('copy.book', 'book')
+      .orderBy('book.title', 'ASC');
+
+    if (bookId) {
+      qb.andWhere('book.id = :bookId', { bookId });
+    }
+
+    if (floor) {
+      if (floor === 'Chưa phân tầng') {
+        qb.andWhere("((copy.floor IS NULL OR TRIM(copy.floor) = '') AND (book.floor IS NULL OR TRIM(book.floor) = ''))");
+      } else {
+        qb.andWhere("COALESCE(NULLIF(TRIM(copy.floor), ''), NULLIF(TRIM(book.floor), '')) = :floor", { floor });
+      }
+    }
+
+    if (aisle) {
+      if (aisle === 'Chưa phân dãy') {
+        qb.andWhere("((copy.aisle IS NULL OR TRIM(copy.aisle) = '') AND (book.aisle IS NULL OR TRIM(book.aisle) = ''))");
+      } else {
+        qb.andWhere("COALESCE(NULLIF(TRIM(copy.aisle), ''), NULLIF(TRIM(book.aisle), '')) = :aisle", { aisle });
+      }
+    }
+
+    if (shelf) {
+      if (shelf === 'Chưa phân kệ') {
+        qb.andWhere("((copy.shelf IS NULL OR TRIM(copy.shelf) = '') AND (book.shelf IS NULL OR TRIM(book.shelf) = ''))");
+      } else {
+        qb.andWhere("COALESCE(NULLIF(TRIM(copy.shelf), ''), NULLIF(TRIM(book.shelf), '')) = :shelf", { shelf });
+      }
+    }
+
+    const copies = await qb.getMany();
+    return copies.map((c) => ({
+      id: c.id,
+      barcode: c.barcode,
+      status: c.status,
+      shelf: c.shelf || c.book?.shelf || 'Chưa phân kệ',
+      floor: c.floor || c.book?.floor || 'Chưa phân tầng',
+      aisle: c.aisle || c.book?.aisle || 'Chưa phân dãy',
+      bookId: c.book?.id,
+      title: c.book?.title,
+      author: c.book?.author,
+      isbn: c.book?.isbn,
+    }));
+  }
+
+
+  async toggleFavorite(bookId: number, userId: number) {
+    const book = await this.bookRepository.findOneBy({ id: bookId });
+    if (!book) throw new NotFoundException('Không tìm thấy sách');
+    const existing = await this.favoriteRepo?.findOne({
+      where: { book: { id: bookId }, user: { id: userId } },
+    });
+    if (existing) {
+      await this.favoriteRepo?.remove(existing);
+      return { favorited: false, message: 'Đã xóa khỏi danh sách yêu thích' };
+    } else {
+      const fav = this.favoriteRepo?.create({
+        book,
+        user: { id: userId } as any,
+      });
+      if (fav) await this.favoriteRepo?.save(fav);
+      return { favorited: true, message: 'Đã thêm vào danh sách yêu thích' };
+    }
+  }
+
+  async getMyFavorites(userId: number) {
+    const favs = await this.favoriteRepo?.find({
+      where: { user: { id: userId } },
+      relations: { book: { category: true, publisher: true } },
+      order: { createdAt: 'DESC' },
+    });
+    return (favs || []).map((f) => ({
+      favoriteId: f.id,
+      createdAt: f.createdAt,
+      book: f.book,
+    }));
+  }
+
+
+  async getDigitalBooks() {
+    return this.bookRepository.createQueryBuilder('book')
+      .leftJoinAndSelect('book.category', 'category')
+      .leftJoinAndSelect('book.publisher', 'publisher')
+      .where('book.pdfUrl IS NOT NULL AND book.pdfUrl != ""')
+      .orderBy('book.id', 'DESC')
+      .getMany();
+  }
+
+  async recordDigitalView(bookId: number) {
+    const book = await this.bookRepository.findOne({ where: { id: bookId } });
+    if (!book) throw new NotFoundException(`Sách #${bookId} không tồn tại`);
+    book.digitalViews = (Number(book.digitalViews) || 0) + 1;
+    await this.bookRepository.save(book);
+    return {
+      success: true,
+      bookId: book.id,
+      digitalViews: book.digitalViews,
+    };
+  }
+
+  async recordDigitalDownload(bookId: number, isReader: boolean = false) {
+    const book = await this.bookRepository.findOne({ where: { id: bookId } });
+    if (!book) throw new NotFoundException(`Sách #${bookId} không tồn tại`);
+
+    if (book.pdfPermission === 'NO_DOWNLOAD') {
+      throw new ForbiddenException('Tài liệu số này được bảo vệ bản quyền DRM. Không cho phép tải về!');
+    }
+    if (book.pdfPermission === 'READER_ONLY' && !isReader) {
+      throw new ForbiddenException('Tài liệu số này chỉ dành cho độc giả đã đăng nhập.');
+    }
+
+    book.digitalDownloads = (Number(book.digitalDownloads) || 0) + 1;
+    await this.bookRepository.save(book);
+    return {
+      success: true,
+      bookId: book.id,
+      digitalDownloads: book.digitalDownloads,
+    };
+  }
+
+  async getRelatedBooks(bookId: number) {
+    const book = await this.bookRepository.findOne({
+      where: { id: bookId },
+      relations: { category: true },
+    });
+    if (!book) return [];
+
+    const qb = this.bookRepository
+      .createQueryBuilder('book')
+      .leftJoinAndSelect('book.category', 'category')
+      .leftJoinAndSelect('book.publisher', 'publisher')
+      .where('book.id != :bookId', { bookId });
+
+    if (book.category?.id) {
+      qb.andWhere('(book.category.id = :catId OR book.author = :author)', {
+        catId: book.category.id,
+        author: book.author,
+      });
+    } else {
+      qb.andWhere('book.author = :author', { author: book.author });
+    }
+
+    return qb.take(6).getMany();
+  }
+
 }

@@ -5,6 +5,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { BorrowRecord } from '../../borrow-records/entities/borrow-record.entity';
 import { User } from '../../users/entities/user.entity';
@@ -14,6 +15,7 @@ export enum NotificationType {
   DUE_SOON = 'DUE_SOON',
   OVERDUE = 'OVERDUE',
   RESERVATION_READY = 'RESERVATION_READY',
+  ACQUISITION_UPDATE = 'ACQUISITION_UPDATE',
 }
 
 export enum EmailDeliveryStatus {
@@ -58,4 +60,7 @@ export class Notification {
 
   @Column({ type: 'datetime', nullable: true })
   readAt: Date | null;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

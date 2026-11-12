@@ -37,6 +37,42 @@ export class CreateBookDto {
   @MaxLength(2048)
   coverImageUrl?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  pdfUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  pdfPermission?: string;
+
+  @IsOptional()
+  @IsString()
+  digitalFormat?: string;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  previewPages?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  digitalViews?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  digitalDownloads?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @Min(0)
+  price?: number;
+
   @Type(() => Number)
   @IsOptional()
   @IsInt()

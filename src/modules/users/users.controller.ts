@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   ParseIntPipe,
   Request,
@@ -23,7 +24,7 @@ import { UsersService } from './users.service.js';
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Post()
   @Roles(...COUNTER_ROLES)
@@ -35,13 +36,25 @@ export class UsersController {
     ) {
       throw new ForbiddenException('Chỉ Admin có thể cấp quyền nhân viên');
     }
-    return this.usersService.create(createUserDto);
+    return this.usersService.create(createUserDto, req.user);
   }
 
   @Get()
   @Roles(...COUNTER_ROLES)
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Post('auto-lock-overdue')
+  @Roles(...COUNTER_ROLES)
+  autoLockOverdue(@Request() req: any) {
+    return this.usersService.autoLockOverdueReaders(req.user);
+  }
+
+  @Get('staff-performance')
+  @Roles(...COUNTER_ROLES)
+  getStaffPerformance(@Query('staffId') staffId?: number) {
+    return this.usersService.getStaffPerformance(staffId ? Number(staffId) : undefined);
   }
 
   @Get(':id/history')
@@ -78,7 +91,7 @@ export class UsersController {
     if (req.user.role !== UserRole.ADMIN && updateUserDto.role !== undefined) {
       throw new ForbiddenException('Chỉ Admin có thể thay đổi vai trò');
     }
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.update(id, updateUserDto, req.user);
   }
 
   @Patch(':id/status')
