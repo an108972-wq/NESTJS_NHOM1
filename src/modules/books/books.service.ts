@@ -1,5 +1,5 @@
 import { FavoriteBook } from './entities/favorite-book.entity';
-import { Optional } from '@nestjs/common';
+import { Optional, OnApplicationBootstrap } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
   BadRequestException,
@@ -23,9 +23,11 @@ import { UpdateBookCopyDto } from './dto/update-book-copy.dto';
 import { BorrowRecord, BorrowStatus } from '../borrow-records/entities/borrow-record.entity';
 import { Publisher } from '../publishers/entities/publisher.entity';
 import { ReservationsService } from '../reservations/reservations.service';
+import { User } from '../users/entities/user.entity';
+import { UserRole } from '../../common/constants/user-role';
 
 @Injectable()
-export class BooksService {
+export class BooksService implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(Book)
     private readonly bookRepository: Repository<Book>,
@@ -42,7 +44,399 @@ export class BooksService {
     @Optional()
     @InjectRepository(FavoriteBook)
     private readonly favoriteRepo?: Repository<FavoriteBook>,
+    @Optional()
+    @InjectRepository(User)
+    private readonly userRepository?: Repository<User>,
   ) { }
+
+  async onApplicationBootstrap() {
+    try {
+      await this.cleanAndSeedProfessionalLibraryData();
+    } catch (err) {
+      console.error('Lỗi khi làm sạch và tối ưu dữ liệu thư viện:', err);
+    }
+  }
+
+  private async cleanAndSeedProfessionalLibraryData() {
+    // 1. Dọn dẹp các đầu sách mẫu sơ sài (d, w, Thiện tâm, rỗng...)
+    try {
+      const dummyBooks = await this.bookRepository
+        .createQueryBuilder('b')
+        .where("TRIM(b.title) IN ('d', 'w', 'Thiện tâm', 'phù thủy thần tiên', 'a', 'q', '1') OR LENGTH(TRIM(b.title)) <= 2")
+        .getMany();
+
+      if (dummyBooks.length > 0) {
+        const dummyIds = dummyBooks.map((b) => b.id);
+        await this.borrowRepository
+          .createQueryBuilder()
+          .delete()
+          .where('bookId IN (:...ids)', { ids: dummyIds })
+          .execute()
+          .catch(() => null);
+
+        await this.copyRepository
+          .createQueryBuilder()
+          .delete()
+          .where('bookId IN (:...ids)', { ids: dummyIds })
+          .execute()
+          .catch(() => null);
+
+        await this.bookRepository.remove(dummyBooks).catch(() => null);
+      }
+    } catch (_) {}
+
+    // 2. Thiết lập danh mục Thể loại chuẩn DDC
+    const standardCategories = [
+      { name: 'Công nghệ thông tin', ddcCode: '004', description: 'Khoa học máy tính, kỹ thuật phần mềm, cấu trúc dữ liệu và thuật toán' },
+      { name: 'Trí tuệ nhân tạo & Khoa học dữ liệu', ddcCode: '006', description: 'Machine Learning, Deep Learning, Big Data và AI hiện đại' },
+      { name: 'Kinh tế & Quản trị kinh doanh', ddcCode: '330', description: 'Kinh tế học vĩ mô, vi mô, khởi nghiệp đổi mới sáng tạo' },
+      { name: 'Khoa học tự nhiên & Vũ trụ', ddcCode: '500', description: 'Vật lý thiên văn, toán học, hóa học và sinh học' },
+      { name: 'Kỹ năng sống & Phát triển bản thân', ddcCode: '158', description: 'Tâm lý học ứng dụng, giao tiếp, lãnh đạo và tư duy tích cực' },
+      { name: 'Văn học & Nghệ thuật', ddcCode: '800', description: 'Tiểu thuyết kinh điển, văn học Việt Nam và thế giới' },
+    ];
+
+    const categoryMap = new Map<string, Category>();
+    for (const catDto of standardCategories) {
+      let cat = await this.categoryRepository.findOneBy({ name: catDto.name });
+      if (!cat) {
+        cat = this.categoryRepository.create(catDto);
+        cat = await this.categoryRepository.save(cat);
+      }
+      categoryMap.set(cat.name, cat);
+    }
+
+    // 3. Thiết lập Nhà xuất bản uy tín
+    const standardPublishers = [
+      { name: 'NXB Đại học Quốc gia Hà Nội', email: 'dhqg@vnu.edu.vn', phone: '02437547721', address: '144 Xuân Thủy, Cầu Giấy, Hà Nội' },
+      { name: 'NXB Bách Khoa Hà Nội', email: 'nxbbk@hust.edu.vn', phone: '02438684569', address: '1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội' },
+      { name: 'NXB Thông tin & Truyền thông', email: 'nxb.tttt@mic.gov.vn', phone: '02435772138', address: '115 Trần Duy Hưng, Cầu Giấy, Hà Nội' },
+      { name: 'NXB Trẻ', email: 'hopthu@nxbtre.com.vn', phone: '02839316289', address: '161B Lý Chính Thắng, Quận 3, TP.HCM' },
+      { name: 'NXB Nhã Nam', email: 'contact@nhanam.vn', phone: '02435146875', address: '59 Đỗ Quang, Cầu Giấy, Hà Nội' },
+      { name: 'NXB Kim Đồng', email: 'cskh_online@nxbkimdong.com.vn', phone: '02439434730', address: '55 Quang Trung, Hoàn Kiếm, Hà Nội' },
+    ];
+
+    const publisherMap = new Map<string, Publisher>();
+    for (const pubDto of standardPublishers) {
+      let pub = await this.publisherRepository.findOneBy({ name: pubDto.name });
+      if (!pub) {
+        pub = this.publisherRepository.create({ ...pubDto, qualityRating: 5, deliverySpeed: 'ON_TIME' as any });
+        pub = await this.publisherRepository.save(pub);
+      }
+      publisherMap.set(pub.name, pub);
+    }
+
+    // 4. Danh mục 12 đầu sách học thuật & văn hóa uy tín
+    const standardBooks = [
+      {
+        title: 'Clean Code: Cẩm Nang Viết Mã Sạch',
+        author: 'Robert C. Martin',
+        isbn: '978-0132350884',
+        categoryName: 'Công nghệ thông tin',
+        publisherName: 'NXB Thông tin & Truyền thông',
+        publicationYear: 2021,
+        price: 185000,
+        totalCopies: 10,
+        availableCopies: 8,
+        shelf: 'A1', floor: '2', aisle: '1',
+        description: 'Cuốn cẩm nang kinh điển của Uncle Bob về nghệ thuật viết mã sạch, tối ưu cấu trúc phần mềm, nguyên lý SOLID và kỹ thuật tái cấu trúc mã nguồn (Refactoring).',
+        coverImageUrl: 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Design Patterns: Mẫu Thiết Kế Hướng Đối Tượng',
+        author: 'Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides (GoF)',
+        isbn: '978-0201633610',
+        categoryName: 'Công nghệ thông tin',
+        publisherName: 'NXB Bách Khoa Hà Nội',
+        publicationYear: 2020,
+        price: 220000,
+        totalCopies: 8,
+        availableCopies: 6,
+        shelf: 'A2', floor: '2', aisle: '1',
+        description: '23 mẫu thiết kế kinh điển giúp kỹ sư phần mềm giải quyết các bài toán kiến trúc hệ thống lặp lại, tối ưu hóa tính linh hoạt và khả năng tái sử dụng.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Introduction to Algorithms (CLRS)',
+        author: 'Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein',
+        isbn: '978-0262033848',
+        categoryName: 'Khoa học máy tính & Trí tuệ nhân tạo',
+        publisherName: 'NXB Đại học Quốc gia Hà Nội',
+        publicationYear: 2022,
+        price: 350000,
+        totalCopies: 12,
+        availableCopies: 9,
+        shelf: 'B1', floor: '2', aisle: '2',
+        description: 'Giáo trình giải thuật chuẩn mực toàn cầu cho sinh viên chuyên ngành Khoa học máy tính, bao quát từ cấu trúc dữ liệu nâng cao, quy hoạch động đến đồ thị.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Artificial Intelligence: Cách Tiếp Cận Hiện Đại',
+        author: 'Stuart Russell, Peter Norvig',
+        isbn: '978-0136042594',
+        categoryName: 'Khoa học máy tính & Trí tuệ nhân tạo',
+        publisherName: 'NXB Đại học Quốc gia Hà Nội',
+        publicationYear: 2023,
+        price: 380000,
+        totalCopies: 10,
+        availableCopies: 7,
+        shelf: 'B2', floor: '2', aisle: '2',
+        description: 'Tác phẩm gối đầu giường về AI, trình bày từ tác tử thông minh, học tăng cường, thị giác máy tính đến các mô hình học sâu thế hệ mới.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Giáo trình Cơ Sở Dữ Liệu & Hệ Quản Trị CSDL',
+        author: 'PGS.TS. Trần Đức Khánh, TS. Lê Thị Bích',
+        isbn: '978-6046294821',
+        categoryName: 'Công nghệ thông tin',
+        publisherName: 'NXB Đại học Quốc gia Hà Nội',
+        publicationYear: 2022,
+        price: 120000,
+        totalCopies: 15,
+        availableCopies: 12,
+        shelf: 'A3', floor: '2', aisle: '1',
+        description: 'Giáo trình đại học chính quy về đại số quan hệ, chuẩn hóa dữ liệu dạng 3NF/BCNF, ngôn ngữ SQL nâng cao và an toàn giao dịch ACID.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Lập Trình Hướng Đối Tượng Với Java',
+        author: 'GS.TS. Nguyễn Thanh Thủy',
+        isbn: '978-6049503487',
+        categoryName: 'Công nghệ thông tin',
+        publisherName: 'NXB Bách Khoa Hà Nội',
+        publicationYear: 2022,
+        price: 145000,
+        totalCopies: 15,
+        availableCopies: 11,
+        shelf: 'A4', floor: '2', aisle: '1',
+        description: 'Trang bị tư duy lập trình hướng đối tượng, xử lý ngoại lệ, Java Collections Framework, kiến trúc đa luồng và thiết kế phần mềm doanh nghiệp.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Lược Sử Thời Gian (A Brief History of Time)',
+        author: 'Stephen Hawking',
+        isbn: '978-0553380163',
+        categoryName: 'Khoa học tự nhiên & Vũ trụ',
+        publisherName: 'NXB Trẻ',
+        publicationYear: 2021,
+        price: 125000,
+        totalCopies: 8,
+        availableCopies: 6,
+        shelf: 'C1', floor: '3', aisle: '1',
+        description: 'Khám phá các bí ẩn vĩ đại nhất của vũ trụ: hố đen, lý thuyết dây, thuyết tương đối rộng và nguồn gốc không - thời gian.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Sapiens: Lược Sử Loài Người',
+        author: 'Yuval Noah Harari',
+        isbn: '978-0062316097',
+        categoryName: 'Khoa học tự nhiên & Vũ trụ',
+        publisherName: 'NXB Tri Thức',
+        publicationYear: 2022,
+        price: 215000,
+        totalCopies: 10,
+        availableCopies: 7,
+        shelf: 'C2', floor: '3', aisle: '1',
+        description: 'Tác phẩm nổi tiếng phân tích 3 cuộc cách mạng then chốt định hình vận mệnh loài người: Nhận thức, Nông nghiệp và Khoa học.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Kinh Tế Học Vi Mô & Vĩ Mô Ứng Dụng',
+        author: 'N. Gregory Mankiw',
+        isbn: '978-1305585126',
+        categoryName: 'Kinh tế & Quản trị kinh doanh',
+        publisherName: 'NXB Đại học Quốc gia Hà Nội',
+        publicationYear: 2022,
+        price: 280000,
+        totalCopies: 10,
+        availableCopies: 8,
+        shelf: 'D1', floor: '1', aisle: '2',
+        description: 'Bộ sách chuẩn mực về quy luật cung cầu, cân bằng thị trường, chính sách tài khóa, lạm phát và tăng trưởng kinh tế bền vững.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Khởi Nghiệp Tinh Gọn (The Lean Startup)',
+        author: 'Eric Ries',
+        isbn: '978-0307887894',
+        categoryName: 'Kinh tế & Quản trị kinh doanh',
+        publisherName: 'NXB Trẻ',
+        publicationYear: 2021,
+        price: 150000,
+        totalCopies: 8,
+        availableCopies: 6,
+        shelf: 'D2', floor: '1', aisle: '2',
+        description: 'Phương pháp luận tinh gọn: Vòng lặp Xây dựng - Đo lường - Học hỏi giúp startup kiểm chứng ý tưởng kinh doanh với chi phí tối ưu nhất.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Đắc Nhân Tâm',
+        author: 'Dale Carnegie',
+        isbn: '978-0671027032',
+        categoryName: 'Kỹ năng sống & Phát triển bản thân',
+        publisherName: 'NXB Trẻ',
+        publicationYear: 2022,
+        price: 95000,
+        totalCopies: 15,
+        availableCopies: 11,
+        shelf: 'E1', floor: '1', aisle: '1',
+        description: 'Cuốn sách gối đầu giường về nghệ thuật lắng nghe, thấu hiểu, truyền cảm hứng và thiết lập các mối quan hệ xã hội tốt đẹp.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=400&q=80',
+      },
+      {
+        title: 'Tôi Thấy Hoa Vàng Trên Cỏ Xanh',
+        author: 'Nguyễn Nhật Ánh',
+        isbn: '978-6041002241',
+        categoryName: 'Văn học & Nghệ thuật',
+        publisherName: 'NXB Trẻ',
+        publicationYear: 2021,
+        price: 110000,
+        totalCopies: 12,
+        availableCopies: 9,
+        shelf: 'F1', floor: '3', aisle: '2',
+        description: 'Câu chuyện tuổi thơ xúc động tại một làng quê nghèo miền Trung, chứa đựng tình anh em, tình bạn và những rung động đầu đời trong sáng.',
+        coverImageUrl: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=400&q=80',
+      },
+    ];
+
+    const seededBooks: Book[] = [];
+    for (const bDto of standardBooks) {
+      let book = await this.bookRepository.findOne({ where: { isbn: bDto.isbn } });
+      const cat = categoryMap.get(bDto.categoryName);
+      const pub = publisherMap.get(bDto.publisherName);
+
+      if (!book) {
+        book = this.bookRepository.create({
+          title: bDto.title,
+          author: bDto.author,
+          isbn: bDto.isbn,
+          publicationYear: bDto.publicationYear,
+          price: bDto.price,
+          totalCopies: bDto.totalCopies,
+          availableCopies: bDto.availableCopies,
+          shelf: bDto.shelf,
+          floor: bDto.floor,
+          aisle: bDto.aisle,
+          description: bDto.description,
+          coverImageUrl: bDto.coverImageUrl,
+          category: cat,
+          publisher: pub,
+        });
+        book = await this.bookRepository.save(book);
+      } else {
+        book.title = bDto.title;
+        book.author = bDto.author;
+        book.category = cat;
+        book.publisher = pub;
+        book.shelf = bDto.shelf;
+        book.floor = bDto.floor;
+        book.aisle = bDto.aisle;
+        book.description = bDto.description;
+        book.coverImageUrl = bDto.coverImageUrl;
+        book = await this.bookRepository.save(book);
+      }
+
+      // Đảm bảo số bản sao (copies) và barcode tương ứng
+      const copiesCount = await this.copyRepository.count({ where: { book: { id: book.id } } });
+      if (copiesCount < book.totalCopies) {
+        const needed = book.totalCopies - copiesCount;
+        for (let i = 1; i <= needed; i++) {
+          const idx = copiesCount + i;
+          const barcode = `BC-${String(book.id).padStart(3, '0')}-${String(idx).padStart(2, '0')}`;
+          const status = idx <= book.availableCopies ? BookCopyStatus.AVAILABLE : BookCopyStatus.BORROWED;
+          const copy = this.copyRepository.create({
+            barcode,
+            status,
+            shelf: book.shelf,
+            floor: book.floor,
+            aisle: book.aisle,
+            book,
+          });
+          await this.copyRepository.save(copy);
+        }
+      }
+      seededBooks.push(book);
+    }
+
+    // 5. Đảm bảo có độc giả mẫu để kiểm thử luồng mượn trả & duyệt tài khoản
+    if (this.userRepository) {
+      // 5.1. Độc giả đang chờ duyệt kích hoạt tài khoản
+      const pendingReader = await this.userRepository.findOneBy({ username: 'dang.nguyen.sv2024@donga.edu.vn' });
+      if (!pendingReader) {
+        const newPending = this.userRepository.create({
+          username: 'dang.nguyen.sv2024@donga.edu.vn',
+          email: 'dang.nguyen.sv2024@donga.edu.vn',
+          fullName: 'Đặng Hoàng Nguyên (IT24B)',
+          phone: '0912345678',
+          passwordHash: '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie',
+          role: UserRole.READER,
+          readerGroup: 'STUDENT',
+          maxActiveLoans: 5,
+          isActive: false,
+          approvedAt: null,
+        });
+        await this.userRepository.save(newPending);
+      }
+
+      // 5.2. Độc giả hoạt động sẵn để mượn sách
+      const activeReader = await this.userRepository.findOne({ where: { role: UserRole.READER, isActive: true } });
+      if (activeReader && seededBooks.length > 0) {
+        const borrowCount = await this.borrowRepository.count();
+        if (borrowCount < 4) {
+          const now = new Date();
+          const targetBook = seededBooks[0];
+          const copies = await this.copyRepository.find({ where: { book: { id: targetBook.id } } });
+          const firstCopy = copies[0];
+          const secondCopy = copies[1] || firstCopy;
+
+          // 1 phiếu PENDING (đang chờ duyệt mượn)
+          await this.borrowRepository.save(
+            this.borrowRepository.create({
+              user: activeReader,
+              book: targetBook,
+              copy: firstCopy,
+              status: BorrowStatus.PENDING,
+              borrowedAt: now,
+              dueDate: null,
+              fineAmount: 0,
+              fineStatus: 'NONE',
+            }),
+          );
+
+          // 1 phiếu BORROWED quá hạn 3 ngày (sinh cảnh báo tự động)
+          const overdueDue = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+          await this.borrowRepository.save(
+            this.borrowRepository.create({
+              user: activeReader,
+              book: seededBooks[1] || targetBook,
+              copy: secondCopy,
+              status: BorrowStatus.BORROWED,
+              borrowedAt: new Date(now.getTime() - 17 * 24 * 60 * 60 * 1000),
+              dueDate: overdueDue,
+              approvedAt: new Date(now.getTime() - 17 * 24 * 60 * 60 * 1000),
+              fineAmount: 15000,
+              fineStatus: 'UNPAID',
+            }),
+          );
+
+          // 1 phiếu RETURNED hoàn tất
+          await this.borrowRepository.save(
+            this.borrowRepository.create({
+              user: activeReader,
+              book: seededBooks[2] || targetBook,
+              copy: secondCopy,
+              status: BorrowStatus.RETURNED,
+              borrowedAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
+              dueDate: new Date(now.getTime() - 11 * 24 * 60 * 60 * 1000),
+              returnedAt: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000),
+              approvedAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
+              returnCondition: 'GOOD' as any,
+              fineAmount: 0,
+              fineStatus: 'PAID',
+            }),
+          );
+        }
+      }
+    }
+  }
 
   async create(dto: CreateBookDto) {
     const totalCopies = dto.totalCopies ?? 1;

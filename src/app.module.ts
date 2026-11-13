@@ -26,6 +26,9 @@ import { FeedbackModule } from './modules/feedback/feedback.module';
 import { TutorialsModule } from './modules/tutorials/tutorials.module';
 import { PartnersModule } from './modules/partners/partners.module';
 import { IotModule } from './modules/iot/iot.module';
+import { AcademicResourcesModule } from './modules/academic-resources/academic-resources.module';
+import { AcademicExchangeModule } from './modules/academic-exchange/academic-exchange.module';
+import { InternalOperationsModule } from './modules/internal-operations/internal-operations.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -69,6 +72,9 @@ import { AppService } from './app.service';
     TutorialsModule,
     PartnersModule,
     IotModule,
+    AcademicResourcesModule,
+    AcademicExchangeModule,
+    InternalOperationsModule,
   ],
 })
 export class AppModule implements NestModule {

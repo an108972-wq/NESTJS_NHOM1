@@ -1,5 +1,11 @@
 
-  // Khai báo sớm fetchJson trên window để tương thích ngược mọi phân hệ và tránh lỗi 'fetchJson is not defined'
+  // Khai báo sớm fetchJson và formatDateTime trên window để tương thích ngược mọi phân hệ và tránh lỗi 'fetchJson / formatDateTime is not defined'
+  var fetchJson = window.fetchJson;
+  var formatDateTime = window.formatDateTime;
+  var money = window.money;
+  var date = window.date;
+  var escapeHtml = window.escapeHtml;
+
   window.fetchJson = async function fetchJson(path, options = {}) {
     if (typeof window.api === 'function') return window.api(path, options);
     const token = localStorage.getItem('accessToken');
@@ -9,14 +15,15 @@
       ...(options?.headers || {}),
     };
     const base = window.location.origin;
-    const url = path.startsWith('http') ? path : (path.startsWith('/api') ? `${base}${path}` : `${base}/api${path.startsWith('/') ? path : '/' + path}`);
+    const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : '/' + path}`;
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
       const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
       throw new Error(msg || `Yêu cầu thất bại (${res.status})`);
     }
-    return res.json().catch(() => null);
+    const ct = res.headers.get('content-type') || '';
+    return ct.includes('application/json') ? res.json().catch(() => null) : null;
   };
 
   function formatDateTime(value) {
@@ -197,6 +204,12 @@
     '/admin/partners': 'partners',
     '/admin/iot-monitoring': 'iot-monitoring',
     '/admin/iot': 'iot-monitoring',
+    '/admin/theses': 'theses',
+    '/admin/multimedia': 'multimedia',
+    '/admin/seminars': 'seminars',
+    '/admin/exchange-grants': 'exchange-grants',
+    '/admin/shift-schedules': 'shift-schedules',
+    '/admin/staff-kpi': 'staff-kpi',
   });
   const state = {
     myFavoriteIds: new Set(),
@@ -417,7 +430,7 @@
 
   function canAccessAdminRoute(route) {
     if (!isStaff()) return false;
-    if (['dashboard', 'reports', 'budgets', 'shelves', 'devices', 'study-rooms', 'lockers', 'events-announcements', 'feedback', 'tutorials', 'partners', 'iot-monitoring'].includes(route)) return true;
+    if (['dashboard', 'reports', 'budgets', 'shelves', 'devices', 'study-rooms', 'lockers', 'events-announcements', 'feedback', 'tutorials', 'partners', 'iot-monitoring', 'theses', 'multimedia', 'seminars', 'exchange-grants', 'shift-schedules', 'staff-kpi'].includes(route)) return true;
     if (['books', 'categories', 'publishers', 'inventory-audit', 'acquisitions', 'elibrary'].includes(route)) return isInventoryStaff();
     if (['loans', 'readers', 'reservations', 'fines', 'reader-profile'].includes(route)) {
       return isCounterStaff();
@@ -542,6 +555,12 @@
     if (route === 'tutorials' && isStaff()) void loadTutorials();
     if (route === 'partners' && isStaff()) void loadPartners();
     if (route === 'iot-monitoring' && isStaff()) void loadIotDevices();
+    if (route === 'theses' && isStaff()) void loadTheses();
+    if (route === 'multimedia' && isStaff()) void loadMultimedia();
+    if (route === 'seminars' && isStaff()) void loadSeminars();
+    if (route === 'exchange-grants' && isStaff()) void loadExchangeGrants();
+    if (route === 'shift-schedules' && isStaff()) void loadShiftSchedules();
+    if (route === 'staff-kpi' && isStaff()) void loadStaffKpi();
     if (route === 'audit-logs' && isAdmin()) void loadAuditLogs();
     if (route === 'inventory-audit' && isStaff()) {
       void loadAuditExpected();
@@ -1180,9 +1199,41 @@
       });
 
       updateCatBulkBar();
+      renderCategoryStructureChart();
     } catch (error) {
       notify(`Không tải được thể loại: ${error.message}`, true);
     }
+  }
+
+  let categoryChartInstance = null;
+  function renderCategoryStructureChart() {
+    const canvas = $('categoryStructureChart');
+    if (!canvas || !window.Chart || !state.categories || !state.categories.length) return;
+    if (categoryChartInstance) {
+      categoryChartInstance.destroy();
+      categoryChartInstance = null;
+    }
+    const sorted = [...state.categories].sort((a, b) => (Number(b.bookCount) || 0) - (Number(a.bookCount) || 0)).slice(0, 8);
+    const labels = sorted.map((c) => (c.ddcCode ? `[${c.ddcCode}] ` : '') + c.name);
+    const bookCounts = sorted.map((c) => Number(c.bookCount) || 0);
+    const copyCounts = sorted.map((c) => Number(c.totalCopies) || 0);
+
+    categoryChartInstance = new window.Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Số đầu sách', data: bookCounts, backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 },
+          { label: 'Tổng bản sao kho', data: copyCounts, backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 2 } } },
+      },
+    });
   }
 
   function formatCurrency(val) {
@@ -1226,9 +1277,41 @@
         state.publishers.map((publisher) =>
           `<option value="${publisher.id}">${escapeHtml(publisher.name)}</option>`).join('');
       renderPublisherList();
+      renderPublisherStructureChart();
     } catch (error) {
       notify(`Không tải được nhà xuất bản: ${error.message}`, true);
     }
+  }
+
+  let publisherChartInstance = null;
+  function renderPublisherStructureChart() {
+    const canvas = $('publisherStructureChart');
+    if (!canvas || !window.Chart || !state.publishers || !state.publishers.length) return;
+    if (publisherChartInstance) {
+      publisherChartInstance.destroy();
+      publisherChartInstance = null;
+    }
+    const sorted = [...state.publishers].sort((a, b) => (Number(b.bookCount) || 0) - (Number(a.bookCount) || 0)).slice(0, 8);
+    const labels = sorted.map((p) => p.name);
+    const books = sorted.map((p) => Number(p.bookCount) || 0);
+    const copies = sorted.map((p) => Number(p.totalCopies) || 0);
+
+    publisherChartInstance = new window.Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Số đầu sách', data: books, backgroundColor: 'rgba(245, 158, 11, 0.85)', borderRadius: 4 },
+          { label: 'Tổng bản sao', data: copies, backgroundColor: 'rgba(14, 165, 233, 0.85)', borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 2 } } },
+      },
+    });
   }
 
   function renderPublisherList() {
@@ -2426,9 +2509,95 @@
       $('readerProfileLoans').querySelectorAll('[data-profile-renew]').forEach((button) => {
         button.addEventListener('click', () => void renewProfileLoan(button.dataset.profileRenew));
       });
+
+      if ($('profileReaderGroupSelect') && profile.user) {
+        $('profileReaderGroupSelect').value = profile.user.readerGroup || 'STUDENT';
+        $('profileReaderGroupSelect').onchange = async () => {
+          const newGroup = $('profileReaderGroupSelect').value;
+          try {
+            await api(`/users/${profile.user.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ readerGroup: newGroup }),
+            });
+            notify(`Đã cập nhật phân loại độc giả thành: ${newGroup}`);
+            await Promise.all([loadReaderProfile(profile.user.id), loadUsers()]);
+          } catch (err) {
+            notify(`Lỗi cập nhật phân loại: ${err.message}`, true);
+          }
+        };
+      }
+      renderReaderActivityChart(profile.loans || []);
     } catch (error) {
       notify(`Không tải được hồ sơ độc giả: ${error.message}`, true);
     }
+  }
+
+  let readerActivityChartInstance = null;
+  function renderReaderActivityChart(loans = []) {
+    const canvas = $('readerActivityChart');
+    if (!canvas || !window.Chart) return;
+    if (readerActivityChartInstance) {
+      readerActivityChartInstance.destroy();
+      readerActivityChartInstance = null;
+    }
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: `T${d.getMonth() + 1}/${d.getFullYear()}` });
+    }
+    const borrowCounts = months.map(() => 0);
+    const returnCounts = months.map(() => 0);
+    let overdueCount = 0;
+    loans.forEach((loan) => {
+      const dStr = String(loan.borrowedAt || loan.createdAt || '').slice(0, 7);
+      const idx = months.findIndex((m) => m.key === dStr);
+      if (idx >= 0) borrowCounts[idx]++;
+      if (loan.returnedAt) {
+        const retStr = String(loan.returnedAt).slice(0, 7);
+        const rIdx = months.findIndex((m) => m.key === retStr);
+        if (rIdx >= 0) returnCounts[rIdx]++;
+      }
+      if (loan.status === 'OVERDUE' || (Number(loan.fineAmount) > 0)) {
+        overdueCount++;
+      }
+    });
+
+    const totalLoans = loans.length;
+    let score = 100;
+    if (totalLoans > 0) {
+      score = Math.max(60, Math.round(100 - (overdueCount / totalLoans) * 40));
+    }
+    const scoreBadge = $('readerDiligenceScore');
+    if (scoreBadge) {
+      if (score >= 90) {
+        scoreBadge.textContent = `Hạng chuyên cần: Xuất sắc (${score}/100)`;
+        scoreBadge.style.background = '#dcfce7'; scoreBadge.style.color = '#15803d';
+      } else if (score >= 75) {
+        scoreBadge.textContent = `Hạng chuyên cần: Tốt (${score}/100)`;
+        scoreBadge.style.background = '#e0f2fe'; scoreBadge.style.color = '#0369a1';
+      } else {
+        scoreBadge.textContent = `Hạng chuyên cần: Cần nhắc nhở (${score}/100)`;
+        scoreBadge.style.background = '#fef3c7'; scoreBadge.style.color = '#b45309';
+      }
+    }
+
+    readerActivityChartInstance = new window.Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: months.map((m) => m.label),
+        datasets: [
+          { label: 'Sách đã mượn', data: borrowCounts, backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 4 },
+          { label: 'Sách đã trả', data: returnCounts, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
   }
 
   async function toggleProfileCard() {
@@ -4647,18 +4816,29 @@
   async function loadStaffSystemAlerts() {
     if (!isStaff()) return;
     try {
-      const [pendingLoans, overdueLoans, pendingAcqs] = await Promise.all([
+      const [pendingLoans, overdueLoans, pendingAcqs, usersRes] = await Promise.all([
         api('/borrow?status=PENDING').catch(() => []),
         api('/borrow?status=OVERDUE').catch(() => []),
         api('/acquisitions?status=PENDING').catch(() => []),
+        api('/users?page=1&limit=50').catch(() => []),
       ]);
 
-      const totalAlerts = (pendingLoans.length || 0) + (overdueLoans.length || 0) + (pendingAcqs.length || 0);
+      const allUsers = Array.isArray(usersRes) ? usersRes : (usersRes?.data || []);
+      const pendingUsers = allUsers.filter((u) => u.role === 'READER' && (!u.approvedAt || !u.isActive));
+
+      const totalAlerts = (pendingLoans.length || 0) + (overdueLoans.length || 0) + (pendingAcqs.length || 0) + (pendingUsers.length || 0);
       if (totalAlerts > 0) {
         $('notificationCount').textContent = totalAlerts > 99 ? '99+' : totalAlerts;
         $('notificationCount').hidden = false;
 
         const alertsHtml = [
+          pendingUsers.length ? `<article class="notification-row" style="border-left:4px solid #2563eb;">
+            <div>
+              <strong>👤 ${pendingUsers.length} độc giả mới chờ duyệt tài khoản</strong>
+              <p>Có bạn đọc vừa đăng ký trực tuyến đang chờ kích hoạt thẻ thư viện.</p>
+              <button class="button button-primary button-small" onclick="window.history.pushState({},'','/admin/readers');syncAdminRoute();" type="button">Duyệt thẻ ngay</button>
+            </div>
+          </article>` : '',
           pendingLoans.length ? `<article class="notification-row" style="border-left:4px solid #123c35;">
             <div>
               <strong>🔔 ${pendingLoans.length} yêu cầu mượn chờ duyệt</strong>
@@ -4790,24 +4970,54 @@
       }
 
       // Cảnh báo thông minh
-      const alerts = s.alerts || { dueSoon: [], overdue: [], lowStock: [], damagedLostCount: 0 };
-      const alertItems = [
-        ...alerts.overdue.map((item) => ({
-          type: 'alert-danger',
-          text: `[Quá hạn] ${item.reader} chưa trả “${item.book}” · hạn ${date(item.dueDate)}`,
-          route: '/admin/borrow',
-        })),
-        ...alerts.dueSoon.map((item) => ({
+      const alerts = s.alerts || { dueSoon: [], overdue: [], lowStock: [], damagedLostCount: 0, pendingReaders: [], pendingBorrows: [] };
+      const alertItems = [];
+
+      if (alerts.pendingReaders && alerts.pendingReaders.length) {
+        alertItems.push({
           type: 'alert-warning',
-          text: `[Sắp đến hạn] ${item.reader} sắp đến hạn trả “${item.book}” · ${date(item.dueDate)}`,
-          route: '/admin/borrow',
-        })),
-        ...alerts.lowStock.map((item) => ({
+          text: `[Duyệt độc giả] 👤 Có ${alerts.pendingReaders.length} bạn đọc mới đăng ký đang chờ duyệt kích hoạt tài khoản`,
+          route: '/admin/readers',
+        });
+      }
+
+      if (alerts.pendingBorrows && alerts.pendingBorrows.length) {
+        alertItems.push({
           type: 'alert-info',
-          text: `[Sắp hết kho] “${item.title}” chỉ còn ${item.availableCopies} bản sẵn sàng`,
-          route: '/admin/books',
-        })),
-      ];
+          text: `[Duyệt mượn sách] 📖 Có ${alerts.pendingBorrows.length} yêu cầu mượn sách đang chờ thủ thư phê duyệt`,
+          route: '/admin/borrow-return',
+        });
+      }
+
+      if (alerts.overdue && alerts.overdue.length) {
+        alerts.overdue.forEach((item) => {
+          alertItems.push({
+            type: 'alert-danger',
+            text: `[Quá hạn] ⚠️ ${item.reader} chưa trả “${item.book}” · hạn ${date(item.dueDate)}`,
+            route: '/admin/borrow-return',
+          });
+        });
+      }
+
+      if (alerts.dueSoon && alerts.dueSoon.length) {
+        alerts.dueSoon.forEach((item) => {
+          alertItems.push({
+            type: 'alert-warning',
+            text: `[Sắp đến hạn] 🕒 ${item.reader} sắp đến hạn trả “${item.book}” · ${date(item.dueDate)}`,
+            route: '/admin/borrow-return',
+          });
+        });
+      }
+
+      if (alerts.lowStock && alerts.lowStock.length) {
+        alerts.lowStock.forEach((item) => {
+          alertItems.push({
+            type: 'alert-info',
+            text: `[Sắp hết kho] 📦 “${item.title}” chỉ còn ${item.availableCopies} bản sẵn sàng`,
+            route: '/admin/books',
+          });
+        });
+      }
       if (alerts.damagedLostCount) {
         alertItems.push({
           type: 'alert-warning',
@@ -11397,11 +11607,25 @@
     }, 300);
   });
 
+  let isShelf3DMode = false;
+  function resetShelf3DMode() {
+    isShelf3DMode = false;
+    const container = $('shelfAislesVisualContainer');
+    if (container) {
+      container.style.transform = 'none';
+      container.style.boxShadow = 'none';
+      container.style.background = 'transparent';
+      container.style.padding = '0';
+    }
+  }
+
   $('shelfViewModeFloorPlanBtn')?.addEventListener('click', () => {
     $('shelfFloorPlanPanel')?.removeAttribute('hidden');
     $('shelfGrid')?.setAttribute('hidden', 'true');
     $('shelfViewModeFloorPlanBtn')?.classList.replace('button-light', 'button-primary');
     $('shelfViewModeGridBtn')?.classList.replace('button-primary', 'button-light');
+    $('shelfViewMode3DBtn')?.classList.replace('button-primary', 'button-light');
+    resetShelf3DMode();
   });
 
   $('shelfViewModeGridBtn')?.addEventListener('click', () => {
@@ -11409,6 +11633,28 @@
     $('shelfGrid')?.removeAttribute('hidden');
     $('shelfViewModeGridBtn')?.classList.replace('button-light', 'button-primary');
     $('shelfViewModeFloorPlanBtn')?.classList.replace('button-primary', 'button-light');
+    $('shelfViewMode3DBtn')?.classList.replace('button-primary', 'button-light');
+    resetShelf3DMode();
+  });
+
+  $('shelfViewMode3DBtn')?.addEventListener('click', () => {
+    $('shelfFloorPlanPanel')?.removeAttribute('hidden');
+    $('shelfGrid')?.setAttribute('hidden', 'true');
+    $('shelfViewMode3DBtn')?.classList.replace('button-light', 'button-primary');
+    $('shelfViewModeFloorPlanBtn')?.classList.replace('button-primary', 'button-light');
+    $('shelfViewModeGridBtn')?.classList.replace('button-primary', 'button-light');
+    isShelf3DMode = true;
+    const container = $('shelfAislesVisualContainer');
+    if (container) {
+      container.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      container.style.transform = 'perspective(900px) rotateX(24deg) rotateZ(-5deg) scale(0.96)';
+      container.style.transformStyle = 'preserve-3d';
+      container.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+      container.style.borderRadius = '16px';
+      container.style.background = '#e2e8f0';
+      container.style.padding = '24px';
+    }
+    notify('🏢 Đã kích hoạt mô phỏng không gian 3D Isometric cho kho sách.');
   });
 
   document.querySelectorAll('#shelfFloorPlanTabs [data-floor-tab]').forEach((tab) => {
@@ -13958,12 +14204,45 @@
           <td style="text-align:right;font-weight:700;color:#166534;">${money(d.estimatedValue || 0)}</td>
           <td style="font-size:12.5px;color:#475569;">${escapeHtml(d.receivedByStaffName || 'Thủ thư')}</td>
           <td style="text-align:center;">
-            <button class="button button-small button-secondary" type="button" onclick="openDonationReceipt(${d.id})" style="background:#1e3a8a;color:#fff;font-size:12px;padding:3px 8px;">📜 Thư Cảm Ơn</button>
+            <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
+              <button class="button button-small button-secondary" type="button" onclick="openDonationReceipt(${d.id})" style="background:#1e3a8a;color:#fff;font-size:12px;padding:3px 8px;" title="In thư cảm ơn & biên bản">📜 Thư Cảm Ơn</button>
+              ${d.donationType === 'BOOKS' ? `
+                <button class="button button-small button-primary" type="button" onclick="importDonationToCatalog(${d.id})" style="background:#166534;border-color:#166534;font-size:12px;padding:3px 8px;" title="Liên kết và nhập sách tài trợ vào kho chung">📥 Nhập kho</button>
+              ` : ''}
+            </div>
           </td>
         </tr>
       `;
     }).join('');
   }
+
+  function importDonationToCatalog(id) {
+    const d = donationsData.find((item) => item.id === id);
+    if (!d) return;
+
+    if (!confirm(`Bạn có muốn chuyển đầu sách tài trợ "${d.itemTitle}" (${d.quantity} cuốn) vào biểu mẫu Nhập kho sách chung của thư viện?`)) return;
+
+    try {
+      window.history.pushState({}, '', '/admin/books');
+      syncAdminRoute();
+      if ($('bookFormPanel')) {
+        $('bookFormPanel').hidden = false;
+        $('bookFormPanel').scrollIntoView({ behavior: 'smooth' });
+      }
+      if ($('bookFormTitle')) $('bookFormTitle').textContent = `Nhập sách từ tài trợ: ${d.itemTitle}`;
+      if ($('bookId')) $('bookId').value = '';
+      if ($('bookTitle')) $('bookTitle').value = d.itemTitle || '';
+      if ($('bookAuthor')) $('bookAuthor').value = `Tài trợ bởi: ${d.partnerName || 'Đối tác'}`;
+      if ($('bookPublicationYear')) $('bookPublicationYear').value = new Date().getFullYear();
+      if ($('bookTotalCopies')) $('bookTotalCopies').value = d.quantity || 1;
+      if ($('bookAvailableCopies')) $('bookAvailableCopies').value = d.quantity || 1;
+      if ($('bookIsbn')) $('bookIsbn').value = '';
+      notify(`Đã điền thông tin sách từ đợt tài trợ [${d.receiptNumber}]. Vui lòng chọn Thể loại và lưu để cập nhật vào kho chung.`);
+    } catch (e) {
+      notify('Lỗi nhập kho: ' + e.message, true);
+    }
+  }
+  window.importDonationToCatalog = importDonationToCatalog;
 
   function openCreatePartnerDialog() {
     $('partnerForm')?.reset();
@@ -14125,24 +14404,33 @@
   /* MODULE 5: GIÁM SÁT THIẾT BỊ IOT & CẢM BIẾN (/admin/iot-monitoring) */
   /* ========================================================= */
   let iotDevicesData = [];
+  let iotAlertsData = [];
 
   async function loadIotDevices() {
     try {
       const type = $('iotTypeFilter')?.value || '';
       const status = $('iotStatusFilter')?.value || '';
       const search = $('iotSearchInput')?.value.trim() || '';
+      const alertResolved = $('iotAlertFilter')?.value;
 
       const query = new URLSearchParams();
       if (type) query.append('type', type);
       if (status) query.append('status', status);
       if (search) query.append('search', search);
 
-      const [devices, stats] = await Promise.all([
+      const alertQuery = new URLSearchParams();
+      if (alertResolved !== undefined && alertResolved !== '') {
+        alertQuery.append('resolved', alertResolved);
+      }
+
+      const [devices, stats, alerts] = await Promise.all([
         api('/iot/devices?' + query.toString()).catch(() => []),
         api('/iot/stats').catch(() => ({})),
+        api('/iot/alerts?' + alertQuery.toString()).catch(() => []),
       ]);
 
       iotDevicesData = devices || [];
+      iotAlertsData = alerts || [];
 
       if ($('statIotOnline')) $('statIotOnline').textContent = stats.online || 0;
       if ($('statIotWarning')) $('statIotWarning').textContent = stats.warning || 0;
@@ -14166,12 +14454,76 @@
       }
 
       renderIotGrid();
+      renderIotAlertsTable();
     } catch (err) {
       console.error('Lỗi khi tải dữ liệu IoT:', err);
       const container = $('iotDevicesGrid');
       if (container) container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#ef4444;padding:2rem;">Lỗi kết nối IoT Hub: ${escapeHtml(err.message)}</div>`;
     }
   }
+
+  function renderIotAlertsTable() {
+    const tbody = $('iotAlertsTableBody');
+    if (!tbody) return;
+
+    if (!iotAlertsData.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#888;">Không có cảnh báo an ninh nào ghi nhận. Hệ thống an toàn.</td></tr>';
+      return;
+    }
+
+    const severityBadges = {
+      CRITICAL: '<span class="status-badge" style="background:#fee2e2;color:#991b1b;font-weight:700;">🚨 Báo động đỏ</span>',
+      WARNING: '<span class="status-badge" style="background:#fef3c7;color:#92400e;font-weight:700;">⚠️ Cảnh báo</span>',
+      INFO: '<span class="status-badge" style="background:#eff6ff;color:#1e40af;font-weight:600;">ℹ️ Thông tin</span>',
+    };
+
+    tbody.innerHTML = iotAlertsData.map((a) => {
+      const statusHtml = a.resolved
+        ? '<span class="status-badge" style="background:#dcfce7;color:#166534;font-weight:700;">✓ Đã xử lý</span>' + (a.resolvedByStaffName ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">Bởi: ${escapeHtml(a.resolvedByStaffName)}</div>` : '')
+        : '<span class="status-badge" style="background:#fee2e2;color:#b91c1c;font-weight:700;">🔥 Đang kích hoạt</span>';
+
+      const actionHtml = a.resolved
+        ? '<span style="color:#94a3b8;font-size:12px;">Đã hoàn tất</span>'
+        : `<button class="button button-small button-primary" type="button" onclick="resolveIotAlert(${a.id})" style="background:#166534;border-color:#166534;font-size:11.5px;padding:3px 8px;">✓ Đã kiểm tra</button>`;
+
+      return `
+        <tr>
+          <td style="font-size:12px;color:#64748b;">📅 ${formatDateTime(a.createdAt)}</td>
+          <td>
+            <div style="font-weight:700;color:#0f172a;font-size:13px;">${escapeHtml(a.deviceName)}</div>
+            <span style="font-size:11px;font-family:monospace;color:#64748b;">${escapeHtml(a.deviceCode)}</span>
+          </td>
+          <td style="text-align:center;">${severityBadges[a.severity] || a.severity}</td>
+          <td style="font-size:13px;color:#334155;line-height:1.4;">${escapeHtml(a.message)}</td>
+          <td style="text-align:center;">${statusHtml}</td>
+          <td style="text-align:center;">${actionHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function resolveIotAlert(id) {
+    try {
+      await api(`/iot/alerts/${id}/resolve`, { method: 'PATCH' });
+      notify('Đã cập nhật trạng thái đã xử lý cho cảnh báo an toàn!');
+      void loadIotDevices();
+    } catch (e) {
+      notify('Lỗi xử lý cảnh báo: ' + e.message, true);
+    }
+  }
+
+  async function simulateIotAlert() {
+    try {
+      await api('/iot/alerts/simulate', { method: 'POST' });
+      notify('Đã kích hoạt cảnh báo an ninh mô phỏng thành công!');
+      void loadIotDevices();
+    } catch (e) {
+      notify('Lỗi kích hoạt mô phỏng: ' + e.message, true);
+    }
+  }
+
+  window.resolveIotAlert = resolveIotAlert;
+  window.simulateIotAlert = simulateIotAlert;
 
   function renderIotGrid() {
     const container = $('iotDevicesGrid');
@@ -14443,7 +14795,1153 @@
   $('iotSearchInput')?.addEventListener('input', () => void loadIotDevices());
   $('iotTypeFilter')?.addEventListener('change', () => void loadIotDevices());
   $('iotStatusFilter')?.addEventListener('change', () => void loadIotDevices());
+  $('iotAlertFilter')?.addEventListener('change', () => void loadIotDevices());
+  $('simIotAlertBtn')?.addEventListener('click', () => void simulateIotAlert());
   $('iotDeviceForm')?.addEventListener('submit', handleSaveIotDevice);
+
+  /* ========================================================= */
+  /* MODULE 6: TÀI NGUYÊN HỌC THUẬT & LUẬN VĂN (/admin/theses) */
+  /* ========================================================= */
+  let thesesData = [];
+
+  async function loadTheses() {
+    try {
+      const search = $('thesesSearchInput')?.value.trim() || '';
+      const major = $('thesesMajorFilter')?.value || '';
+      const securityStatus = $('thesesSecurityFilter')?.value || '';
+      const query = new URLSearchParams();
+      if (search) query.append('search', search);
+      if (major) query.append('major', major);
+      if (securityStatus) query.append('securityStatus', securityStatus);
+
+      const [list, stats] = await Promise.all([
+        api(`/theses?${query.toString()}`),
+        api('/theses/stats').catch(() => null),
+      ]);
+
+      thesesData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statTotalTheses')) $('statTotalTheses').textContent = stats.totalTheses ?? thesesData.length;
+        if ($('statPublicTheses')) $('statPublicTheses').textContent = stats.publicTheses ?? 0;
+        if ($('statRestrictedTheses')) $('statRestrictedTheses').textContent = stats.restrictedTheses ?? 0;
+        if ($('statThesesViews')) $('statThesesViews').textContent = stats.totalViews ?? 0;
+      }
+
+      renderThesesTable();
+    } catch (err) {
+      console.error(err);
+      if ($('thesesTableBody')) {
+        $('thesesTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải luận văn: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderThesesTable() {
+    const tbody = $('thesesTableBody');
+    if (!tbody) return;
+    if (!thesesData.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#888;">Chưa có đề tài luận văn nào phù hợp.</td></tr>`;
+      return;
+    }
+
+    const secBadges = {
+      PUBLIC: '<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🌐 Công khai</span>',
+      INTERNAL: '<span style="background:#e0e7ff;color:#3730a3;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🏫 Nội bộ</span>',
+      RESTRICTED: '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🔒 Hạn chế</span>',
+    };
+
+    tbody.innerHTML = thesesData.map((t) => `
+      <tr>
+        <td style="font-weight:600;color:#0f172a;">${escapeHtml(t.code)}</td>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${escapeHtml(t.title)}</div>
+          ${t.abstract ? `<div style="font-size:12px;color:#64748b;margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;" title="${escapeHtml(t.abstract)}">${escapeHtml(t.abstract)}</div>` : ''}
+        </td>
+        <td>
+          <div>${escapeHtml(t.authorName)}</div>
+          <div style="font-size:12px;color:#64748b;">MSSV: ${escapeHtml(t.studentId)}</div>
+        </td>
+        <td style="font-size:13px;color:#334155;">${escapeHtml(t.advisorName)}</td>
+        <td style="font-size:13px;">
+          <div>${escapeHtml(t.major)}</div>
+        </td>
+        <td style="text-align:center;font-weight:600;color:#475569;">${t.defenseYear}</td>
+        <td style="text-align:center;">${secBadges[t.securityStatus] || escapeHtml(t.securityStatus)}</td>
+        <td style="text-align:center;font-weight:600;color:#2563eb;">${t.viewsCount || 0}</td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            ${t.fileUrl ? `<a href="${escapeHtml(t.fileUrl)}" target="_blank" class="button button-small button-light" style="font-size:11.5px;padding:3px 8px;" title="Tải / Đọc tệp PDF">📄 PDF</a>` : ''}
+            <button class="button button-small button-light" onclick="openEditThesis(${t.id})" style="font-size:11.5px;padding:3px 8px;" title="Chỉnh sửa">✏️</button>
+            <button class="button button-small button-light" onclick="deleteThesis(${t.id})" style="font-size:11.5px;padding:3px 8px;color:#ef4444;" title="Xóa đề tài">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateThesisDialog() {
+    $('thesisForm')?.reset();
+    if ($('thesisFormId')) $('thesisFormId').value = '';
+    if ($('thesisDialogTitle')) $('thesisDialogTitle').textContent = 'Đăng ký Luận văn & Khóa luận Tốt nghiệp';
+    $('thesisDialog')?.showModal();
+  }
+
+  function openEditThesis(id) {
+    const t = thesesData.find((x) => x.id === id);
+    if (!t) return;
+    if ($('thesisFormId')) $('thesisFormId').value = t.id;
+    if ($('thesisFormCode')) $('thesisFormCode').value = t.code || '';
+    if ($('thesisFormTitle')) $('thesisFormTitle').value = t.title || '';
+    if ($('thesisFormAuthor')) $('thesisFormAuthor').value = t.authorName || '';
+    if ($('thesisFormStudentId')) $('thesisFormStudentId').value = t.studentId || '';
+    if ($('thesisFormAdvisor')) $('thesisFormAdvisor').value = t.advisorName || '';
+    if ($('thesisFormDefenseYear')) $('thesisFormDefenseYear').value = t.defenseYear || 2026;
+    if ($('thesisFormMajor')) $('thesisFormMajor').value = t.major || 'Công nghệ thông tin';
+    if ($('thesisFormSecurity')) $('thesisFormSecurity').value = t.securityStatus || 'PUBLIC';
+    if ($('thesisFormAbstract')) $('thesisFormAbstract').value = t.abstract || '';
+    if ($('thesisFormFileUrl')) $('thesisFormFileUrl').value = t.fileUrl || '';
+    if ($('thesisDialogTitle')) $('thesisDialogTitle').textContent = 'Chỉnh sửa thông tin Luận văn';
+    $('thesisDialog')?.showModal();
+  }
+
+  async function handleSaveThesis(e) {
+    e.preventDefault();
+    try {
+      const id = $('thesisFormId')?.value;
+      const payload = {
+        code: $('thesisFormCode')?.value.trim(),
+        title: $('thesisFormTitle')?.value.trim(),
+        authorName: $('thesisFormAuthor')?.value.trim(),
+        studentId: $('thesisFormStudentId')?.value.trim(),
+        advisorName: $('thesisFormAdvisor')?.value.trim(),
+        defenseYear: Number($('thesisFormDefenseYear')?.value) || 2026,
+        major: $('thesisFormMajor')?.value,
+        securityStatus: $('thesisFormSecurity')?.value,
+        abstract: $('thesisFormAbstract')?.value.trim() || undefined,
+        fileUrl: $('thesisFormFileUrl')?.value.trim() || undefined,
+      };
+
+      if (!payload.code || !payload.title || !payload.authorName || !payload.studentId || !payload.advisorName) {
+        notify('Vui lòng điền đầy đủ các thông tin bắt buộc (*).', true);
+        return;
+      }
+
+      if (id) {
+        await api(`/theses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        notify('Cập nhật thông tin luận văn thành công!');
+      } else {
+        await api('/theses', { method: 'POST', body: JSON.stringify(payload) });
+        notify('Đã đăng ký luận văn mới thành công!');
+      }
+
+      $('thesisDialog')?.close();
+      void loadTheses();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu luận văn: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteThesis(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa đề tài luận văn này khỏi kho lưu trữ?')) return;
+    try {
+      await api(`/theses/${id}`, { method: 'DELETE' });
+      notify('Đã xóa luận văn thành công.');
+      void loadTheses();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa luận văn: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  /* ========================================================= */
+  /* MODULE 7: TÀI LIỆU ĐA PHƯƠNG TIỆN (/admin/multimedia)    */
+  /* ========================================================= */
+  let multimediaData = [];
+
+  async function loadMultimedia() {
+    try {
+      const search = $('multimediaSearchInput')?.value.trim() || '';
+      const type = $('multimediaTypeFilter')?.value || '';
+      const condition = $('multimediaConditionFilter')?.value || '';
+      const query = new URLSearchParams();
+      if (search) query.append('search', search);
+      if (type) query.append('type', type);
+      if (condition) query.append('condition', condition);
+
+      const [list, stats] = await Promise.all([
+        api(`/multimedia?${query.toString()}`),
+        api('/multimedia/stats').catch(() => null),
+      ]);
+
+      multimediaData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statTotalMultimedia')) $('statTotalMultimedia').textContent = stats.totalItems ?? multimediaData.length;
+        if ($('statGoodMultimedia')) $('statGoodMultimedia').textContent = stats.goodCondition ?? 0;
+        if ($('statNeedDigitizeMultimedia')) $('statNeedDigitizeMultimedia').textContent = stats.needDigitization ?? 0;
+        if ($('statOnSiteLoans')) $('statOnSiteLoans').textContent = stats.totalOnSiteLoans ?? 0;
+      }
+
+      renderMultimediaTable();
+    } catch (err) {
+      console.error(err);
+      if ($('multimediaTableBody')) {
+        $('multimediaTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải tư liệu đa phương tiện: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderMultimediaTable() {
+    const tbody = $('multimediaTableBody');
+    if (!tbody) return;
+    if (!multimediaData.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">Chưa có tài liệu đa phương tiện nào.</td></tr>`;
+      return;
+    }
+
+    const typeIcons = {
+      CD_DVD: '💿 Đĩa CD / DVD',
+      CASSETTE: '📼 Băng Cassette',
+      HISTORIC_MAP: '🗺️ Bản đồ lịch sử',
+      PHOTO_ARCHIVE: '📷 Ảnh tư liệu',
+      MICROFILM: '🎞️ Microfilm',
+    };
+
+    const condBadges = {
+      GOOD: '<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">✓ Tốt</span>',
+      NEED_DIGITIZATION: '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">⚠️ Cần số hóa</span>',
+      DAMAGED: '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">❌ Hư hỏng</span>',
+    };
+
+    tbody.innerHTML = multimediaData.map((m) => `
+      <tr>
+        <td style="font-weight:600;color:#0f172a;">${escapeHtml(m.code)}</td>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${escapeHtml(m.title)}</div>
+          ${m.description ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(m.description)}</div>` : ''}
+        </td>
+        <td>${typeIcons[m.type] || escapeHtml(m.type)}</td>
+        <td style="font-size:13px;color:#475569;">${escapeHtml(m.storageLocation)}</td>
+        <td style="text-align:center;">${condBadges[m.condition] || escapeHtml(m.condition)}</td>
+        <td style="text-align:center;font-weight:600;color:${m.availableQuantity > 0 ? '#10b981' : '#ef4444'};">${m.availableQuantity} / ${m.totalQuantity}</td>
+        <td style="text-align:center;font-weight:600;color:#7c3aed;">${m.onSiteLoanCount || 0}</td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button class="button button-small button-primary" onclick="openRecordMultimediaLoanDialog(${m.id})" style="font-size:11.5px;padding:3px 8px;" ${m.availableQuantity <= 0 ? 'disabled' : ''} title="Ghi nhận mượn đọc tại chỗ">📖 Mượn</button>
+            <button class="button button-small button-light" onclick="openEditMultimedia(${m.id})" style="font-size:11.5px;padding:3px 8px;" title="Chỉnh sửa">✏️</button>
+            <button class="button button-small button-light" onclick="deleteMultimedia(${m.id})" style="font-size:11.5px;padding:3px 8px;color:#ef4444;" title="Xóa tư liệu">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateMultimediaDialog() {
+    $('multimediaForm')?.reset();
+    if ($('multimediaFormId')) $('multimediaFormId').value = '';
+    if ($('multimediaDialogTitle')) $('multimediaDialogTitle').textContent = 'Nhập Tư liệu Đa phương tiện & Đặc biệt';
+    $('multimediaDialog')?.showModal();
+  }
+
+  function openEditMultimedia(id) {
+    const m = multimediaData.find((x) => x.id === id);
+    if (!m) return;
+    if ($('multimediaFormId')) $('multimediaFormId').value = m.id;
+    if ($('multimediaFormCode')) $('multimediaFormCode').value = m.code || '';
+    if ($('multimediaFormTitle')) $('multimediaFormTitle').value = m.title || '';
+    if ($('multimediaFormType')) $('multimediaFormType').value = m.type || 'CD_DVD';
+    if ($('multimediaFormCondition')) $('multimediaFormCondition').value = m.condition || 'GOOD';
+    if ($('multimediaFormLocation')) $('multimediaFormLocation').value = m.storageLocation || '';
+    if ($('multimediaFormQty')) $('multimediaFormQty').value = m.totalQuantity || 1;
+    if ($('multimediaFormAvail')) $('multimediaFormAvail').value = m.availableQuantity || 1;
+    if ($('multimediaFormDesc')) $('multimediaFormDesc').value = m.description || '';
+    if ($('multimediaDialogTitle')) $('multimediaDialogTitle').textContent = 'Chỉnh sửa Tư liệu Đa phương tiện';
+    $('multimediaDialog')?.showModal();
+  }
+
+  async function handleSaveMultimedia(e) {
+    e.preventDefault();
+    try {
+      const id = $('multimediaFormId')?.value;
+      const payload = {
+        code: $('multimediaFormCode')?.value.trim(),
+        title: $('multimediaFormTitle')?.value.trim(),
+        type: $('multimediaFormType')?.value,
+        condition: $('multimediaFormCondition')?.value,
+        storageLocation: $('multimediaFormLocation')?.value.trim(),
+        totalQuantity: Number($('multimediaFormQty')?.value) || 1,
+        availableQuantity: Number($('multimediaFormAvail')?.value) || 1,
+        description: $('multimediaFormDesc')?.value.trim() || undefined,
+      };
+
+      if (!payload.code || !payload.title || !payload.storageLocation) {
+        notify('Vui lòng điền đầy đủ mã, tiêu đề và vị trí lưu trữ.', true);
+        return;
+      }
+
+      if (id) {
+        await api(`/multimedia/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        notify('Cập nhật thông tin tư liệu thành công!');
+      } else {
+        await api('/multimedia', { method: 'POST', body: JSON.stringify(payload) });
+        notify('Đã thêm tài liệu đa phương tiện mới thành công!');
+      }
+
+      $('multimediaDialog')?.close();
+      void loadMultimedia();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu tư liệu: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  function openRecordMultimediaLoanDialog(id) {
+    const m = multimediaData.find((x) => x.id === id);
+    if (!m) return;
+    if ($('loanMultimediaId')) $('loanMultimediaId').value = m.id;
+    if ($('loanMultimediaText')) $('loanMultimediaText').innerHTML = `Đang thao tác mượn tư liệu: <b>${escapeHtml(m.title)}</b> (${escapeHtml(m.code)}) - Khả dụng: <b>${m.availableQuantity}</b> bản`;
+    if ($('loanMultimediaReader')) $('loanMultimediaReader').value = '';
+    if ($('loanMultimediaNote')) $('loanMultimediaNote').value = '';
+    $('recordMultimediaLoanDialog')?.showModal();
+  }
+
+  async function handleRecordMultimediaLoan(e) {
+    e.preventDefault();
+    try {
+      const id = $('loanMultimediaId')?.value;
+      const reader = $('loanMultimediaReader')?.value.trim();
+      const note = $('loanMultimediaNote')?.value.trim();
+      if (!reader) {
+        notify('Vui lòng nhập tên hoặc MSSV của bạn đọc.', true);
+        return;
+      }
+
+      await api(`/multimedia/${id}/on-site-loan`, { method: 'POST' });
+      notify(`Đã ghi nhận bạn đọc "${reader}" mượn xem tư liệu tại chỗ thành công!`);
+      $('recordMultimediaLoanDialog')?.close();
+      void loadMultimedia();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi ghi nhận mượn: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteMultimedia(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa tài liệu đa phương tiện này khỏi danh mục?')) return;
+    try {
+      await api(`/multimedia/${id}`, { method: 'DELETE' });
+      notify('Đã xóa tư liệu thành công.');
+      void loadMultimedia();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa tư liệu: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  /* ========================================================= */
+  /* MODULE 8: HỘI THẢO & DIỄN ĐÀN KHOA HỌC (/admin/seminars)   */
+  /* ========================================================= */
+  let seminarsData = [];
+
+  async function loadSeminars() {
+    try {
+      const search = $('seminarSearchInput')?.value.trim() || '';
+      const status = $('seminarStatusFilter')?.value || '';
+      const query = new URLSearchParams();
+      if (search) query.append('search', search);
+      if (status) query.append('status', status);
+
+      const [list, stats] = await Promise.all([
+        api(`/seminars?${query.toString()}`),
+        api('/seminars/stats').catch(() => null),
+      ]);
+
+      seminarsData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statTotalSeminars')) $('statTotalSeminars').textContent = stats.totalSeminars ?? seminarsData.length;
+        if ($('statUpcomingSeminars')) $('statUpcomingSeminars').textContent = stats.upcomingSeminars ?? 0;
+        if ($('statRegisteredSeats')) $('statRegisteredSeats').textContent = stats.totalRegisteredSeats ?? 0;
+        if ($('statAttendanceRate')) $('statAttendanceRate').textContent = (stats.averageAttendanceRate || 0) + '%';
+      }
+
+      renderSeminarsTable();
+    } catch (err) {
+      console.error(err);
+      if ($('seminarsTableBody')) {
+        $('seminarsTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải lịch hội thảo: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderSeminarsTable() {
+    const tbody = $('seminarsTableBody');
+    if (!tbody) return;
+    if (!seminarsData.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#888;">Chưa có hội thảo hoặc diễn đàn khoa học nào.</td></tr>`;
+      return;
+    }
+
+    const statusBadges = {
+      UPCOMING: '<span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">📅 Sắp diễn ra</span>',
+      HAPPENING: '<span style="background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">⚡ Đang diễn ra</span>',
+      ENDED: '<span style="background:#f1f5f9;color:#475569;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">✓ Đã kết thúc</span>',
+      CANCELLED: '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">❌ Đã hủy</span>',
+    };
+
+    tbody.innerHTML = seminarsData.map((s) => `
+      <tr>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${escapeHtml(s.title)}</div>
+          ${s.description ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(s.description)}</div>` : ''}
+        </td>
+        <td style="font-size:13px;color:#334155;">${escapeHtml(s.theme)}</td>
+        <td style="font-size:13px;font-weight:500;color:#0f172a;">${escapeHtml(s.speakerNames)}</td>
+        <td style="font-size:12.5px;">
+          <div>🕒 ${formatDateTime(s.eventDate)}</div>
+          <div style="color:#64748b;margin-top:2px;">📍 ${escapeHtml(s.location)} (${s.durationMinutes}p)</div>
+        </td>
+        <td style="text-align:center;font-weight:600;color:#0284c7;">
+          ${s.registeredSeats} / ${s.maxSeats}
+        </td>
+        <td style="text-align:center;">${statusBadges[s.status] || escapeHtml(s.status)}</td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button class="button button-small button-primary" onclick="openSeminarAttendanceDialog(${s.id})" style="font-size:11.5px;padding:3px 8px;" title="Danh sách người tham dự & Check-in">👥 Điểm danh</button>
+            <button class="button button-small button-light" onclick="openEditSeminar(${s.id})" style="font-size:11.5px;padding:3px 8px;" title="Chỉnh sửa">✏️</button>
+            <button class="button button-small button-light" onclick="deleteSeminar(${s.id})" style="font-size:11.5px;padding:3px 8px;color:#ef4444;" title="Xóa sự kiện">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateSeminarDialog() {
+    $('seminarForm')?.reset();
+    if ($('seminarFormId')) $('seminarFormId').value = '';
+    if ($('seminarDialogTitle')) $('seminarDialogTitle').textContent = 'Lên Lịch Hội thảo & Diễn đàn Khoa học';
+    $('seminarDialog')?.showModal();
+  }
+
+  function openEditSeminar(id) {
+    const s = seminarsData.find((x) => x.id === id);
+    if (!s) return;
+    if ($('seminarFormId')) $('seminarFormId').value = s.id;
+    if ($('seminarFormTitle')) $('seminarFormTitle').value = s.title || '';
+    if ($('seminarFormTheme')) $('seminarFormTheme').value = s.theme || '';
+    if ($('seminarFormSpeakers')) $('seminarFormSpeakers').value = s.speakerNames || '';
+    if ($('seminarFormDate')) {
+      const d = new Date(s.eventDate);
+      $('seminarFormDate').value = !isNaN(d.getTime()) ? d.toISOString().slice(0, 16) : '';
+    }
+    if ($('seminarFormLocation')) $('seminarFormLocation').value = s.location || '';
+    if ($('seminarFormDuration')) $('seminarFormDuration').value = s.durationMinutes || 120;
+    if ($('seminarFormMaxSeats')) $('seminarFormMaxSeats').value = s.maxSeats || 80;
+    if ($('seminarFormStatus')) $('seminarFormStatus').value = s.status || 'UPCOMING';
+    if ($('seminarFormDesc')) $('seminarFormDesc').value = s.description || '';
+    if ($('seminarDialogTitle')) $('seminarDialogTitle').textContent = 'Chỉnh sửa thông tin Hội thảo';
+    $('seminarDialog')?.showModal();
+  }
+
+  async function handleSaveSeminar(e) {
+    e.preventDefault();
+    try {
+      const id = $('seminarFormId')?.value;
+      const payload = {
+        title: $('seminarFormTitle')?.value.trim(),
+        theme: $('seminarFormTheme')?.value.trim(),
+        speakerNames: $('seminarFormSpeakers')?.value.trim(),
+        eventDate: new Date($('seminarFormDate')?.value).toISOString(),
+        location: $('seminarFormLocation')?.value.trim(),
+        durationMinutes: Number($('seminarFormDuration')?.value) || 120,
+        maxSeats: Number($('seminarFormMaxSeats')?.value) || 80,
+        status: $('seminarFormStatus')?.value,
+        description: $('seminarFormDesc')?.value.trim() || undefined,
+      };
+
+      if (!payload.title || !payload.theme || !payload.speakerNames || !payload.location) {
+        notify('Vui lòng điền đầy đủ tiêu đề, chủ đề, diễn giả và địa điểm.', true);
+        return;
+      }
+
+      if (id) {
+        await api(`/seminars/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        notify('Cập nhật thông tin hội thảo thành công!');
+      } else {
+        await api('/seminars', { method: 'POST', body: JSON.stringify(payload) });
+        notify('Đã thêm lịch hội thảo mới thành công!');
+      }
+
+      $('seminarDialog')?.close();
+      void loadSeminars();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu hội thảo: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteSeminar(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa sự kiện hội thảo này?')) return;
+    try {
+      await api(`/seminars/${id}`, { method: 'DELETE' });
+      notify('Đã xóa hội thảo thành công.');
+      void loadSeminars();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa hội thảo: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  function openSeminarAttendanceDialog(id) {
+    const s = seminarsData.find((x) => x.id === id);
+    if (!s) return;
+    if ($('attendanceSeminarId')) $('attendanceSeminarId').value = s.id;
+    if ($('seminarAttendanceTitle')) $('seminarAttendanceTitle').innerHTML = `Danh sách Tham dự: <b>${escapeHtml(s.title)}</b> (${s.registeredSeats}/${s.maxSeats} chỗ)`;
+    renderAttendeesTable(s);
+    $('seminarAttendanceDialog')?.showModal();
+  }
+
+  function renderAttendeesTable(seminar) {
+    const tbody = $('attendeesTableBody');
+    if (!tbody) return;
+    const attendees = seminar.attendees || [];
+    if (!attendees.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:#888;">Chưa có độc giả nào đăng ký tham dự.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = attendees.map((a) => `
+      <tr>
+        <td style="font-weight:600;color:#1e293b;">${escapeHtml(a.fullName)}</td>
+        <td style="color:#475569;">${escapeHtml(a.studentCode || '—')}</td>
+        <td style="font-size:12.5px;color:#64748b;">${escapeHtml(a.email || '—')}</td>
+        <td style="font-size:12px;">${formatDateTime(a.registeredAt)}</td>
+        <td style="text-align:center;">
+          ${a.checkedIn ? '<span style="background:#dcfce7;color:#166534;padding:2px 7px;border-radius:999px;font-size:11px;font-weight:600;">✓ Đã Điểm Danh</span>' : '<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:999px;font-size:11px;">Chưa</span>'}
+        </td>
+        <td style="text-align:center;">
+          ${!a.checkedIn ? `<button class="button button-small button-primary" onclick="checkInSeminarAttendee(${seminar.id}, '${a.id}')" style="font-size:11px;padding:2px 7px;">Check-in</button>` : '—'}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function handleRegisterAttendee(e) {
+    e.preventDefault();
+    try {
+      const seminarId = $('attendanceSeminarId')?.value;
+      const fullName = $('attendeeNameInput')?.value.trim();
+      const studentCode = $('attendeeCodeInput')?.value.trim();
+      const email = $('attendeeEmailInput')?.value.trim() || undefined;
+
+      if (!fullName || !studentCode) {
+        notify('Vui lòng nhập họ tên và mã sinh viên.', true);
+        return;
+      }
+
+      await api(`/seminars/${seminarId}/register`, {
+        method: 'POST',
+        body: JSON.stringify({ fullName, studentCode, email }),
+      });
+
+      notify(`Đã đăng ký tham dự cho ${fullName} thành công!`);
+      $('attendeeNameInput').value = '';
+      $('attendeeCodeInput').value = '';
+      if ($('attendeeEmailInput')) $('attendeeEmailInput').value = '';
+
+      const updated = await api(`/seminars/${seminarId}`);
+      const idx = seminarsData.findIndex((s) => s.id === Number(seminarId));
+      if (idx !== -1) seminarsData[idx] = updated;
+      renderAttendeesTable(updated);
+      void loadSeminars();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi đăng ký tham dự: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function checkInSeminarAttendee(seminarId, attendeeId) {
+    try {
+      const updated = await api(`/seminars/${seminarId}/check-in`, {
+        method: 'PATCH',
+        body: JSON.stringify({ attendeeId }),
+      });
+      notify('Đã điểm danh người tham dự thành công!');
+      const idx = seminarsData.findIndex((s) => s.id === Number(seminarId));
+      if (idx !== -1) seminarsData[idx] = updated;
+      renderAttendeesTable(updated);
+      void loadSeminars();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi check-in: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  /* ========================================================= */
+  /* MODULE 9: SÁCH TRAO ĐỔI & HỌC BỔNG (/admin/exchange-grants) */
+  /* ========================================================= */
+  let exchangeGrantsData = [];
+
+  async function loadExchangeGrants() {
+    try {
+      const search = $('exchangeGrantSearchInput')?.value.trim() || '';
+      const programType = $('exchangeGrantTypeFilter')?.value || '';
+      const query = new URLSearchParams();
+      if (search) query.append('search', search);
+      if (programType) query.append('programType', programType);
+
+      const [list, stats] = await Promise.all([
+        api(`/exchange-grants?${query.toString()}`),
+        api('/exchange-grants/stats').catch(() => null),
+      ]);
+
+      exchangeGrantsData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statTotalPrograms')) $('statTotalPrograms').textContent = stats.totalPrograms ?? exchangeGrantsData.length;
+        if ($('statTotalExchangedBooks')) $('statTotalExchangedBooks').textContent = (stats.totalBooksExchanged || 0) + ' cuốn';
+        if ($('statTotalGrantBudget')) $('statTotalGrantBudget').textContent = money(stats.totalGrantAmount || 0);
+        if ($('statTotalBeneficiaries')) $('statTotalBeneficiaries').textContent = (stats.totalBeneficiaries || 0) + ' bạn';
+      }
+
+      renderExchangeGrantsTable();
+    } catch (err) {
+      console.error(err);
+      if ($('exchangeGrantsTableBody')) {
+        $('exchangeGrantsTableBody').innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải chương trình trao đổi: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderExchangeGrantsTable() {
+    const tbody = $('exchangeGrantsTableBody');
+    if (!tbody) return;
+    if (!exchangeGrantsData.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">Chưa có chương trình trao đổi sách hoặc học bổng nào.</td></tr>`;
+      return;
+    }
+
+    const typeBadges = {
+      BOOK_EXCHANGE: '<span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">📚 Trao đổi sách</span>',
+      READING_GRANT: '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🎁 Quỹ học bổng</span>',
+    };
+
+    tbody.innerHTML = exchangeGrantsData.map((g) => `
+      <tr>
+        <td>${typeBadges[g.programType] || escapeHtml(g.programType)}</td>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${escapeHtml(g.title)}</div>
+          ${g.note ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(g.note)}</div>` : ''}
+        </td>
+        <td style="font-size:13px;font-weight:500;color:#0f172a;">${escapeHtml(g.partnerInstitution)}</td>
+        <td style="font-size:13px;color:#475569;">${escapeHtml(g.country)}</td>
+        <td style="text-align:right;font-weight:600;color:#0284c7;">
+          ${g.programType === 'BOOK_EXCHANGE' ? `${g.bookQuantity} cuốn` : money(g.grantAmount)}
+        </td>
+        <td style="text-align:center;font-weight:600;color:#10b981;">${g.beneficiariesCount} bạn</td>
+        <td style="font-size:12px;color:#475569;">
+          <div>${g.startDate ? g.startDate.slice(0, 10) : ''}</div>
+          ${g.endDate ? `<div style="color:#64748b;">đến ${g.endDate.slice(0, 10)}</div>` : ''}
+        </td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button class="button button-small button-light" onclick="openEditExchangeGrant(${g.id})" style="font-size:11.5px;padding:3px 8px;" title="Chỉnh sửa">✏️</button>
+            <button class="button button-small button-light" onclick="deleteExchangeGrant(${g.id})" style="font-size:11.5px;padding:3px 8px;color:#ef4444;" title="Xóa">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateExchangeGrantDialog() {
+    $('exchangeGrantForm')?.reset();
+    if ($('exchangeGrantFormId')) $('exchangeGrantFormId').value = '';
+    if ($('exchangeGrantDialogTitle')) $('exchangeGrantDialogTitle').textContent = 'Thêm Chương trình Trao đổi / Học bổng';
+    $('exchangeGrantDialog')?.showModal();
+  }
+
+  function openEditExchangeGrant(id) {
+    const g = exchangeGrantsData.find((x) => x.id === id);
+    if (!g) return;
+    if ($('exchangeGrantFormId')) $('exchangeGrantFormId').value = g.id;
+    if ($('exchangeGrantFormType')) $('exchangeGrantFormType').value = g.programType || 'BOOK_EXCHANGE';
+    if ($('exchangeGrantFormTitle')) $('exchangeGrantFormTitle').value = g.title || '';
+    if ($('exchangeGrantFormPartner')) $('exchangeGrantFormPartner').value = g.partnerInstitution || '';
+    if ($('exchangeGrantFormCountry')) $('exchangeGrantFormCountry').value = g.country || '';
+    if ($('exchangeGrantFormBooks')) $('exchangeGrantFormBooks').value = g.bookQuantity || 0;
+    if ($('exchangeGrantFormAmount')) $('exchangeGrantFormAmount').value = g.grantAmount || 0;
+    if ($('exchangeGrantFormBeneficiaries')) $('exchangeGrantFormBeneficiaries').value = g.beneficiariesCount || 0;
+    if ($('exchangeGrantFormStart')) $('exchangeGrantFormStart').value = g.startDate ? g.startDate.slice(0, 10) : '';
+    if ($('exchangeGrantFormEnd')) $('exchangeGrantFormEnd').value = g.endDate ? g.endDate.slice(0, 10) : '';
+    if ($('exchangeGrantFormNote')) $('exchangeGrantFormNote').value = g.note || '';
+    if ($('exchangeGrantDialogTitle')) $('exchangeGrantDialogTitle').textContent = 'Chỉnh sửa Chương trình Hợp tác';
+    $('exchangeGrantDialog')?.showModal();
+  }
+
+  async function handleSaveExchangeGrant(e) {
+    e.preventDefault();
+    try {
+      const id = $('exchangeGrantFormId')?.value;
+      const payload = {
+        programType: $('exchangeGrantFormType')?.value,
+        title: $('exchangeGrantFormTitle')?.value.trim(),
+        partnerInstitution: $('exchangeGrantFormPartner')?.value.trim(),
+        country: $('exchangeGrantFormCountry')?.value.trim(),
+        bookQuantity: Number($('exchangeGrantFormBooks')?.value) || 0,
+        grantAmount: Number($('exchangeGrantFormAmount')?.value) || 0,
+        beneficiariesCount: Number($('exchangeGrantFormBeneficiaries')?.value) || 0,
+        startDate: $('exchangeGrantFormStart')?.value ? new Date($('exchangeGrantFormStart')?.value).toISOString() : new Date().toISOString(),
+        endDate: $('exchangeGrantFormEnd')?.value ? new Date($('exchangeGrantFormEnd')?.value).toISOString() : undefined,
+        note: $('exchangeGrantFormNote')?.value.trim() || undefined,
+      };
+
+      if (!payload.title || !payload.partnerInstitution || !payload.country) {
+        notify('Vui lòng điền tiêu đề chương trình, cơ quan đối tác và quốc gia.', true);
+        return;
+      }
+
+      if (id) {
+        await api(`/exchange-grants/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        notify('Cập nhật chương trình trao đổi thành công!');
+      } else {
+        await api('/exchange-grants', { method: 'POST', body: JSON.stringify(payload) });
+        notify('Đã thêm chương trình trao đổi / học bổng mới thành công!');
+      }
+
+      $('exchangeGrantDialog')?.close();
+      void loadExchangeGrants();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu chương trình: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteExchangeGrant(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa chương trình trao đổi / tài trợ này?')) return;
+    try {
+      await api(`/exchange-grants/${id}`, { method: 'DELETE' });
+      notify('Đã xóa chương trình thành công.');
+      void loadExchangeGrants();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa chương trình: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  /* ========================================================= */
+  /* MODULE 10: LỊCH CA TRỰC THỦ THƯ (/admin/shift-schedules)   */
+  /* ========================================================= */
+  let shiftsData = [];
+
+  async function loadShiftSchedules() {
+    try {
+      const shiftType = $('shiftTypeFilter')?.value || '';
+      const zone = $('shiftZoneFilter')?.value || '';
+      const query = new URLSearchParams();
+      if (shiftType) query.append('shiftType', shiftType);
+      if (zone) query.append('zone', zone);
+
+      const [list, stats] = await Promise.all([
+        api(`/shift-schedules?${query.toString()}`),
+        api('/shift-schedules/stats').catch(() => null),
+      ]);
+
+      shiftsData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statTotalShifts')) $('statTotalShifts').textContent = stats.totalShifts ?? shiftsData.length;
+        if ($('statTodayShifts')) $('statTodayShifts').textContent = (stats.todayShifts || 0) + ' ca';
+        if ($('statCompletedShifts')) $('statCompletedShifts').textContent = stats.completedShifts ?? 0;
+        if ($('statSwappedShifts')) $('statSwappedShifts').textContent = stats.swappedShifts ?? 0;
+      }
+
+      renderShiftsTable();
+    } catch (err) {
+      console.error(err);
+      if ($('shiftsTableBody')) {
+        $('shiftsTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải lịch ca trực: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderShiftsTable() {
+    const tbody = $('shiftsTableBody');
+    if (!tbody) return;
+    if (!shiftsData.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#888;">Chưa có ca trực nào được phân công.</td></tr>`;
+      return;
+    }
+
+    const typeLabels = {
+      MORNING: '☀️ Ca Sáng (07:30 - 11:30)',
+      AFTERNOON: '⛅ Ca Chiều (13:00 - 17:00)',
+      EVENING: '🌙 Ca Tối (17:00 - 21:00)',
+    };
+
+    const zoneLabels = {
+      CIRCULATION: 'Quầy Lưu thông & Mượn trả',
+      READING_ROOM: 'Phòng đọc & Tự học',
+      STACKS: 'Kho sách mở & Nghiệp vụ',
+      MULTIMEDIA: 'Phòng Đa phương tiện & IoT',
+    };
+
+    const statusBadges = {
+      SCHEDULED: '<span style="background:#e0e7ff;color:#3730a3;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">📅 Đã lên lịch</span>',
+      COMPLETED: '<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">✓ Hoàn thành</span>',
+      SWAPPED: '<span style="background:#fae8ff;color:#86198f;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🔄 Đã đổi ca</span>',
+      ABSENT: '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">❌ Vắng mặt</span>',
+    };
+
+    tbody.innerHTML = shiftsData.map((s) => `
+      <tr>
+        <td style="font-weight:600;color:#0f172a;">${s.shiftDate}</td>
+        <td>${typeLabels[s.shiftType] || escapeHtml(s.shiftType)}</td>
+        <td style="font-size:13px;color:#334155;">${zoneLabels[s.zone] || escapeHtml(s.zone)}</td>
+        <td style="font-weight:600;color:#1e293b;">
+          ${escapeHtml(s.staffName)}
+          ${s.swapWithStaffName ? `<div style="font-size:12px;color:#86198f;font-weight:normal;">↳ Đổi cho: ${escapeHtml(s.swapWithStaffName)}</div>` : ''}
+        </td>
+        <td style="text-align:center;">${statusBadges[s.status] || escapeHtml(s.status)}</td>
+        <td style="font-size:12.5px;color:#64748b;">
+          ${s.swapReason ? `<div><i>Lý do đổi:</i> ${escapeHtml(s.swapReason)}</div>` : ''}
+          ${s.note ? `<div>${escapeHtml(s.note)}</div>` : ''}
+        </td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+            ${s.status === 'SCHEDULED' ? `<button class="button button-small button-primary" onclick="checkInShift(${s.id})" style="font-size:11px;padding:2px 7px;" title="Điểm danh bắt đầu ca trực">✓ Check-in</button>` : ''}
+            ${s.status === 'SCHEDULED' ? `<button class="button button-small button-light" onclick="openSwapShiftDialog(${s.id})" style="font-size:11px;padding:2px 7px;" title="Yêu cầu đổi ca trực">🔄 Đổi ca</button>` : ''}
+            <button class="button button-small button-light" onclick="openEditShift(${s.id})" style="font-size:11px;padding:2px 7px;" title="Sửa">✏️</button>
+            <button class="button button-small button-light" onclick="deleteShift(${s.id})" style="font-size:11px;padding:2px 7px;color:#ef4444;" title="Hủy ca">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateShiftDialog() {
+    $('shiftForm')?.reset();
+    if ($('shiftFormId')) $('shiftFormId').value = '';
+    if ($('shiftFormDate')) $('shiftFormDate').value = new Date().toISOString().slice(0, 10);
+    if ($('shiftDialogTitle')) $('shiftDialogTitle').textContent = 'Phân công Ca trực Thủ thư';
+    $('shiftDialog')?.showModal();
+  }
+
+  function openEditShift(id) {
+    const s = shiftsData.find((x) => x.id === id);
+    if (!s) return;
+    if ($('shiftFormId')) $('shiftFormId').value = s.id;
+    if ($('shiftFormDate')) $('shiftFormDate').value = s.shiftDate || '';
+    if ($('shiftFormType')) $('shiftFormType').value = s.shiftType || 'MORNING';
+    if ($('shiftFormZone')) $('shiftFormZone').value = s.zone || 'CIRCULATION';
+    if ($('shiftFormStaffName')) $('shiftFormStaffName').value = s.staffName || '';
+    if ($('shiftFormNote')) $('shiftFormNote').value = s.note || '';
+    if ($('shiftDialogTitle')) $('shiftDialogTitle').textContent = 'Chỉnh sửa Phân công Ca trực';
+    $('shiftDialog')?.showModal();
+  }
+
+  async function handleSaveShift(e) {
+    e.preventDefault();
+    try {
+      const id = $('shiftFormId')?.value;
+      const payload = {
+        shiftDate: $('shiftFormDate')?.value,
+        shiftType: $('shiftFormType')?.value,
+        zone: $('shiftFormZone')?.value,
+        staffName: $('shiftFormStaffName')?.value.trim(),
+        note: $('shiftFormNote')?.value.trim() || undefined,
+      };
+
+      if (!payload.shiftDate || !payload.staffName) {
+        notify('Vui lòng chọn ngày trực và nhập tên thủ thư.', true);
+        return;
+      }
+
+      if (id) {
+        await api(`/shift-schedules/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        notify('Cập nhật lịch ca trực thành công!');
+      } else {
+        await api('/shift-schedules', { method: 'POST', body: JSON.stringify(payload) });
+        notify('Đã phân công ca trực mới thành công!');
+      }
+
+      $('shiftDialog')?.close();
+      void loadShiftSchedules();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu ca trực: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function checkInShift(id) {
+    try {
+      await api(`/shift-schedules/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'COMPLETED' }),
+      });
+      notify('Đã check-in điểm danh hoàn thành ca trực thành công!');
+      void loadShiftSchedules();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi check-in: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  function openSwapShiftDialog(id) {
+    const s = shiftsData.find((x) => x.id === id);
+    if (!s) return;
+    if ($('swapShiftId')) $('swapShiftId').value = s.id;
+    if ($('swapShiftInfoText')) $('swapShiftInfoText').innerHTML = `Đổi ca trực ngày <b>${s.shiftDate}</b> (${s.shiftType}) của thủ thư <b>${escapeHtml(s.staffName)}</b>`;
+    if ($('swapShiftWithStaff')) $('swapShiftWithStaff').value = '';
+    if ($('swapShiftReason')) $('swapShiftReason').value = '';
+    $('swapShiftDialog')?.showModal();
+  }
+
+  async function handleSwapShift(e) {
+    e.preventDefault();
+    try {
+      const id = $('swapShiftId')?.value;
+      const swapWithStaffName = $('swapShiftWithStaff')?.value.trim();
+      const reason = $('swapShiftReason')?.value.trim();
+
+      if (!swapWithStaffName || !reason) {
+        notify('Vui lòng nhập tên thủ thư thay thế và lý do đổi ca.', true);
+        return;
+      }
+
+      await api(`/shift-schedules/${id}/swap`, {
+        method: 'PATCH',
+        body: JSON.stringify({ swapWithStaffName, reason }),
+      });
+
+      notify('Đã điều chuyển / đổi ca trực thành công!');
+      $('swapShiftDialog')?.close();
+      void loadShiftSchedules();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi đổi ca: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteShift(id) {
+    if (!confirm('Bạn có chắc chắn muốn hủy / xóa phân công ca trực này?')) return;
+    try {
+      await api(`/shift-schedules/${id}`, { method: 'DELETE' });
+      notify('Đã xóa ca trực thành công.');
+      void loadShiftSchedules();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa ca trực: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  /* ========================================================= */
+  /* MODULE 11: ĐÁNH GIÁ KPI THỦ THƯ (/admin/staff-kpi)        */
+  /* ========================================================= */
+  let kpiData = [];
+
+  async function loadStaffKpi() {
+    try {
+      const [list, stats] = await Promise.all([
+        api('/staff-kpi'),
+        api('/staff-kpi/stats').catch(() => null),
+      ]);
+
+      kpiData = Array.isArray(list) ? list : [];
+      if (stats) {
+        if ($('statAvgKpiScore')) $('statAvgKpiScore').textContent = `${stats.averageKpiScore || 0} / 100`;
+        if ($('statExcellentStaffCount')) $('statExcellentStaffCount').textContent = stats.excellentStaffCount ?? 0;
+        if ($('statTotalLoansHandled')) $('statTotalLoansHandled').textContent = stats.totalLoansHandled ?? 0;
+        if ($('statAvgSatisfaction')) $('statAvgSatisfaction').textContent = `${stats.averageSatisfaction || 0} ★`;
+      }
+
+      renderKpiTable();
+    } catch (err) {
+      console.error(err);
+      if ($('kpiTableBody')) {
+        $('kpiTableBody').innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#ef4444;">Lỗi khi tải bảng KPI thủ thư: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+  }
+
+  function renderKpiTable() {
+    const tbody = $('kpiTableBody');
+    if (!tbody) return;
+    if (!kpiData.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:#888;">Chưa có dữ liệu đánh giá KPI thủ thư.</td></tr>`;
+      return;
+    }
+
+    const gradeBadges = {
+      EXCELLENT: '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">🌟 Xuất sắc (A)</span>',
+      GOOD: '<span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">✓ Tốt (B)</span>',
+      AVERAGE: '<span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">⚠️ Đạt (C)</span>',
+      POOR: '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:600;">❌ Cần cải thiện (D)</span>',
+    };
+
+    tbody.innerHTML = kpiData.map((k) => `
+      <tr>
+        <td>
+          <div style="font-weight:600;color:#1e293b;">${escapeHtml(k.staffName)}</div>
+          ${k.note ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escapeHtml(k.note)}</div>` : ''}
+        </td>
+        <td style="font-weight:500;color:#0f172a;">${k.periodMonth}/${k.periodYear}</td>
+        <td style="text-align:center;font-weight:600;color:#3b82f6;">${k.catalogedCount}</td>
+        <td style="text-align:center;font-weight:600;color:#10b981;">${k.loansHandledCount}</td>
+        <td style="text-align:center;font-weight:600;color:#7c3aed;">${k.auditsCount}</td>
+        <td style="text-align:center;font-weight:600;color:#f59e0b;">${k.readerSatisfactionScore} ★</td>
+        <td style="text-align:center;font-weight:700;font-size:14px;color:#6366f1;">${k.overallScore} / 100</td>
+        <td style="text-align:center;">${gradeBadges[k.kpiGrade] || escapeHtml(k.kpiGrade)}</td>
+        <td style="text-align:center;">
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button class="button button-small button-light" onclick="openEditKpi(${k.id})" style="font-size:11.5px;padding:3px 8px;" title="Cập nhật">✏️</button>
+            <button class="button button-small button-light" onclick="deleteKpi(${k.id})" style="font-size:11.5px;padding:3px 8px;color:#ef4444;" title="Xóa">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openCreateKpiDialog() {
+    $('kpiForm')?.reset();
+    if ($('kpiFormId')) $('kpiFormId').value = '';
+    if ($('kpiDialogTitle')) $('kpiDialogTitle').textContent = 'Thiết lập / Đánh giá KPI Thủ thư';
+    $('kpiDialog')?.showModal();
+  }
+
+  function openEditKpi(id) {
+    const k = kpiData.find((x) => x.id === id);
+    if (!k) return;
+    if ($('kpiFormId')) $('kpiFormId').value = k.id;
+    if ($('kpiFormStaffName')) $('kpiFormStaffName').value = k.staffName || '';
+    if ($('kpiFormMonth')) $('kpiFormMonth').value = k.periodMonth || 11;
+    if ($('kpiFormYear')) $('kpiFormYear').value = k.periodYear || 2026;
+    if ($('kpiFormCataloged')) $('kpiFormCataloged').value = k.catalogedCount || 0;
+    if ($('kpiFormLoans')) $('kpiFormLoans').value = k.loansHandledCount || 0;
+    if ($('kpiFormAudits')) $('kpiFormAudits').value = k.auditsCount || 0;
+    if ($('kpiFormSatisfaction')) $('kpiFormSatisfaction').value = k.readerSatisfactionScore || 4.5;
+    if ($('kpiFormNote')) $('kpiFormNote').value = k.note || '';
+    if ($('kpiDialogTitle')) $('kpiDialogTitle').textContent = 'Cập nhật Đánh giá KPI Thủ thư';
+    $('kpiDialog')?.showModal();
+  }
+
+  async function handleSaveKpi(e) {
+    e.preventDefault();
+    try {
+      const payload = {
+        staffName: $('kpiFormStaffName')?.value.trim(),
+        periodMonth: Number($('kpiFormMonth')?.value) || 11,
+        periodYear: Number($('kpiFormYear')?.value) || 2026,
+        catalogedCount: Number($('kpiFormCataloged')?.value) || 0,
+        loansHandledCount: Number($('kpiFormLoans')?.value) || 0,
+        auditsCount: Number($('kpiFormAudits')?.value) || 0,
+        readerSatisfactionScore: Number($('kpiFormSatisfaction')?.value) || 5.0,
+        note: $('kpiFormNote')?.value.trim() || undefined,
+      };
+
+      if (!payload.staffName) {
+        notify('Vui lòng nhập họ tên thủ thư.', true);
+        return;
+      }
+
+      await api('/staff-kpi', { method: 'POST', body: JSON.stringify(payload) });
+      notify('Thiết lập kết quả KPI thủ thư thành công!');
+      $('kpiDialog')?.close();
+      void loadStaffKpi();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi lưu KPI: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  async function deleteKpi(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa bản ghi đánh giá KPI này?')) return;
+    try {
+      await api(`/staff-kpi/${id}`, { method: 'DELETE' });
+      notify('Đã xóa đánh giá KPI thành công.');
+      void loadStaffKpi();
+    } catch (err) {
+      console.error(err);
+      notify('Lỗi khi xóa KPI: ' + (err.message || 'Thất bại'), true);
+    }
+  }
+
+  // Global exports for inline HTML onclick handlers
+  window.loadTheses = loadTheses;
+  window.openCreateThesisDialog = openCreateThesisDialog;
+  window.openEditThesis = openEditThesis;
+  window.deleteThesis = deleteThesis;
+
+  window.loadMultimedia = loadMultimedia;
+  window.openCreateMultimediaDialog = openCreateMultimediaDialog;
+  window.openEditMultimedia = openEditMultimedia;
+  window.openRecordMultimediaLoanDialog = openRecordMultimediaLoanDialog;
+  window.deleteMultimedia = deleteMultimedia;
+
+  window.loadSeminars = loadSeminars;
+  window.openCreateSeminarDialog = openCreateSeminarDialog;
+  window.openEditSeminar = openEditSeminar;
+  window.deleteSeminar = deleteSeminar;
+  window.openSeminarAttendanceDialog = openSeminarAttendanceDialog;
+  window.checkInSeminarAttendee = checkInSeminarAttendee;
+
+  window.loadExchangeGrants = loadExchangeGrants;
+  window.openCreateExchangeGrantDialog = openCreateExchangeGrantDialog;
+  window.openEditExchangeGrant = openEditExchangeGrant;
+  window.deleteExchangeGrant = deleteExchangeGrant;
+
+  window.loadShiftSchedules = loadShiftSchedules;
+  window.openCreateShiftDialog = openCreateShiftDialog;
+  window.openEditShift = openEditShift;
+  window.checkInShift = checkInShift;
+  window.openSwapShiftDialog = openSwapShiftDialog;
+  window.deleteShift = deleteShift;
+
+  window.loadStaffKpi = loadStaffKpi;
+  window.openCreateKpiDialog = openCreateKpiDialog;
+  window.openEditKpi = openEditKpi;
+  window.deleteKpi = deleteKpi;
+
+  // Event listeners cho 6 trang mới
+  $('openCreateThesisBtn')?.addEventListener('click', openCreateThesisDialog);
+  $('refreshThesesBtn')?.addEventListener('click', () => void loadTheses());
+  $('thesesSearchInput')?.addEventListener('input', () => void loadTheses());
+  $('thesesMajorFilter')?.addEventListener('change', () => void loadTheses());
+  $('thesesSecurityFilter')?.addEventListener('change', () => void loadTheses());
+  $('thesisForm')?.addEventListener('submit', handleSaveThesis);
+
+  $('openCreateMultimediaBtn')?.addEventListener('click', openCreateMultimediaDialog);
+  $('refreshMultimediaBtn')?.addEventListener('click', () => void loadMultimedia());
+  $('multimediaSearchInput')?.addEventListener('input', () => void loadMultimedia());
+  $('multimediaTypeFilter')?.addEventListener('change', () => void loadMultimedia());
+  $('multimediaConditionFilter')?.addEventListener('change', () => void loadMultimedia());
+  $('multimediaForm')?.addEventListener('submit', handleSaveMultimedia);
+  $('recordMultimediaLoanForm')?.addEventListener('submit', handleRecordMultimediaLoan);
+
+  $('openCreateSeminarBtn')?.addEventListener('click', openCreateSeminarDialog);
+  $('refreshSeminarsBtn')?.addEventListener('click', () => void loadSeminars());
+  $('seminarSearchInput')?.addEventListener('input', () => void loadSeminars());
+  $('seminarStatusFilter')?.addEventListener('change', () => void loadSeminars());
+  $('seminarForm')?.addEventListener('submit', handleSaveSeminar);
+  $('registerAttendeeForm')?.addEventListener('submit', handleRegisterAttendee);
+
+  $('openCreateExchangeGrantBtn')?.addEventListener('click', openCreateExchangeGrantDialog);
+  $('refreshExchangeGrantsBtn')?.addEventListener('click', () => void loadExchangeGrants());
+  $('exchangeGrantSearchInput')?.addEventListener('input', () => void loadExchangeGrants());
+  $('exchangeGrantTypeFilter')?.addEventListener('change', () => void loadExchangeGrants());
+  $('exchangeGrantForm')?.addEventListener('submit', handleSaveExchangeGrant);
+
+  $('openCreateShiftBtn')?.addEventListener('click', openCreateShiftDialog);
+  $('refreshShiftsBtn')?.addEventListener('click', () => void loadShiftSchedules());
+  $('shiftSearchInput')?.addEventListener('input', () => void loadShiftSchedules());
+  $('shiftTypeFilter')?.addEventListener('change', () => void loadShiftSchedules());
+  $('shiftZoneFilter')?.addEventListener('change', () => void loadShiftSchedules());
+  $('shiftStatusFilter')?.addEventListener('change', () => void loadShiftSchedules());
+  $('shiftForm')?.addEventListener('submit', handleSaveShift);
+  $('swapShiftForm')?.addEventListener('submit', handleSwapShift);
+
+  $('openCreateKpiBtn')?.addEventListener('click', openCreateKpiDialog);
+  $('refreshKpiBtn')?.addEventListener('click', () => void loadStaffKpi());
+  $('kpiSearchInput')?.addEventListener('input', () => void loadStaffKpi());
+  $('kpiYearFilter')?.addEventListener('change', () => void loadStaffKpi());
+  $('kpiGradeFilter')?.addEventListener('change', () => void loadStaffKpi());
+  $('kpiForm')?.addEventListener('submit', handleSaveKpi);
 
   // Khởi chạy Trợ lý AI Chatbot & Gợi ý tự động
   setTimeout(() => {

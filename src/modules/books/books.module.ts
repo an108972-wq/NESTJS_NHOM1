@@ -10,6 +10,8 @@ import { Publisher } from '../publishers/entities/publisher.entity';
 import { ReservationsModule } from '../reservations/reservations.module';
 import { FavoriteBook } from './entities/favorite-book.entity';
 
+import { User } from '../users/entities/user.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -19,6 +21,7 @@ import { FavoriteBook } from './entities/favorite-book.entity';
       BorrowRecord,
       Publisher,
       FavoriteBook,
+      User,
     ]),
     ReservationsModule,
   ],

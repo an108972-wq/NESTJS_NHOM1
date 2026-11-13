@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 12, 2026 lúc 03:31 PM
+-- Thời gian đã tạo: Th10 13, 2026 lúc 02:34 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
@@ -20,6 +20,38 @@ SET time_zone = "+00:00";
 --
 -- Cơ sở dữ liệu: `library_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `academic_seminars`
+--
+
+CREATE TABLE `academic_seminars` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `theme` varchar(255) DEFAULT NULL,
+  `speakerNames` varchar(255) NOT NULL,
+  `location` varchar(255) NOT NULL DEFAULT 'Hội trường Đa năng - Tầng 4 Thư viện',
+  `eventDate` datetime NOT NULL,
+  `durationMinutes` int(11) NOT NULL DEFAULT 90,
+  `maxSeats` int(11) NOT NULL DEFAULT 100,
+  `registeredSeats` int(11) NOT NULL DEFAULT 0,
+  `status` varchar(255) NOT NULL DEFAULT 'UPCOMING',
+  `description` text DEFAULT NULL,
+  `attendanceListJson` text DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `academic_seminars`
+--
+
+INSERT INTO `academic_seminars` (`id`, `title`, `theme`, `speakerNames`, `location`, `eventDate`, `durationMinutes`, `maxSeats`, `registeredSeats`, `status`, `description`, `attendanceListJson`, `createdAt`, `updatedAt`) VALUES
+(1, 'Tọa đàm Khoa học: Trí tuệ Nhân tạo Tạo sinh & Tương lai của Công bố Học thuật', 'Nghiên cứu khoa học & AI', 'GS. TS. Ngô Bảo Châu & TS. Lê Viết Quốc (Google DeepMind)', 'Hội trường Đa năng - Tầng 4 Thư viện Trung tâm', '2026-11-18 07:35:22', 120, 150, 142, 'UPCOMING', 'Thảo luận sâu về xu hướng tích hợp AI trong nghiên cứu liên ngành, liêm chính học thuật và bảo vệ bản quyền tri thức số.', '[{\"id\":\"REG-001\",\"name\":\"Nguyễn Văn Đạt\",\"email\":\"dat.nv@bk.edu.vn\",\"cardNumber\":\"SV2022-101\",\"checkedIn\":true,\"time\":\"08:15\"},{\"id\":\"REG-002\",\"name\":\"Lê Thu Trang\",\"email\":\"trang.lt@bk.edu.vn\",\"cardNumber\":\"SV2022-205\",\"checkedIn\":true,\"time\":\"08:22\"},{\"id\":\"REG-003\",\"name\":\"Trần Hoàng Long\",\"email\":\"long.th@bk.edu.vn\",\"cardNumber\":\"SV2021-340\",\"checkedIn\":false,\"time\":null}]', '2026-11-13 07:35:22.560676', '2026-11-13 07:35:22.560676'),
+(2, 'Giới thiệu Bộ sách Chuyên khảo: Lịch sử Kỹ thuật & Công nghiệp Việt Nam Thế kỷ XX', 'Giới thiệu sách mới', 'Nhà nghiên cứu Nguyễn Đình Đầu & PGS. Trần Bá Đệ', 'Phòng Hội thảo Chuyên đề B - Tầng 2', '2026-11-25 07:35:22', 90, 80, 58, 'UPCOMING', 'Tác giả giao lưu trực tiếp với độc giả, ký tặng sách và trao tặng 50 bản sách đặc biệt cho kho tài liệu thư viện.', '[]', '2026-11-13 07:35:22.562321', '2026-11-13 07:35:22.562321'),
+(3, 'Diễn đàn Sinh viên & Khởi nghiệp: Từ Ý tưởng Đồ án đến Sản phẩm Thương mại hóa', 'Tọa đàm khởi nghiệp', 'Shark Phạm Thanh Hưng & Cựu SV Founder Startup Unicorn', 'Sảnh Triển lãm Tầng 1 Thư viện', '2026-11-10 07:35:22', 150, 200, 195, 'ENDED', 'Chia sẻ kinh nghiệm khai thác bằng sáng chế và CSDL sở hữu trí tuệ trong thư viện để phát triển dự án kinh doanh.', '[{\"id\":\"REG-001\",\"name\":\"Nguyễn Văn Đạt\",\"email\":\"dat.nv@bk.edu.vn\",\"cardNumber\":\"SV2022-101\",\"checkedIn\":true,\"time\":\"08:15\"},{\"id\":\"REG-002\",\"name\":\"Lê Thu Trang\",\"email\":\"trang.lt@bk.edu.vn\",\"cardNumber\":\"SV2022-205\",\"checkedIn\":true,\"time\":\"08:22\"},{\"id\":\"REG-003\",\"name\":\"Trần Hoàng Long\",\"email\":\"long.th@bk.edu.vn\",\"cardNumber\":\"SV2021-340\",\"checkedIn\":false,\"time\":null}]', '2026-11-13 07:35:22.564398', '2026-11-13 07:35:22.564398');
 
 -- --------------------------------------------------------
 
@@ -89,13 +121,20 @@ CREATE TABLE `books` (
 
 INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `totalCopies`, `availableCopies`, `shelf`, `floor`, `aisle`, `categoryId`, `deletedAt`, `publisherId`, `description`, `coverImageUrl`, `publicationYear`, `pdfUrl`, `price`, `createdAt`, `updatedAt`, `digitalViews`, `digitalDownloads`, `pdfPermission`, `digitalFormat`, `previewPages`) VALUES
 (1, 'Harry Potter và Hòn Đá Phù Thủy', 'J.K. Rowling', '978-0747532699', 5, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
-(2, 'Đắc Nhân Tâm', 'Dale Carnegie', '978-0671027032', 10, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(2, 'Đắc Nhân Tâm', 'Dale Carnegie', '978-0671027032', 10, 8, 'E1', '1', '1', 7, NULL, 6, 'Cuốn sách gối đầu giường về nghệ thuật lắng nghe, thấu hiểu, truyền cảm hứng và thiết lập các mối quan hệ xã hội tốt đẹp.', 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=400&q=80', NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-13 08:11:25.000000', 0, 0, 'PUBLIC', 'PDF', 5),
 (3, 'Nhà Giả Kim', 'Paulo Coelho', '978-0062315007', 3, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
-(4, 'Thiện tâm', 'Nguyễn Thiện Tâm', '123456', 1, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
-(5, 'd', 'a', '12', 12, 8, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-12 16:42:32.000000', 0, 0, 'PUBLIC', 'PDF', 5),
-(6, 'w', 'q', '1', 2, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
-(7, 'phù thủy thần tiên', 'Trần Văn An', '1', 1, 1, '2', '3', 'B', NULL, NULL, 1, '', '', 2002, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
-(8, 'Hà nội phố', 'Nguyễn Vĩnh Quang', '1', 1, 1, 'A2', '3', 'B', 1, NULL, 1, 'Rất cảm động', 'https://lh3.googleusercontent.com/grass-cs/AABkmLdc1LuRFsO92ZSTySkJgFDuZEgwA03pmQzmQMr1uEQ4kuNGBA-H0t6GkiQI5_QfJug8ZJaRA6Yl42ghlkTdCwmDfZKHsG271MEZP4v7cypoV4mumEYIOvucAzuCWCBdGO4D0u0tuT7bWKtp=w289-h312-n-k-no', 1966, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5);
+(8, 'Hà nội phố', 'Nguyễn Vĩnh Quang', '1', 1, 1, 'A2', '3', 'B', 1, NULL, 1, 'Rất cảm động', 'https://lh3.googleusercontent.com/grass-cs/AABkmLdc1LuRFsO92ZSTySkJgFDuZEgwA03pmQzmQMr1uEQ4kuNGBA-H0t6GkiQI5_QfJug8ZJaRA6Yl42ghlkTdCwmDfZKHsG271MEZP4v7cypoV4mumEYIOvucAzuCWCBdGO4D0u0tuT7bWKtp=w289-h312-n-k-no', 1966, NULL, 80000.00, '2026-11-06 18:47:00.111756', '2026-11-06 18:47:00.124986', 0, 0, 'PUBLIC', 'PDF', 5),
+(9, 'Clean Code: Cẩm Nang Viết Mã Sạch', 'Robert C. Martin', '978-0132350884', 10, 8, 'A1', '2', '1', 3, NULL, 5, 'Cuốn cẩm nang kinh điển của Uncle Bob về nghệ thuật viết mã sạch, tối ưu cấu trúc phần mềm, nguyên lý SOLID và kỹ thuật tái cấu trúc mã nguồn (Refactoring).', 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=400&q=80', 2021, NULL, 185000.00, '2026-11-13 08:11:24.696436', '2026-11-13 08:11:24.696436', 0, 0, 'PUBLIC', 'PDF', 5),
+(10, 'Design Patterns: Mẫu Thiết Kế Hướng Đối Tượng', 'Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides (GoF)', '978-0201633610', 8, 6, 'A2', '2', '1', 3, NULL, 4, '23 mẫu thiết kế kinh điển giúp kỹ sư phần mềm giải quyết các bài toán kiến trúc hệ thống lặp lại, tối ưu hóa tính linh hoạt và khả năng tái sử dụng.', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80', 2020, NULL, 220000.00, '2026-11-13 08:11:24.727552', '2026-11-13 08:11:24.727552', 0, 0, 'PUBLIC', 'PDF', 5),
+(11, 'Introduction to Algorithms (CLRS)', 'Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein', '978-0262033848', 12, 9, 'B1', '2', '2', NULL, NULL, 3, 'Giáo trình giải thuật chuẩn mực toàn cầu cho sinh viên chuyên ngành Khoa học máy tính, bao quát từ cấu trúc dữ liệu nâng cao, quy hoạch động đến đồ thị.', 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=400&q=80', 2022, NULL, 350000.00, '2026-11-13 08:11:24.759834', '2026-11-13 08:11:24.759834', 0, 0, 'PUBLIC', 'PDF', 5),
+(12, 'Artificial Intelligence: Cách Tiếp Cận Hiện Đại', 'Stuart Russell, Peter Norvig', '978-0136042594', 10, 7, 'B2', '2', '2', NULL, NULL, 3, 'Tác phẩm gối đầu giường về AI, trình bày từ tác tử thông minh, học tăng cường, thị giác máy tính đến các mô hình học sâu thế hệ mới.', 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80', 2023, NULL, 380000.00, '2026-11-13 08:11:24.797969', '2026-11-13 08:11:24.797969', 0, 0, 'PUBLIC', 'PDF', 5),
+(13, 'Giáo trình Cơ Sở Dữ Liệu & Hệ Quản Trị CSDL', 'PGS.TS. Trần Đức Khánh, TS. Lê Thị Bích', '978-6046294821', 15, 12, 'A3', '2', '1', 3, NULL, 3, 'Giáo trình đại học chính quy về đại số quan hệ, chuẩn hóa dữ liệu dạng 3NF/BCNF, ngôn ngữ SQL nâng cao và an toàn giao dịch ACID.', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=400&q=80', 2022, NULL, 120000.00, '2026-11-13 08:11:24.829232', '2026-11-13 08:11:24.829232', 0, 0, 'PUBLIC', 'PDF', 5),
+(14, 'Lập Trình Hướng Đối Tượng Với Java', 'GS.TS. Nguyễn Thanh Thủy', '978-6049503487', 15, 11, 'A4', '2', '1', 3, NULL, 4, 'Trang bị tư duy lập trình hướng đối tượng, xử lý ngoại lệ, Java Collections Framework, kiến trúc đa luồng và thiết kế phần mềm doanh nghiệp.', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80', 2022, NULL, 145000.00, '2026-11-13 08:11:24.888814', '2026-11-13 08:11:24.888814', 0, 0, 'PUBLIC', 'PDF', 5),
+(15, 'Lược Sử Thời Gian (A Brief History of Time)', 'Stephen Hawking', '978-0553380163', 8, 6, 'C1', '3', '1', 6, NULL, 6, 'Khám phá các bí ẩn vĩ đại nhất của vũ trụ: hố đen, lý thuyết dây, thuyết tương đối rộng và nguồn gốc không - thời gian.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80', 2021, NULL, 125000.00, '2026-11-13 08:11:24.939969', '2026-11-13 08:11:24.939969', 0, 0, 'PUBLIC', 'PDF', 5),
+(16, 'Sapiens: Lược Sử Loài Người', 'Yuval Noah Harari', '978-0062316097', 10, 7, 'C2', '3', '1', 6, NULL, NULL, 'Tác phẩm nổi tiếng phân tích 3 cuộc cách mạng then chốt định hình vận mệnh loài người: Nhận thức, Nông nghiệp và Khoa học.', 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=400&q=80', 2022, NULL, 215000.00, '2026-11-13 08:11:24.962945', '2026-11-13 08:11:24.962945', 0, 0, 'PUBLIC', 'PDF', 5),
+(17, 'Kinh Tế Học Vi Mô & Vĩ Mô Ứng Dụng', 'N. Gregory Mankiw', '978-1305585126', 10, 8, 'D1', '1', '2', 5, NULL, 3, 'Bộ sách chuẩn mực về quy luật cung cầu, cân bằng thị trường, chính sách tài khóa, lạm phát và tăng trưởng kinh tế bền vững.', 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=400&q=80', 2022, NULL, 280000.00, '2026-11-13 08:11:24.986992', '2026-11-13 08:11:24.986992', 0, 0, 'PUBLIC', 'PDF', 5),
+(18, 'Khởi Nghiệp Tinh Gọn (The Lean Startup)', 'Eric Ries', '978-0307887894', 8, 6, 'D2', '1', '2', 5, NULL, 6, 'Phương pháp luận tinh gọn: Vòng lặp Xây dựng - Đo lường - Học hỏi giúp startup kiểm chứng ý tưởng kinh doanh với chi phí tối ưu nhất.', 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=80', 2021, NULL, 150000.00, '2026-11-13 08:11:25.012145', '2026-11-13 08:11:25.012145', 0, 0, 'PUBLIC', 'PDF', 5),
+(19, 'Tôi Thấy Hoa Vàng Trên Cỏ Xanh', 'Nguyễn Nhật Ánh', '978-6041002241', 12, 9, 'F1', '3', '2', 8, NULL, 6, 'Câu chuyện tuổi thơ xúc động tại một làng quê nghèo miền Trung, chứa đựng tình anh em, tình bạn và những rung động đầu đời trong sáng.', 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=400&q=80', 2021, NULL, 110000.00, '2026-11-13 08:11:25.040958', '2026-11-13 08:11:25.040958', 0, 0, 'PUBLIC', 'PDF', 5);
 
 -- --------------------------------------------------------
 
@@ -121,19 +160,6 @@ CREATE TABLE `book_copies` (
 --
 
 INSERT INTO `book_copies` (`id`, `barcode`, `status`, `bookId`, `shelf`, `floor`, `aisle`, `lastAuditedAt`, `createdAt`, `updatedAt`) VALUES
-(1, 'LEGACY-5-1', 'RESERVED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(2, 'LEGACY-5-2', 'BORROWED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(3, 'LEGACY-5-3', 'BORROWED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-12 14:25:13.000000'),
-(4, 'LEGACY-5-4', 'RESERVED', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-12 16:42:32.000000'),
-(5, 'LEGACY-5-5', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(6, 'LEGACY-5-6', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(7, 'LEGACY-5-7', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(8, 'LEGACY-5-8', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(9, 'LEGACY-5-9', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(10, 'LEGACY-5-10', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(11, 'LEGACY-5-11', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(12, 'LEGACY-5-12', 'AVAILABLE', 5, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(13, 'COPY-de0d39a6-b1b5-44a4-95d2-4976639e734f', 'AVAILABLE', 7, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (14, 'COPY-8f38d448-55ee-4754-b863-663a3bdd62d2', 'AVAILABLE', 2, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (15, 'COPY-9da3c8c9-f65c-4297-ae62-132449597c01', 'AVAILABLE', 2, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (16, 'COPY-865a79ab-09e4-409b-b0e0-f6dba2cbdfff', 'AVAILABLE', 2, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
@@ -153,9 +179,124 @@ INSERT INTO `book_copies` (`id`, `barcode`, `status`, `bookId`, `shelf`, `floor`
 (30, 'COPY-112db9b8-c149-46f7-96fc-5970208afcb4', 'AVAILABLE', 1, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (31, 'COPY-baabbf21-049c-47da-8fee-7d88a825de9d', 'AVAILABLE', 1, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
 (32, 'COPY-4c07e0ea-7460-49ec-a122-edf74b163334', 'AVAILABLE', 1, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(33, 'COPY-526425bd-c423-44a4-b0c0-d538c364ee26', 'AVAILABLE', 4, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(34, 'COPY-1b007269-883f-477a-97fa-1e13c02520e1', 'AVAILABLE', 6, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349'),
-(35, 'COPY-63818530-4d7e-4f53-8e0d-ea7e22905809', 'AVAILABLE', 6, NULL, NULL, NULL, NULL, '2026-11-06 18:46:44.902730', '2026-11-06 18:46:44.908349');
+(36, 'BC-009-01', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.701056', '2026-11-13 08:11:24.701056'),
+(37, 'BC-009-02', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.703450', '2026-11-13 08:11:24.703450'),
+(38, 'BC-009-03', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.705656', '2026-11-13 08:11:24.705656'),
+(39, 'BC-009-04', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.708178', '2026-11-13 08:11:24.708178'),
+(40, 'BC-009-05', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.711315', '2026-11-13 08:11:24.711315'),
+(41, 'BC-009-06', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.714009', '2026-11-13 08:11:24.714009'),
+(42, 'BC-009-07', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.716643', '2026-11-13 08:11:24.716643'),
+(43, 'BC-009-08', 'AVAILABLE', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.719152', '2026-11-13 08:11:24.719152'),
+(44, 'BC-009-09', 'BORROWED', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.721402', '2026-11-13 08:11:24.721402'),
+(45, 'BC-009-10', 'BORROWED', 9, 'A1', '2', '1', NULL, '2026-11-13 08:11:24.723526', '2026-11-13 08:11:24.723526'),
+(46, 'BC-010-01', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.731362', '2026-11-13 08:11:24.731362'),
+(47, 'BC-010-02', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.733847', '2026-11-13 08:11:24.733847'),
+(48, 'BC-010-03', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.736151', '2026-11-13 08:11:24.736151'),
+(49, 'BC-010-04', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.738669', '2026-11-13 08:11:24.738669'),
+(50, 'BC-010-05', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.741314', '2026-11-13 08:11:24.741314'),
+(51, 'BC-010-06', 'AVAILABLE', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.744164', '2026-11-13 08:11:24.744164'),
+(52, 'BC-010-07', 'BORROWED', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.747411', '2026-11-13 08:11:24.747411'),
+(53, 'BC-010-08', 'BORROWED', 10, 'A2', '2', '1', NULL, '2026-11-13 08:11:24.756010', '2026-11-13 08:11:24.756010'),
+(54, 'BC-011-01', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.764188', '2026-11-13 08:11:24.764188'),
+(55, 'BC-011-02', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.766667', '2026-11-13 08:11:24.766667'),
+(56, 'BC-011-03', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.769047', '2026-11-13 08:11:24.769047'),
+(57, 'BC-011-04', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.771885', '2026-11-13 08:11:24.771885'),
+(58, 'BC-011-05', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.774903', '2026-11-13 08:11:24.774903'),
+(59, 'BC-011-06', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.777763', '2026-11-13 08:11:24.777763'),
+(60, 'BC-011-07', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.780591', '2026-11-13 08:11:24.780591'),
+(61, 'BC-011-08', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.782981', '2026-11-13 08:11:24.782981'),
+(62, 'BC-011-09', 'AVAILABLE', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.785666', '2026-11-13 08:11:24.785666'),
+(63, 'BC-011-10', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.788557', '2026-11-13 08:11:24.788557'),
+(64, 'BC-011-11', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.791545', '2026-11-13 08:11:24.791545'),
+(65, 'BC-011-12', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.794449', '2026-11-13 08:11:24.794449'),
+(66, 'BC-012-01', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.801789', '2026-11-13 08:11:24.801789'),
+(67, 'BC-012-02', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.804393', '2026-11-13 08:11:24.804393'),
+(68, 'BC-012-03', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.807068', '2026-11-13 08:11:24.807068'),
+(69, 'BC-012-04', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.809572', '2026-11-13 08:11:24.809572'),
+(70, 'BC-012-05', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.812263', '2026-11-13 08:11:24.812263'),
+(71, 'BC-012-06', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.814728', '2026-11-13 08:11:24.814728'),
+(72, 'BC-012-07', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.817468', '2026-11-13 08:11:24.817468'),
+(73, 'BC-012-08', 'BORROWED', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.820283', '2026-11-13 08:11:24.820283'),
+(74, 'BC-012-09', 'BORROWED', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.822927', '2026-11-13 08:11:24.822927'),
+(75, 'BC-012-10', 'BORROWED', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.825825', '2026-11-13 08:11:24.825825'),
+(76, 'BC-013-01', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.832771', '2026-11-13 08:11:24.832771'),
+(77, 'BC-013-02', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.837070', '2026-11-13 08:11:24.837070'),
+(78, 'BC-013-03', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.839735', '2026-11-13 08:11:24.839735'),
+(79, 'BC-013-04', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.842242', '2026-11-13 08:11:24.842242'),
+(80, 'BC-013-05', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.844882', '2026-11-13 08:11:24.844882'),
+(81, 'BC-013-06', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.847359', '2026-11-13 08:11:24.847359'),
+(82, 'BC-013-07', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.850127', '2026-11-13 08:11:24.850127'),
+(83, 'BC-013-08', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.852585', '2026-11-13 08:11:24.852585'),
+(84, 'BC-013-09', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.854993', '2026-11-13 08:11:24.854993'),
+(85, 'BC-013-10', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.857459', '2026-11-13 08:11:24.857459'),
+(86, 'BC-013-11', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.860096', '2026-11-13 08:11:24.860096'),
+(87, 'BC-013-12', 'AVAILABLE', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.862589', '2026-11-13 08:11:24.862589'),
+(88, 'BC-013-13', 'BORROWED', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.864912', '2026-11-13 08:11:24.864912'),
+(89, 'BC-013-14', 'BORROWED', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.867119', '2026-11-13 08:11:24.867119'),
+(90, 'BC-013-15', 'BORROWED', 13, 'A3', '2', '1', NULL, '2026-11-13 08:11:24.884856', '2026-11-13 08:11:24.884856'),
+(91, 'BC-014-01', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.898129', '2026-11-13 08:11:24.898129'),
+(92, 'BC-014-02', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.900615', '2026-11-13 08:11:24.900615'),
+(93, 'BC-014-03', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.903348', '2026-11-13 08:11:24.903348'),
+(94, 'BC-014-04', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.906014', '2026-11-13 08:11:24.906014'),
+(95, 'BC-014-05', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.908864', '2026-11-13 08:11:24.908864'),
+(96, 'BC-014-06', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.911751', '2026-11-13 08:11:24.911751'),
+(97, 'BC-014-07', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.914401', '2026-11-13 08:11:24.914401'),
+(98, 'BC-014-08', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.916870', '2026-11-13 08:11:24.916870'),
+(99, 'BC-014-09', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.919700', '2026-11-13 08:11:24.919700'),
+(100, 'BC-014-10', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.922447', '2026-11-13 08:11:24.922447'),
+(101, 'BC-014-11', 'AVAILABLE', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.924830', '2026-11-13 08:11:24.924830'),
+(102, 'BC-014-12', 'BORROWED', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.927715', '2026-11-13 08:11:24.927715'),
+(103, 'BC-014-13', 'BORROWED', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.930768', '2026-11-13 08:11:24.930768'),
+(104, 'BC-014-14', 'BORROWED', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.933467', '2026-11-13 08:11:24.933467'),
+(105, 'BC-014-15', 'BORROWED', 14, 'A4', '2', '1', NULL, '2026-11-13 08:11:24.936478', '2026-11-13 08:11:24.936478'),
+(106, 'BC-015-01', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.943881', '2026-11-13 08:11:24.943881'),
+(107, 'BC-015-02', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.946044', '2026-11-13 08:11:24.946044'),
+(108, 'BC-015-03', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.948345', '2026-11-13 08:11:24.948345'),
+(109, 'BC-015-04', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.951057', '2026-11-13 08:11:24.951057'),
+(110, 'BC-015-05', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.953317', '2026-11-13 08:11:24.953317'),
+(111, 'BC-015-06', 'AVAILABLE', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.955265', '2026-11-13 08:11:24.955265'),
+(112, 'BC-015-07', 'BORROWED', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.957555', '2026-11-13 08:11:24.957555'),
+(113, 'BC-015-08', 'BORROWED', 15, 'C1', '3', '1', NULL, '2026-11-13 08:11:24.960188', '2026-11-13 08:11:24.960188'),
+(114, 'BC-016-01', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.965876', '2026-11-13 08:11:24.965876'),
+(115, 'BC-016-02', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.967959', '2026-11-13 08:11:24.967959'),
+(116, 'BC-016-03', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.969774', '2026-11-13 08:11:24.969774'),
+(117, 'BC-016-04', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.971855', '2026-11-13 08:11:24.971855'),
+(118, 'BC-016-05', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.973740', '2026-11-13 08:11:24.973740'),
+(119, 'BC-016-06', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.975942', '2026-11-13 08:11:24.975942'),
+(120, 'BC-016-07', 'AVAILABLE', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.978278', '2026-11-13 08:11:24.978278'),
+(121, 'BC-016-08', 'BORROWED', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.980184', '2026-11-13 08:11:24.980184'),
+(122, 'BC-016-09', 'BORROWED', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.982101', '2026-11-13 08:11:24.982101'),
+(123, 'BC-016-10', 'BORROWED', 16, 'C2', '3', '1', NULL, '2026-11-13 08:11:24.983987', '2026-11-13 08:11:24.983987'),
+(124, 'BC-017-01', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:24.989887', '2026-11-13 08:11:24.989887'),
+(125, 'BC-017-02', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:24.992345', '2026-11-13 08:11:24.992345'),
+(126, 'BC-017-03', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:24.994486', '2026-11-13 08:11:24.994486'),
+(127, 'BC-017-04', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:24.997028', '2026-11-13 08:11:24.997028'),
+(128, 'BC-017-05', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:24.999180', '2026-11-13 08:11:24.999180'),
+(129, 'BC-017-06', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:25.001143', '2026-11-13 08:11:25.001143'),
+(130, 'BC-017-07', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:25.002906', '2026-11-13 08:11:25.002906'),
+(131, 'BC-017-08', 'AVAILABLE', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:25.005032', '2026-11-13 08:11:25.005032'),
+(132, 'BC-017-09', 'BORROWED', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:25.006966', '2026-11-13 08:11:25.006966'),
+(133, 'BC-017-10', 'BORROWED', 17, 'D1', '1', '2', NULL, '2026-11-13 08:11:25.009424', '2026-11-13 08:11:25.009424'),
+(134, 'BC-018-01', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.015175', '2026-11-13 08:11:25.015175'),
+(135, 'BC-018-02', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.017080', '2026-11-13 08:11:25.017080'),
+(136, 'BC-018-03', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.018881', '2026-11-13 08:11:25.018881'),
+(137, 'BC-018-04', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.020609', '2026-11-13 08:11:25.020609'),
+(138, 'BC-018-05', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.022746', '2026-11-13 08:11:25.022746'),
+(139, 'BC-018-06', 'AVAILABLE', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.025304', '2026-11-13 08:11:25.025304'),
+(140, 'BC-018-07', 'BORROWED', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.027910', '2026-11-13 08:11:25.027910'),
+(141, 'BC-018-08', 'BORROWED', 18, 'D2', '1', '2', NULL, '2026-11-13 08:11:25.030671', '2026-11-13 08:11:25.030671'),
+(142, 'BC-019-01', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.048105', '2026-11-13 08:11:25.048105'),
+(143, 'BC-019-02', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.050892', '2026-11-13 08:11:25.050892'),
+(144, 'BC-019-03', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.053694', '2026-11-13 08:11:25.053694'),
+(145, 'BC-019-04', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.056369', '2026-11-13 08:11:25.056369'),
+(146, 'BC-019-05', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.059323', '2026-11-13 08:11:25.059323'),
+(147, 'BC-019-06', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.061991', '2026-11-13 08:11:25.061991'),
+(148, 'BC-019-07', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.064220', '2026-11-13 08:11:25.064220'),
+(149, 'BC-019-08', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.066254', '2026-11-13 08:11:25.066254'),
+(150, 'BC-019-09', 'AVAILABLE', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.069423', '2026-11-13 08:11:25.069423'),
+(151, 'BC-019-10', 'BORROWED', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.071973', '2026-11-13 08:11:25.071973'),
+(152, 'BC-019-11', 'BORROWED', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.074675', '2026-11-13 08:11:25.074675'),
+(153, 'BC-019-12', 'BORROWED', 19, 'F1', '3', '2', NULL, '2026-11-13 08:11:25.077017', '2026-11-13 08:11:25.077017');
 
 -- --------------------------------------------------------
 
@@ -217,11 +358,10 @@ CREATE TABLE `borrow_records` (
 --
 
 INSERT INTO `borrow_records` (`id`, `borrowedAt`, `dueDate`, `returnedAt`, `fineAmount`, `fineStatus`, `userId`, `bookId`, `approvedAt`, `extensionCount`, `returnCondition`, `copyId`, `status`, `createdAt`, `updatedAt`) VALUES
-(1, '2026-11-01 09:12:10.437015', NULL, NULL, 0.00, 'NONE', 1, 5, NULL, 0, NULL, 1, 'PENDING', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
-(2, '2026-11-01 10:42:22.242176', '2026-11-29 11:50:10', NULL, 0.00, 'NONE', 1, 5, '2026-11-01 11:50:10', 1, NULL, 2, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
-(3, '2026-11-02 09:45:42.309211', '2026-11-26 14:25:13', NULL, 0.00, 'NONE', 3, 5, '2026-11-12 14:25:13', 0, NULL, 3, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-12 14:25:13.000000'),
 (4, '2026-11-02 09:46:09.347972', '2026-11-16 09:51:11', NULL, 0.00, 'NONE', 3, 3, '2026-11-02 09:51:11', 0, NULL, 24, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
-(5, '2026-11-12 16:42:32.347737', NULL, NULL, 0.00, 'NONE', 1, 5, NULL, 0, NULL, 4, 'PENDING', '2026-11-12 16:42:32.347737', '2026-11-12 16:42:32.347737');
+(6, '2026-11-13 08:11:25.085000', NULL, NULL, 0.00, 'NONE', 2, 9, NULL, 0, NULL, 36, 'PENDING', '2026-11-13 08:11:25.089295', '2026-11-13 08:11:25.089295'),
+(7, '2026-10-27 08:11:25.085000', '2026-11-10 08:11:25', NULL, 15000.00, 'UNPAID', 2, 10, '2026-10-27 08:11:25', 0, NULL, 37, 'BORROWED', '2026-11-13 08:11:25.092765', '2026-11-13 08:11:25.092765'),
+(8, '2026-10-19 08:11:25.085000', '2026-11-02 08:11:25', '2026-11-01 08:11:25', 0.00, 'PAID', 2, 11, '2026-10-19 08:11:25', 0, '', 37, 'RETURNED', '2026-11-13 08:11:25.095697', '2026-11-13 08:11:25.095697');
 
 -- --------------------------------------------------------
 
@@ -244,7 +384,13 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `ddcCode`, `parentId`, `createdAt`, `updatedAt`) VALUES
-(1, 'hài', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491');
+(1, 'hài', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491'),
+(3, 'Công nghệ thông tin', 'Khoa học máy tính, kỹ thuật phần mềm, cấu trúc dữ liệu và thuật toán', '004', NULL, '2026-11-13 08:11:24.655625', '2026-11-13 08:11:24.655625'),
+(4, 'Trí tuệ nhân tạo & Khoa học dữ liệu', 'Machine Learning, Deep Learning, Big Data và AI hiện đại', '006', NULL, '2026-11-13 08:11:24.660391', '2026-11-13 08:11:24.660391'),
+(5, 'Kinh tế & Quản trị kinh doanh', 'Kinh tế học vĩ mô, vi mô, khởi nghiệp đổi mới sáng tạo', '330', NULL, '2026-11-13 08:11:24.663340', '2026-11-13 08:11:24.663340'),
+(6, 'Khoa học tự nhiên & Vũ trụ', 'Vật lý thiên văn, toán học, hóa học và sinh học', '500', NULL, '2026-11-13 08:11:24.666597', '2026-11-13 08:11:24.666597'),
+(7, 'Kỹ năng sống & Phát triển bản thân', 'Tâm lý học ứng dụng, giao tiếp, lãnh đạo và tư duy tích cực', '158', NULL, '2026-11-13 08:11:24.669819', '2026-11-13 08:11:24.669819'),
+(8, 'Văn học & Nghệ thuật', 'Tiểu thuyết kinh điển, văn học Việt Nam và thế giới', '800', NULL, '2026-11-13 08:11:24.672690', '2026-11-13 08:11:24.672690');
 
 -- --------------------------------------------------------
 
@@ -314,6 +460,36 @@ CREATE TABLE `device_maintenances` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `exchange_grants`
+--
+
+CREATE TABLE `exchange_grants` (
+  `id` int(11) NOT NULL,
+  `programType` varchar(255) NOT NULL DEFAULT 'BOOK_EXCHANGE',
+  `title` varchar(255) NOT NULL,
+  `partnerInstitution` varchar(255) NOT NULL,
+  `country` varchar(255) DEFAULT NULL,
+  `bookQuantity` int(11) NOT NULL DEFAULT 0,
+  `grantAmount` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `beneficiariesCount` int(11) NOT NULL DEFAULT 0,
+  `status` varchar(255) NOT NULL DEFAULT 'ACTIVE',
+  `note` text DEFAULT NULL,
+  `startDate` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `endDate` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `exchange_grants`
+--
+
+INSERT INTO `exchange_grants` (`id`, `programType`, `title`, `partnerInstitution`, `country`, `bookQuantity`, `grantAmount`, `beneficiariesCount`, `status`, `note`, `startDate`, `endDate`) VALUES
+(1, 'BOOK_EXCHANGE', 'Chương trình Trao đổi Học liệu & Sách Chuyên khảo Quốc tế NUS - HUST 2026', 'Đại học Quốc gia Singapore (National University of Singapore - NUS)', 'Singapore', 450, 85000000.00, 600, 'ACTIVE', 'Trao đổi song phương 450 đầu sách khoa học công nghệ tiếng Anh và giáo trình số giữa hai thư viện.', '2026-10-14 07:35:22.568000', '2027-05-12 07:35:22'),
+(2, 'BOOK_EXCHANGE', 'Dự án Hợp tác Trao đổi Tài liệu Lưu chiểu Khối Thư viện Đại học Kỹ thuật Châu Á (AOTULE)', 'Viện Công nghệ Tokyo (Tokyo Tech, Nhật Bản)', 'Nhật Bản', 300, 60000000.00, 400, 'ACTIVE', 'Tiếp nhận các tạp chí khoa học quốc tế Scopus Q1 và tài liệu hội thảo chuyên ngành Cơ khí - Tự động hóa.', '2026-09-14 07:35:22.568000', '2027-03-13 07:35:22'),
+(3, 'READING_GRANT', 'Quỹ Học bổng \"Thắp Sáng Tri Thức\" - Tài trợ Học liệu & Thiết bị Đọc cho Sinh viên Vượt khó', 'Tập đoàn Viễn thông Quân đội Viettel & Quỹ Khuyến học', 'Việt Nam', 120, 150000000.00, 50, 'ACTIVE', 'Trao tặng 50 suất học bổng tài liệu trị giá 3.000.000đ/suất cùng máy đọc sách Kindle Paperwhite cho sinh viên nghèo hiếu học.', '2026-10-29 07:35:22.568000', '2027-02-11 07:35:22');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `favorite_books`
 --
 
@@ -377,6 +553,36 @@ CREATE TABLE `fine_violations` (
   `userId` int(11) DEFAULT NULL,
   `copyId` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `iot_alerts`
+--
+
+CREATE TABLE `iot_alerts` (
+  `id` int(11) NOT NULL,
+  `deviceCode` varchar(255) NOT NULL,
+  `deviceName` varchar(255) NOT NULL,
+  `alertType` varchar(255) NOT NULL,
+  `severity` varchar(255) NOT NULL DEFAULT 'WARNING',
+  `message` text NOT NULL,
+  `resolved` tinyint(4) NOT NULL DEFAULT 0,
+  `resolvedAt` datetime DEFAULT NULL,
+  `resolvedByStaffName` varchar(255) DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `iot_alerts`
+--
+
+INSERT INTO `iot_alerts` (`id`, `deviceCode`, `deviceName`, `alertType`, `severity`, `message`, `resolved`, `resolvedAt`, `resolvedByStaffName`, `createdAt`, `updatedAt`) VALUES
+(1, 'RFID-GATE-MAIN', 'Hệ Thống Cổng Từ An Ninh RFID Cửa Chính (Làn 1)', 'RFID_UNAUTHORIZED', 'CRITICAL', 'Phát hiện tài liệu chưa mượn mã [BK-CSDL-2026] đi qua cổng từ. Đã tự động kích hoạt chuông và chụp ảnh hiện trường.', 0, NULL, NULL, '2026-11-13 06:58:50.474000', '2026-11-13 07:23:50.479875'),
+(2, 'ENV-SENSOR-ARCHIVE', 'Trạm Cảm Biến Môi Trường Kho Sách Quý & Luận Án', 'HIGH_HUMIDITY', 'WARNING', 'Độ ẩm kho sách quý phòng 305 tăng lên 66.8% RH (vượt ngưỡng an toàn bảo quản 60% RH). Máy hút ẩm trung tâm đã tự động khởi động.', 0, NULL, NULL, '2026-11-13 06:03:50.474000', '2026-11-13 07:23:50.484300'),
+(3, 'ENV-SENSOR-SERVER', 'Cảm Biến Nhiệt/Ẩm Phòng Máy Chủ & Hạ Tầng Số', 'OVER_TEMPERATURE', 'WARNING', 'Nhiệt độ cụm Rack 2 phòng máy chủ vượt 25.8°C. Quạt thông gió thứ cấp đã được tăng tốc.', 1, '2026-11-13 06:53:50', 'Thủ thư Quản trị mạng', '2026-11-13 04:53:50.474000', '2026-11-13 07:23:50.486875'),
+(4, 'RFID-GATE-FLOOR2', 'Cổng Từ Giám Sát Lối Vào Phòng Sách Chuyên Khảo', 'DEVICE_OFFLINE', 'INFO', 'Mất tín hiệu kết nối mạng cục bộ LAN trong 3 phút. Đã tự động tái thiết lập kết nối IP tĩnh thành công.', 1, '2026-11-13 04:03:50', 'Hệ thống tự động', '2026-11-13 03:43:50.474000', '2026-11-13 07:23:50.488360');
 
 -- --------------------------------------------------------
 
@@ -644,6 +850,37 @@ CREATE TABLE `locker_assignments` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `multimedia_items`
+--
+
+CREATE TABLE `multimedia_items` (
+  `id` int(11) NOT NULL,
+  `code` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL DEFAULT 'CD_DVD',
+  `location` varchar(255) DEFAULT NULL,
+  `condition` varchar(255) NOT NULL DEFAULT 'GOOD',
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  `onSiteLoanCount` int(11) NOT NULL DEFAULT 0,
+  `description` text DEFAULT NULL,
+  `digitalFileUrl` varchar(255) DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `multimedia_items`
+--
+
+INSERT INTO `multimedia_items` (`id`, `code`, `title`, `type`, `location`, `condition`, `quantity`, `onSiteLoanCount`, `description`, `digitalFileUrl`, `createdAt`, `updatedAt`) VALUES
+(1, 'MM-CD-2024-001', 'Đĩa DVD: Lễ Kỷ Niệm 70 Năm Thành Lập Trường và Lịch Sử Phát Triển Thư Viện', 'CD_DVD', 'Kệ Tư liệu Lịch sử A1 - Ngăn 3', 'GOOD', 5, 42, 'Tư liệu video độ phân giải cao 4K ghi lại các dấu mốc quan trọng và phỏng vấn các thế hệ Hiệu trưởng qua các thời kỳ.', 'https://archive.org/details/bk-history-70yrs', '2026-11-13 07:35:22.551178', '2026-11-13 07:35:22.551178'),
+(2, 'MM-MAP-1975-004', 'Bản Đồ Địa Chính & Quy Hoạch Khuôn Viên Học Xá Đại Học Bách Khoa (Bản vẽ tay 1975)', 'MAP', 'Tủ Bản đồ & Bản vẽ Quy hoạch B3', 'NEED_DIGITIZATION', 2, 18, 'Bản đồ khổ lớn giấy can, mực in nguyên bản. Cần ưu tiên chụp số hóa độ phân giải cao để bảo tồn tài liệu gốc.', NULL, '2026-11-13 07:35:22.552954', '2026-11-13 07:35:22.552954'),
+(3, 'MM-CAS-1988-002', 'Băng Cassette: Bài Giảng Đại Số Tuyến Tính của Cố GS. Lê Văn Thiêm', 'CASSETTE', 'Hộp Chống ẩm Tư liệu Âm thanh C1', 'NEED_DIGITIZATION', 1, 12, 'Băng từ analog ghi âm trực tiếp tại giảng đường năm 1988. Đã lên kế hoạch chuyển đổi sang định dạng số FLAC.', NULL, '2026-11-13 07:35:22.555286', '2026-11-13 07:35:22.555286'),
+(4, 'MM-PHOTO-1960-010', 'Bộ Ảnh Tư Liệu Trắng Đen: Đoàn Chuyên Gia Liên Xô Hỗ Trợ Xây Dựng Thư Viện (1960-1965)', 'HISTORIC_PHOTO', 'Album Tư liệu Đặc biệt - Phòng Truyền thống', 'GOOD', 24, 65, 'Tập hợp 24 bức ảnh gốc kèm chú thích chữ Nga - Việt về các kỹ sư và chuyên gia thư viện học Liên Xô.', '/uploads/multimedia/soviet-experts-1960.zip', '2026-11-13 07:35:22.556180', '2026-11-13 07:35:22.556180');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `notifications`
 --
 
@@ -661,6 +898,13 @@ CREATE TABLE `notifications` (
   `reservationId` int(11) DEFAULT NULL,
   `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `type`, `title`, `message`, `emailStatus`, `emailError`, `createdAt`, `readAt`, `userId`, `borrowRecordId`, `reservationId`, `updatedAt`) VALUES
+(1, 'OVERDUE', 'Cảnh báo: Sách mượn đã quá hạn hoàn trả & Báo nộp phạt', 'Kính gửi he, cuốn sách \"Design Patterns: Mẫu Thiết Kế Hướng Đối Tượng\" đã quá hạn hoàn trả vào ngày 10/11/2026. Tiền phạt phát sinh hiện tại: 20.000 VNĐ. Đề nghị bạn hoàn trả ngay tại quầy hoặc thanh toán trực tuyến.', 'NOT_CONFIGURED', NULL, '2026-11-13 08:11:54.622747', NULL, 2, 7, NULL, '2026-11-13 08:11:54.622747');
 
 -- --------------------------------------------------------
 
@@ -723,7 +967,13 @@ CREATE TABLE `publishers` (
 
 INSERT INTO `publishers` (`id`, `name`, `email`, `phone`, `address`, `website`, `contactPerson`, `taxCode`, `qualityRating`, `deliverySpeed`, `discountRate`, `reputationNotes`, `logoUrl`, `createdAt`, `updatedAt`) VALUES
 (1, 'Kim Đồng', 'an108972@donga.edu.vn', '0354352106', '158 Nhân Sự', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-06 18:47:34.621776', '2026-11-06 18:47:34.626104'),
-(2, 'Đại Đông', 'phak@gmail.com', '0744833222', '1528 Nhân Sự', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-06 18:47:34.621776', '2026-11-06 18:47:34.626104');
+(2, 'Đại Đông', 'phak@gmail.com', '0744833222', '1528 Nhân Sự', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-06 18:47:34.621776', '2026-11-06 18:47:34.626104'),
+(3, 'NXB Đại học Quốc gia Hà Nội', 'dhqg@vnu.edu.vn', '02437547721', '144 Xuân Thủy, Cầu Giấy, Hà Nội', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.677286', '2026-11-13 08:11:24.677286'),
+(4, 'NXB Bách Khoa Hà Nội', 'nxbbk@hust.edu.vn', '02438684569', '1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.680603', '2026-11-13 08:11:24.680603'),
+(5, 'NXB Thông tin & Truyền thông', 'nxb.tttt@mic.gov.vn', '02435772138', '115 Trần Duy Hưng, Cầu Giấy, Hà Nội', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.683579', '2026-11-13 08:11:24.683579'),
+(6, 'NXB Trẻ', 'hopthu@nxbtre.com.vn', '02839316289', '161B Lý Chính Thắng, Quận 3, TP.HCM', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.686653', '2026-11-13 08:11:24.686653'),
+(7, 'NXB Nhã Nam', 'contact@nhanam.vn', '02435146875', '59 Đỗ Quang, Cầu Giấy, Hà Nội', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.689557', '2026-11-13 08:11:24.689557'),
+(8, 'NXB Kim Đồng', 'cskh_online@nxbkimdong.com.vn', '02439434730', '55 Quang Trung, Hoàn Kiếm, Hà Nội', NULL, NULL, NULL, 5, 'ON_TIME', 0.00, NULL, NULL, '2026-11-13 08:11:24.692724', '2026-11-13 08:11:24.692724');
 
 -- --------------------------------------------------------
 
@@ -891,14 +1141,6 @@ CREATE TABLE `reviews` (
   `isVisible` tinyint(4) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Đang đổ dữ liệu cho bảng `reviews`
---
-
-INSERT INTO `reviews` (`id`, `rating`, `comment`, `createdAt`, `updatedAt`, `userId`, `bookId`, `isVisible`) VALUES
-(1, 1, NULL, '2026-11-01 10:42:29.547197', '2026-11-01 19:37:53.000000', 1, 5, 1),
-(2, 1, NULL, '2026-11-02 09:45:50.010676', '2026-11-02 09:45:50.010676', 3, 5, 1);
-
 -- --------------------------------------------------------
 
 --
@@ -941,6 +1183,71 @@ CREATE TABLE `room_violations` (
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `shift_schedules`
+--
+
+CREATE TABLE `shift_schedules` (
+  `id` int(11) NOT NULL,
+  `shiftDate` date NOT NULL,
+  `shiftType` varchar(255) NOT NULL DEFAULT 'MORNING',
+  `zone` varchar(255) NOT NULL DEFAULT 'CIRCULATION_DESK',
+  `staffId` int(11) DEFAULT NULL,
+  `staffName` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL DEFAULT 'ASSIGNED',
+  `swapWithStaffName` varchar(255) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `shift_schedules`
+--
+
+INSERT INTO `shift_schedules` (`id`, `shiftDate`, `shiftType`, `zone`, `staffId`, `staffName`, `status`, `swapWithStaffName`, `note`, `createdAt`, `updatedAt`) VALUES
+(1, '2026-11-13', 'MORNING', 'CIRCULATION_DESK', 1, 'Thủ thư Nguyễn Văn Quản', 'ASSIGNED', NULL, 'Trực quầy chính & tiếp nhận thẻ tân sinh viên', '2026-11-13 07:35:22.577253', '2026-11-13 07:35:22.577253'),
+(2, '2026-11-13', 'AFTERNOON', 'READING_ROOM', 2, 'Thủ thư Lê Thị Hồng', 'ASSIGNED', NULL, 'Kiểm soát trật tự phòng tự học tầng 2', '2026-11-13 07:35:22.578493', '2026-11-13 07:35:22.578493'),
+(3, '2026-11-13', 'EVENING', 'STACKS_STORAGE', 3, 'Thủ thư Trần Đình Trọng', 'ASSIGNED', NULL, 'Sắp xếp sách hoàn trả về kệ chuẩn Dewey', '2026-11-13 07:35:22.580540', '2026-11-13 07:35:22.580540'),
+(4, '2026-11-14', 'MORNING', 'MULTIMEDIA_ROOM', 4, 'Thủ thư Hoàng Thảo My', 'ASSIGNED', NULL, 'Hỗ trợ sinh viên sử dụng phòng máy tính & E-Library', '2026-11-13 07:35:22.581333', '2026-11-13 07:35:22.581333'),
+(5, '2026-11-14', 'AFTERNOON', 'CIRCULATION_DESK', 1, 'Thủ thư Nguyễn Văn Quản', 'SWAPPED', 'Thủ thư Lê Thị Hồng', 'Đã đổi ca trực theo thỏa thuận nội bộ', '2026-11-13 07:35:22.582180', '2026-11-13 07:35:22.582180'),
+(6, '2026-11-15', 'EVENING', 'READING_ROOM', 2, 'Thủ thư Lê Thị Hồng', 'LEAVE_REQUESTED', NULL, 'Báo nghỉ phép bận việc gia đình, nhờ đồng nghiệp trực thay', '2026-11-13 07:35:22.584058', '2026-11-13 07:35:22.584058');
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `staff_kpis`
+--
+
+CREATE TABLE `staff_kpis` (
+  `id` int(11) NOT NULL,
+  `staffId` int(11) NOT NULL,
+  `staffName` varchar(255) NOT NULL,
+  `roleTitle` varchar(255) NOT NULL DEFAULT 'Thủ thư nghiệp vụ',
+  `monthYear` varchar(255) NOT NULL DEFAULT '2026-11',
+  `catalogedBooksCount` int(11) NOT NULL DEFAULT 0,
+  `processedLoansCount` int(11) NOT NULL DEFAULT 0,
+  `inventoryAuditsCount` int(11) NOT NULL DEFAULT 0,
+  `satisfactionScore` decimal(3,2) NOT NULL DEFAULT 4.80,
+  `totalKpiPoints` int(11) NOT NULL DEFAULT 85,
+  `kpiRank` varchar(255) NOT NULL DEFAULT 'GOOD',
+  `note` text DEFAULT NULL,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `staff_kpis`
+--
+
+INSERT INTO `staff_kpis` (`id`, `staffId`, `staffName`, `roleTitle`, `monthYear`, `catalogedBooksCount`, `processedLoansCount`, `inventoryAuditsCount`, `satisfactionScore`, `totalKpiPoints`, `kpiRank`, `note`, `createdAt`, `updatedAt`) VALUES
+(1, 1, 'Thủ thư Nguyễn Văn Quản', 'Thủ thư Quầy Lưu hành', '2026-11', 145, 680, 12, 4.90, 95, 'EXCELLENT', 'Hiệu suất phục vụ mượn trả vượt 125% chỉ tiêu tháng. Đạt 100% đánh giá 5 sao từ độc giả.', '2026-11-13 07:35:22.588337', '2026-11-13 07:35:22.588337'),
+(2, 2, 'Thủ thư Lê Thị Hồng', 'Thủ thư Biên mục & Xử lý Kỹ thuật', '2026-11', 320, 210, 8, 4.80, 88, 'GOOD', 'Hoàn thành xuất sắc tiến độ nhập kho 3 đợt sách tài trợ mới và dán nhãn RFID nhanh chóng.', '2026-11-13 07:35:22.589976', '2026-11-13 07:35:22.589976'),
+(3, 3, 'Thủ thư Trần Đình Trọng', 'Thủ thư Quản lý Kho & Bảo quản', '2026-11', 80, 390, 25, 4.60, 82, 'GOOD', 'Duy trì trật tự giá sách tầng 2-3 và phát hiện xử lý kịp thời 4 đầu sách hư hỏng gáy.', '2026-11-13 07:35:22.591721', '2026-11-13 07:35:22.591721'),
+(4, 4, 'Thủ thư Hoàng Thảo My', 'Thủ thư Thư viện số & Hỗ trợ Bạn đọc', '2026-11', 65, 180, 5, 4.70, 78, 'GOOD', 'Tổ chức 2 buổi workshop Information Literacy thành công với hơn 200 sinh viên tham gia.', '2026-11-13 07:35:22.592652', '2026-11-13 07:35:22.592652');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `study_rooms`
 --
 
@@ -958,6 +1265,39 @@ CREATE TABLE `study_rooms` (
   `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
   `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `theses`
+--
+
+CREATE TABLE `theses` (
+  `id` int(11) NOT NULL,
+  `code` varchar(255) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `authorName` varchar(255) NOT NULL,
+  `studentId` varchar(255) DEFAULT NULL,
+  `advisorName` varchar(255) NOT NULL,
+  `major` varchar(255) NOT NULL,
+  `defenseYear` int(11) NOT NULL DEFAULT 2025,
+  `securityStatus` varchar(255) NOT NULL DEFAULT 'PUBLIC',
+  `fileUrl` varchar(255) DEFAULT NULL,
+  `abstract` text DEFAULT NULL,
+  `viewCount` int(11) NOT NULL DEFAULT 0,
+  `createdAt` datetime(6) NOT NULL DEFAULT current_timestamp(6),
+  `updatedAt` datetime(6) NOT NULL DEFAULT current_timestamp(6) ON UPDATE current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `theses`
+--
+
+INSERT INTO `theses` (`id`, `code`, `title`, `authorName`, `studentId`, `advisorName`, `major`, `defenseYear`, `securityStatus`, `fileUrl`, `abstract`, `viewCount`, `createdAt`, `updatedAt`) VALUES
+(1, 'LV-2025-CNTT-001', 'Nghiên cứu ứng dụng Mô hình Ngôn ngữ Lớn (LLM) trong hệ thống Phân loại và Tra cứu Thư viện Số', 'Đặng Tuấn Anh', '20210089', 'PGS. TS. Nguyễn Đức Dũng', 'Công nghệ Thông tin', 2025, 'PUBLIC', '/uploads/theses/lv-2025-cntt-001.pdf', 'Đề tài tập trung xây dựng pipeline trích xuất tri thức từ tài liệu học thuật và tích hợp mô hình ngôn ngữ tiếng Việt vào cổng tra cứu OPAC thế hệ mới.', 385, '2026-11-13 07:35:22.539449', '2026-11-13 07:35:22.539449'),
+(2, 'LV-2025-AI-002', 'Tối ưu hóa Thuật toán Gợi ý Học liệu cá nhân hóa dựa trên Đồ thị Tri thức (Knowledge Graph)', 'Lê Thảo My', '20210452', 'TS. Hoàng Văn Thư', 'Trí tuệ Nhân tạo & Khoa học Dữ liệu', 2025, 'PUBLIC', '/uploads/theses/lv-2025-ai-002.pdf', 'Đề xuất thuật toán hybrid recommendation kết hợp hành vi mượn sách, lịch sử tìm kiếm số và quan hệ liên ngành giữa các giáo trình đại học.', 290, '2026-11-13 07:35:22.541974', '2026-11-13 07:35:22.541974'),
+(3, 'LV-2024-QTKD-015', 'Chiến lược Chuyển đổi số và Quản trị Trải nghiệm Người dùng trong các Thư viện Đại học tại Việt Nam', 'Phạm Minh Quang', '20205510', 'TS. Vũ Bích Ngọc', 'Quản trị Kinh doanh', 2024, 'INTERNAL', '/uploads/theses/lv-2024-qtkd-015.pdf', 'Khảo sát 1,500 sinh viên tại 5 trường đại học trọng điểm về mức độ sẵn sàng đón nhận dịch vụ thư viện thông minh (Smart Library).', 172, '2026-11-13 07:35:22.544507', '2026-11-13 07:35:22.544507'),
+(4, 'LV-2024-DTVT-008', 'Thiết kế Mạng Cảm biến IoT LoRaWAN giám sát điều kiện bảo quản Sách Cổ và Tư liệu Hán Nôm', 'Nguyễn Văn Hùng', '20203342', 'PGS. TS. Trần Cao Quyền', 'Điện tử - Viễn thông', 2024, 'RESTRICTED', '/uploads/theses/lv-2024-dtvt-008.pdf', 'Xây dựng phần cứng cảm biến năng lượng thấp, truyền thông xuyên tường hầm kho lưu trữ để kiểm soát độ ẩm và vi nấm gây hại tài liệu quý.', 94, '2026-11-13 07:35:22.545571', '2026-11-13 07:35:22.545571');
 
 -- --------------------------------------------------------
 
@@ -1016,18 +1356,25 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `passwordHash`, `currentHashedRefreshToken`, `createdAt`, `updatedAt`, `email`, `isActive`, `role`, `maxActiveLoans`, `libraryCardIssuedAt`, `libraryCardExpiresAt`, `fullName`, `phone`, `approvedAt`, `isTwoFactorEnabled`, `twoFactorTempCode`, `twoFactorCodeExpiresAt`, `passwordResetToken`, `passwordResetExpiresAt`, `failedLoginAttempts`, `lockoutUntil`, `cardNumber`, `readerGroup`, `customPermissions`) VALUES
-(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$Doa.cdrha/4Kpw551SmHK.zAS//uvFQdwfYZdH9c6w5lDA2/Mr7nO', '2026-10-30 15:14:38.589024', '2026-11-12 21:16:18.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$rq1HFT5yTQpHW1QOYG2S9.usr07Lu1Zm09FrTs9we4.D/BYnzIvMe', '2026-10-30 15:14:38.589024', '2026-11-13 08:31:48.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (2, 'he', '$2b$10$O2RbYv8CdMBL8Dr8Lzg3TOAZwxFjnP.qkxdgu/MLr9..UM9gqdDPy', NULL, '2026-11-01 13:06:32.277679', '2026-11-01 13:06:45.000000', NULL, 1, 'READER', 5, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (3, 'an108972@donga.edu.vn', '$2b$10$zGiNjzn3VwYTPZW5OpKIVO3756fZAQn2YR.niBFgROWQ6dYtP6mhO', NULL, '2026-11-01 19:33:47.447069', '2026-11-02 09:46:23.000000', 'an108972@donga.edu.vn', 1, 'READER', 5, '2026-11-01', NULL, 'Phan Thanh An', '0354352106', '2026-11-01 19:39:32', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (4, 'phanthanhanlop9.2@gmail.com', '$2b$10$3cEwVX8Lh.35gZx22rf2pul885ranTwGcW1XBwObRZU6.OVt2C5yW', NULL, '2026-11-01 19:34:42.624268', '2026-11-02 07:29:44.000000', 'phanthanhanlop9.2@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Phan Thanh An_IT24C', '0354352106', '2026-11-02 07:29:44', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (5, 'anpt@gmal.com', '$2b$10$F1XBF8S/VEOyBrS.c8X8gOIHPjfwXzCi1ywANt4yT1sw6zmKni8eO', NULL, '2026-11-01 19:36:30.984788', '2026-11-02 07:29:40.000000', 'anpt@gmal.com', 1, 'READER', 5, '2026-11-02', NULL, 'An Phan', '0986161322', '2026-11-02 07:29:40', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (6, 'anh@gmail.com', '$2b$10$bYeYFtDoLUBPsUDaBupeTuQia/INl7h74HpsdcqgDe0Izzd/e/r8a', NULL, '2026-11-02 07:26:13.858876', '2026-11-02 07:29:42.000000', 'anh@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Võ Văn Tuấn Anh', '0111222333', '2026-11-02 07:29:42', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (7, 'ty', '$2b$10$T0qfCzR9jFV7sIZmKHfGQ.na79TVPTRSxCc9FdXRYMWtq5lh9xEc2', NULL, '2026-11-02 09:47:14.377891', '2026-11-02 09:47:14.377891', 'ty@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'He', '0446746346', '2026-11-02 09:47:14', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
-(8, 'Phan Thanh An', '$2b$10$0K88tomRvn/obQv6nOzIDO0SsbDSBDkstlAmgiOV5AOZIMRXZUIfS', NULL, '2026-11-02 09:55:07.714758', '2026-11-02 09:55:07.714758', 'anpt@gmail.com', 1, 'INVENTORY_LIBRARIAN', 5, NULL, NULL, 'Phan Thanh An', '035435106', '2026-11-02 09:55:07', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL);
+(8, 'Phan Thanh An', '$2b$10$0K88tomRvn/obQv6nOzIDO0SsbDSBDkstlAmgiOV5AOZIMRXZUIfS', NULL, '2026-11-02 09:55:07.714758', '2026-11-02 09:55:07.714758', 'anpt@gmail.com', 1, 'INVENTORY_LIBRARIAN', 5, NULL, NULL, 'Phan Thanh An', '035435106', '2026-11-02 09:55:07', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(9, 'dang.nguyen.sv2024@donga.edu.vn', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', NULL, '2026-11-13 08:11:25.081459', '2026-11-13 08:11:25.081459', 'dang.nguyen.sv2024@donga.edu.vn', 0, 'READER', 5, NULL, NULL, 'Đặng Hoàng Nguyên (IT24B)', '0912345678', NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL);
 
 --
 -- Chỉ mục cho các bảng đã đổ
 --
+
+--
+-- Chỉ mục cho bảng `academic_seminars`
+--
+ALTER TABLE `academic_seminars`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Chỉ mục cho bảng `audit_logs`
@@ -1098,6 +1445,12 @@ ALTER TABLE `device_maintenances`
   ADD KEY `FK_7192bb622abc4c7cc09e4ec7c94` (`deviceId`);
 
 --
+-- Chỉ mục cho bảng `exchange_grants`
+--
+ALTER TABLE `exchange_grants`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Chỉ mục cho bảng `favorite_books`
 --
 ALTER TABLE `favorite_books`
@@ -1129,6 +1482,12 @@ ALTER TABLE `fine_violations`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FK_277f259bf24f992b2c0c742577a` (`userId`),
   ADD KEY `FK_afea16d957b0f32d40da0c61066` (`copyId`);
+
+--
+-- Chỉ mục cho bảng `iot_alerts`
+--
+ALTER TABLE `iot_alerts`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Chỉ mục cho bảng `iot_devices`
@@ -1183,6 +1542,13 @@ ALTER TABLE `locker_assignments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `FK_ffb8ce792ccc0bd2bbcc42c11bb` (`lockerId`),
   ADD KEY `FK_2833fa41edb4a83f2fd7ad08f34` (`userId`);
+
+--
+-- Chỉ mục cho bảng `multimedia_items`
+--
+ALTER TABLE `multimedia_items`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `IDX_d882c4e0d8e56841b9ec8bce70` (`code`);
 
 --
 -- Chỉ mục cho bảng `notifications`
@@ -1277,11 +1643,30 @@ ALTER TABLE `room_violations`
   ADD KEY `FK_79fcda463dda7525c1cbfad6a9a` (`userId`);
 
 --
+-- Chỉ mục cho bảng `shift_schedules`
+--
+ALTER TABLE `shift_schedules`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Chỉ mục cho bảng `staff_kpis`
+--
+ALTER TABLE `staff_kpis`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Chỉ mục cho bảng `study_rooms`
 --
 ALTER TABLE `study_rooms`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `IDX_fbf8ff231c9bb83528ae48f5b1` (`code`);
+
+--
+-- Chỉ mục cho bảng `theses`
+--
+ALTER TABLE `theses`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `IDX_62ded305ef300a705a2c81d453` (`code`);
 
 --
 -- Chỉ mục cho bảng `tutorial_registrations`
@@ -1304,6 +1689,12 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT cho bảng `academic_seminars`
+--
+ALTER TABLE `academic_seminars`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT cho bảng `audit_logs`
 --
 ALTER TABLE `audit_logs`
@@ -1313,13 +1704,13 @@ ALTER TABLE `audit_logs`
 -- AUTO_INCREMENT cho bảng `books`
 --
 ALTER TABLE `books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT cho bảng `book_copies`
 --
 ALTER TABLE `book_copies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
 
 --
 -- AUTO_INCREMENT cho bảng `book_donations`
@@ -1331,13 +1722,13 @@ ALTER TABLE `book_donations`
 -- AUTO_INCREMENT cho bảng `borrow_records`
 --
 ALTER TABLE `borrow_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT cho bảng `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT cho bảng `devices`
@@ -1356,6 +1747,12 @@ ALTER TABLE `device_loans`
 --
 ALTER TABLE `device_maintenances`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `exchange_grants`
+--
+ALTER TABLE `exchange_grants`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT cho bảng `favorite_books`
@@ -1380,6 +1777,12 @@ ALTER TABLE `fine_payments`
 --
 ALTER TABLE `fine_violations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `iot_alerts`
+--
+ALTER TABLE `iot_alerts`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT cho bảng `iot_devices`
@@ -1424,10 +1827,16 @@ ALTER TABLE `locker_assignments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT cho bảng `multimedia_items`
+--
+ALTER TABLE `multimedia_items`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT cho bảng `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT cho bảng `notification_templates`
@@ -1439,7 +1848,7 @@ ALTER TABLE `notification_templates`
 -- AUTO_INCREMENT cho bảng `publishers`
 --
 ALTER TABLE `publishers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT cho bảng `purchase_orders`
@@ -1496,10 +1905,28 @@ ALTER TABLE `room_violations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT cho bảng `shift_schedules`
+--
+ALTER TABLE `shift_schedules`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT cho bảng `staff_kpis`
+--
+ALTER TABLE `staff_kpis`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT cho bảng `study_rooms`
 --
 ALTER TABLE `study_rooms`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `theses`
+--
+ALTER TABLE `theses`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT cho bảng `tutorial_registrations`
@@ -1511,7 +1938,7 @@ ALTER TABLE `tutorial_registrations`
 -- AUTO_INCREMENT cho bảng `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- Các ràng buộc cho các bảng đã đổ

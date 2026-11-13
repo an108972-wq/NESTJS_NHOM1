@@ -125,7 +125,7 @@ export class ReportsService {
       copyCount: Number(row.copyCount || 0),
     }));
 
-    const [dueSoonRecords, overdueRecords, lowStockBooks, damagedLostCount, pendingReservations, maintenanceCopies] = await Promise.all([
+    const [dueSoonRecords, overdueRecords, lowStockBooks, damagedLostCount, pendingReservations, maintenanceCopies, pendingReaders, pendingBorrows] = await Promise.all([
       this.borrowRepo.find({
         where: { status: BorrowStatus.BORROWED, dueDate: Between(now, dueSoonCutoff) },
         relations: { user: true, book: true },
@@ -169,6 +169,17 @@ export class ReportsService {
             take: 15,
           }).catch(() => [])
         : Promise.resolve([]),
+      this.userRepo.find({
+        where: { role: UserRole.READER, isActive: false },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }).catch(() => []),
+      this.borrowRepo.find({
+        where: { status: BorrowStatus.PENDING },
+        relations: { user: true, book: true },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }).catch(() => []),
     ]);
 
     return {
@@ -221,6 +232,19 @@ export class ReportsService {
         bookTitle: copy.book?.title || 'Sách',
       })),
       alerts: {
+        pendingReaders: (pendingReaders || []).map((u) => ({
+          id: u.id,
+          fullName: u.fullName || u.username,
+          username: u.username,
+          email: u.email,
+          createdAt: u.createdAt,
+        })),
+        pendingBorrows: (pendingBorrows || []).map((r) => ({
+          recordId: r.id,
+          reader: r.user?.fullName || r.user?.username || 'Độc giả',
+          book: r.book?.title || 'Sách',
+          createdAt: r.createdAt,
+        })),
         dueSoon: dueSoonRecords.map((record) => ({
           recordId: record.id,
           reader: record.user?.username || 'Độc giả',

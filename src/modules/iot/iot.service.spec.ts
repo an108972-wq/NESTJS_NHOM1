@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { IotService } from './iot.service';
 import { IotDevice, IotDeviceStatus, IotDeviceType } from './entities/iot-device.entity';
+import { IotAlert } from './entities/iot-alert.entity';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 describe('IotService', () => {
@@ -35,6 +36,19 @@ describe('IotService', () => {
     })),
   };
 
+  const mockAlertRepo = {
+    count: vi.fn().mockResolvedValue(1),
+    find: vi.fn().mockResolvedValue([]),
+    findOne: vi.fn().mockResolvedValue({ id: 1, resolved: false }),
+    create: vi.fn().mockImplementation((dto) => dto),
+    save: vi.fn().mockImplementation((a) => Promise.resolve({ id: 1, ...a })),
+    createQueryBuilder: vi.fn(() => ({
+      andWhere: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockReturnThis(),
+      getMany: vi.fn().mockResolvedValue([]),
+    })),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +56,10 @@ describe('IotService', () => {
         {
           provide: getRepositoryToken(IotDevice),
           useValue: mockDeviceRepo,
+        },
+        {
+          provide: getRepositoryToken(IotAlert),
+          useValue: mockAlertRepo,
         },
       ],
     }).compile();

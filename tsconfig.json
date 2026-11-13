@@ -15,6 +15,7 @@
     "strict": false,
     "strictPropertyInitialization": false,
     "types": [
+      "vitest/globals",
       "jest",
       "node",
       "multer"

@@ -68,5 +68,21 @@ export class IotController {
   ) {
     return this.iotService.executeAction(id, actionDto);
   }
+
+  @Get('alerts')
+  getAlerts(@Query('resolved') resolved?: string) {
+    const isResolved = resolved !== undefined && resolved !== '' ? resolved === 'true' : undefined;
+    return this.iotService.getAlerts(isResolved);
+  }
+
+  @Patch('alerts/:id/resolve')
+  resolveAlert(@Param('id', ParseIntPipe) id: number) {
+    return this.iotService.resolveAlert(id);
+  }
+
+  @Post('alerts/simulate')
+  simulateAlert(@Body('deviceCode') deviceCode?: string) {
+    return this.iotService.simulateAlert(deviceCode);
+  }
 }
 

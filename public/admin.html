@@ -12,33 +12,40 @@
       const token = localStorage.getItem('accessToken');
       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options?.headers || {}) };
       const base = window.location.origin;
-      const fullUrl = url.startsWith('http') ? url : (url.startsWith('/api') ? `${base}${url}` : `${base}/api${url.startsWith('/') ? url : '/' + url}`);
+      const fullUrl = url.startsWith('http') ? url : `${base}${url.startsWith('/') ? url : '/' + url}`;
       const res = await fetch(fullUrl, { ...options, headers });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.message || `Yêu cầu thất bại (${res.status})`);
+        const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
+        throw new Error(msg || `Yêu cầu thất bại (${res.status})`);
       }
-      return res.json().catch(() => null);
+      const ct = res.headers.get('content-type') || '';
+      return ct.includes('application/json') ? res.json().catch(() => null) : null;
     };
+    var fetchJson = window.fetchJson;
     window.formatDateTime = function(val) {
       if (!val) return '—';
       const d = new Date(val);
       if (isNaN(d.getTime())) return '—';
       return `${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
     };
+    var formatDateTime = window.formatDateTime;
     window.money = function(val) {
       return `${Number(val || 0).toLocaleString('vi-VN')} ₫`;
     };
+    var money = window.money;
     window.date = function(val) {
       if (!val) return '—';
       const m = typeof val === 'string' && val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('vi-VN') : new Date(val).toLocaleDateString('vi-VN');
     };
+    var date = window.date;
     window.escapeHtml = function(val) {
       return String(val ?? '').replace(/[&<>"']/g, function(c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c;
       });
     };
+    var escapeHtml = window.escapeHtml;
   </script>
 </head>
 
@@ -129,6 +136,21 @@
           aria-hidden="true">🤝</span><span class="sidebar-label">Đối tác & Tài trợ</span></a>
       <a class="staff-only" href="/admin/iot-monitoring" data-admin-nav="iot-monitoring"><span class="sidebar-icon"
           aria-hidden="true">📡</span><span class="sidebar-label">Giám sát Thiết bị IoT</span></a>
+      <!-- NHÓM TÀI NGUYÊN HỌC THUẬT & ĐA PHƯƠNG TIỆN -->
+      <a class="staff-only" href="/admin/theses" data-admin-nav="theses"><span class="sidebar-icon"
+          aria-hidden="true">📑</span><span class="sidebar-label">Luận văn & Khóa luận</span></a>
+      <a class="staff-only" href="/admin/multimedia" data-admin-nav="multimedia"><span class="sidebar-icon"
+          aria-hidden="true">🎞️</span><span class="sidebar-label">Tài liệu Đa phương tiện</span></a>
+      <!-- NHÓM HỢP TÁC HỌC THUẬT & SỰ KIỆN CHUYÊN ĐỀ -->
+      <a class="staff-only" href="/admin/seminars" data-admin-nav="seminars"><span class="sidebar-icon"
+          aria-hidden="true">🎤</span><span class="sidebar-label">Hội thảo & Diễn đàn</span></a>
+      <a class="staff-only" href="/admin/exchange-grants" data-admin-nav="exchange-grants"><span class="sidebar-icon"
+          aria-hidden="true">🌐</span><span class="sidebar-label">Sách Trao đổi & Tài trợ</span></a>
+      <!-- NHÓM VẬN HÀNH NỘI BỘ & QUẢN TRỊ NHÂN SỰ -->
+      <a class="staff-only" href="/admin/shift-schedules" data-admin-nav="shift-schedules"><span class="sidebar-icon"
+          aria-hidden="true">🕒</span><span class="sidebar-label">Lịch Ca trực Thủ thư</span></a>
+      <a class="staff-only" href="/admin/staff-kpi" data-admin-nav="staff-kpi"><span class="sidebar-icon"
+          aria-hidden="true">🏆</span><span class="sidebar-label">KPI & Hiệu suất Thủ thư</span></a>
       <a class="admin-only" href="/admin/audit-logs" data-admin-nav="audit-logs" hidden><span class="sidebar-icon"
           aria-hidden="true">📜</span><span class="sidebar-label">Nhật ký hệ thống</span></a>
       <a class="admin-only" href="/admin/staffs" data-admin-nav="staffs" hidden><span class="sidebar-icon"
@@ -1022,6 +1044,30 @@
             id="refreshReaderProfile" class="button button-light" type="button">Làm mới</button></div>
       </div>
       <div id="readerProfileSummary" class="stats-grid"></div>
+      <!-- Biểu đồ chuyên cần & thói quen đọc sách của độc giả -->
+      <div class="report-card" style="margin:1rem 0 1.5rem;padding:1.25rem;background:#fff;border-radius:12px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h4 style="margin:0;font-size:15px;color:#1e293b;">📊 Biểu đồ chuyên cần & thói quen đọc sách</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Mức độ mượn trả sách theo tháng và chỉ số chuyên cần học thuật</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <label class="inline-form" style="margin:0;font-size:12px;display:flex;align-items:center;gap:6px;">
+              <span style="font-weight:600;color:#475569;">Phân loại hội viên:</span>
+              <select id="profileReaderGroupSelect" class="counter-only" style="padding:4px 8px;font-size:12px;border-radius:4px;border:1px solid #cbd5e1;background:#fff;font-weight:600;">
+                <option value="STUDENT">🎓 Sinh viên (Hạn mức: 5 cuốn)</option>
+                <option value="RESEARCHER">🔬 Nghiên cứu sinh (Hạn mức: 10 cuốn)</option>
+                <option value="LECTURER">👨‍🏫 Giảng viên (Hạn mức: 15 cuốn)</option>
+                <option value="OTHER">👤 Khác (Hạn mức: 5 cuốn)</option>
+              </select>
+            </label>
+            <span id="readerDiligenceScore" class="badge" style="background:#f0fdf4;color:#166534;font-size:12px;padding:4px 10px;border-radius:6px;font-weight:700;">Điểm chuyên cần: 100/100</span>
+          </div>
+        </div>
+        <div style="height:210px;position:relative;">
+          <canvas id="readerActivityChart"></canvas>
+        </div>
+      </div>
       <div class="section-heading">
         <div>
           <h3>Phiếu mượn & tiền phạt</h3>
@@ -1230,6 +1276,19 @@
         </div>
       </div>
 
+      <!-- Biểu đồ cơ cấu danh mục trực quan -->
+      <div class="report-card" style="margin-bottom:1.5rem;padding:1.25rem;background:#fff;border-radius:12px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h4 style="margin:0;font-size:15px;color:#1e293b;">📊 Biểu đồ cơ cấu đầu sách theo thể loại</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Trực quan hóa tỷ trọng số lượng đầu sách và bản sao phân bổ theo danh mục Dewey</p>
+          </div>
+        </div>
+        <div style="height:220px;position:relative;">
+          <canvas id="categoryStructureChart"></canvas>
+        </div>
+      </div>
+
       <form id="categoryForm" class="inline-form">
         <input id="categoryDdcCode" placeholder="Mã DDC (VD: 004)" maxlength="50" style="max-width:140px;">
         <input id="categoryName" placeholder="Tên thể loại mới *" maxlength="100" required>
@@ -1357,6 +1416,19 @@
           </div>
           <div id="pubKpiAvgDiscount" style="font-size:24px;font-weight:700;color:#d97706;margin-top:4px;">0%</div>
           <div style="font-size:12px;color:#d97706;margin-top:2px;">Ưu đãi giá nhập kho</div>
+        </div>
+      </div>
+
+      <!-- Biểu đồ cơ cấu NXB trực quan -->
+      <div class="report-card" style="margin-bottom:1.5rem;padding:1.25rem;background:#fff;border-radius:12px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <h4 style="margin:0;font-size:15px;color:#1e293b;">📊 Biểu đồ phân bổ đầu sách & chi tiêu theo Nhà xuất bản</h4>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">So sánh số lượng đầu sách và kinh phí giải ngân thu mua theo từng nhà xuất bản</p>
+          </div>
+        </div>
+        <div style="height:220px;position:relative;">
+          <canvas id="publisherStructureChart"></canvas>
         </div>
       </div>
 
@@ -2939,6 +3011,9 @@
           <button id="shelfViewModeFloorPlanBtn" class="button button-primary" type="button" style="border-radius:0;border:none;padding:6px 14px;font-size:13px;font-weight:700;">
             🗺️ Mô phỏng Không gian 2D
           </button>
+          <button id="shelfViewMode3DBtn" class="button button-light" type="button" style="border-radius:0;border:none;padding:6px 14px;font-size:13px;font-weight:700;">
+            🏢 Mô phỏng Không gian 3D
+          </button>
           <button id="shelfViewModeGridBtn" class="button button-light" type="button" style="border-radius:0;border:none;padding:6px 14px;font-size:13px;font-weight:700;">
             📋 Danh sách Giá kệ
           </button>
@@ -4383,6 +4458,552 @@
       <!-- Lưới thẻ thiết bị IoT trực quan -->
       <div id="iotDevicesGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;">
         <div style="grid-column:1/-1;text-align:center;padding:2rem;color:#888;">Đang kết nối trung tâm IoT Hub và tải danh sách thiết bị...</div>
+      </div>
+
+      <!-- NHẬT KÝ CẢNH BÁO SỰ CỐ IOT & AN NINH -->
+      <div style="margin-top:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0;font-size:16px;color:#0f172a;display:flex;align-items:center;gap:8px;">
+              <span>🚨 Nhật Ký Cảnh Báo An Ninh & Vượt Ngưỡng An Toàn</span>
+            </h3>
+            <p style="margin:2px 0 0 0;font-size:12.5px;color:#64748b;">Ghi nhận các sự kiện vi phạm cổng RFID, vượt ngưỡng nhiệt/ẩm kho sách quý, hoặc thiết bị mất kết nối.</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <select id="iotAlertFilter" style="height:34px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;">
+              <option value="">-- Mọi trạng thái cảnh báo --</option>
+              <option value="false">⚠️ Cảnh báo đang kích hoạt (Chưa xử lý)</option>
+              <option value="true">✓ Đã xử lý & an toàn</option>
+            </select>
+            <button id="simIotAlertBtn" class="button button-accent button-small" type="button" style="background:#ef4444;border-color:#ef4444;font-size:12px;" title="Kích hoạt cảnh báo mô phỏng để trình chiếu đồ án">
+              🔔 Kích hoạt Báo Động (Demo)
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:130px;">Thời gian</th>
+                <th>Thiết bị phát tín hiệu</th>
+                <th style="text-align:center;width:120px;">Mức độ</th>
+                <th>Nội dung cảnh báo chi tiết</th>
+                <th style="text-align:center;width:140px;">Trạng thái</th>
+                <th style="text-align:center;width:110px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="iotAlertsTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center;padding:1.5rem;color:#888;">Đang tải nhật ký cảnh báo...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PHÂN HỆ 1: TÀI NGUYÊN HỌC THUẬT & ĐA PHƯƠNG TIỆN -->
+    <!-- ============================================== -->
+
+    <!-- TRANG 1: QUẢN LÝ LUẬN VĂN & KHÓA LUẬN TỐT NGHIỆP -->
+    <section id="thesesManagement" class="content-section staff-only" data-admin-route="theses" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ACADEMIC RESOURCES & RESEARCH REPOSITORY</span>
+          <h2>Quản lý Luận văn & Khóa luận Tốt nghiệp</h2>
+          <p>Quản lý danh mục đề tài nghiên cứu khoa học, luận án tiến sĩ, luận văn thạc sĩ và khóa luận tốt nghiệp của sinh viên, giảng viên.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateThesisBtn" class="button button-primary" type="button">📑 + Đăng ký Luận văn mới</button>
+          <button id="refreshThesesBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê luận văn -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #7c3aed;">
+          <span class="stat-label">Tổng số đề tài / Luận văn</span>
+          <span class="stat-value" id="statTotalTheses" style="color:#7c3aed;">0</span>
+          <span class="stat-desc">Kho lưu trữ số học thuật</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Toàn văn Công khai</span>
+          <span class="stat-value" id="statPublicTheses" style="color:#10b981;">0</span>
+          <span class="stat-desc">Độc giả tự do tham khảo</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <span class="stat-label">Nội bộ & Hạn chế</span>
+          <span class="stat-value" id="statRestrictedTheses" style="color:#f59e0b;">0</span>
+          <span class="stat-desc">Yêu cầu quyền truy cập đặc biệt</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #ef4444;">
+          <span class="stat-label">Lượt truy cập đọc</span>
+          <span class="stat-value" id="statThesesViews" style="color:#ef4444;">0</span>
+          <span class="stat-desc">Tổng lượt tham khảo trực tuyến</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="thesesSearchInput" type="search" placeholder="Tìm theo tên đề tài, tác giả, MSSV, giảng viên hướng dẫn..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:320px;font-size:13px;flex:1;">
+          <select id="thesesMajorFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi chuyên ngành đào tạo --</option>
+            <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+            <option value="Khoa học máy tính">Khoa học máy tính</option>
+            <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+            <option value="Kinh tế số & TMĐT">Kinh tế số & TMĐT</option>
+            <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
+          </select>
+          <select id="thesesSecurityFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi mức độ bảo mật --</option>
+            <option value="PUBLIC">🌐 Công khai (Toàn quyền)</option>
+            <option value="INTERNAL">🏫 Nội bộ trường</option>
+            <option value="RESTRICTED">🔒 Hạn chế / Bản quyền</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách luận văn -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px;">Mã đề tài</th>
+              <th>Tên Đề tài Luận văn</th>
+              <th>Tác giả / MSSV</th>
+              <th>GV Hướng dẫn</th>
+              <th>Chuyên ngành</th>
+              <th style="text-align:center;width:80px;">Năm BV</th>
+              <th style="text-align:center;width:120px;">Bảo mật</th>
+              <th style="text-align:center;width:80px;">Lượt xem</th>
+              <th style="text-align:center;width:130px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="thesesTableBody">
+            <tr>
+              <td colspan="9" style="text-align:center;padding:2rem;color:#888;">Đang tải danh mục luận văn...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRANG 2: QUẢN LÝ TÀI LIỆU ĐA PHƯƠNG TIỆN & TƯ LIỆU ĐẶC BIỆT -->
+    <section id="multimediaManagement" class="content-section staff-only" data-admin-route="multimedia" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">MULTIMEDIA & SPECIAL ARCHIVES</span>
+          <h2>Tài liệu Đa phương tiện & Tư liệu Đặc biệt</h2>
+          <p>Quản lý kho tư liệu đĩa CD/DVD giáo trình, băng từ, bản đồ địa lý lịch sử và bộ sưu tập ảnh truyền thống của trường.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateMultimediaBtn" class="button button-primary" type="button">🎞️ + Nhập Tư liệu Mới</button>
+          <button id="refreshMultimediaBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê tư liệu -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #3b82f6;">
+          <span class="stat-label">Tổng số tư liệu</span>
+          <span class="stat-value" id="statTotalMultimedia" style="color:#3b82f6;">0</span>
+          <span class="stat-desc">Danh mục đa phương tiện</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Tình trạng vật lý Tốt</span>
+          <span class="stat-value" id="statGoodMultimedia" style="color:#10b981;">0</span>
+          <span class="stat-desc">Sẵn sàng phục vụ bạn đọc</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <span class="stat-label">Cần số hóa / Phục hồi</span>
+          <span class="stat-value" id="statNeedDigitizeMultimedia" style="color:#f59e0b;">0</span>
+          <span class="stat-desc">Ưu tiên chuyển sang file số</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #ec4899;">
+          <span class="stat-label">Tổng lượt mượn tại chỗ</span>
+          <span class="stat-value" id="statOnSiteLoans" style="color:#ec4899;">0</span>
+          <span class="stat-desc">Sử dụng tại phòng đa phương tiện</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="multimediaSearchInput" type="search" placeholder="Tìm theo tên tư liệu, mã định danh, vị trí lưu trữ..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:320px;font-size:13px;flex:1;">
+          <select id="multimediaTypeFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi định dạng tư liệu --</option>
+            <option value="CD_DVD">💿 Đĩa quang học CD / DVD</option>
+            <option value="CASSETTE">📼 Băng Cassette / Băng từ</option>
+            <option value="HISTORIC_MAP">🗺️ Bản đồ & Tư liệu địa lý</option>
+            <option value="PHOTO_ARCHIVE">📷 Bộ sưu tập ảnh lịch sử</option>
+            <option value="MICROFILM">🎞️ Phim vi bản (Microfilm)</option>
+          </select>
+          <select id="multimediaConditionFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi tình trạng vật lý --</option>
+            <option value="GOOD">✓ Bảo quản tốt</option>
+            <option value="NEED_DIGITIZATION">⚠️ Cần số hóa khẩn cấp</option>
+            <option value="DAMAGED">❌ Hư hỏng / Không đọc được</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách tư liệu -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px;">Mã tư liệu</th>
+              <th>Tiêu đề / Tên tài liệu</th>
+              <th style="width:160px;">Định dạng</th>
+              <th>Vị trí kệ / Tủ bảo quản</th>
+              <th style="text-align:center;width:140px;">Tình trạng</th>
+              <th style="text-align:center;width:90px;">SL Khả dụng</th>
+              <th style="text-align:center;width:90px;">Lượt mượn</th>
+              <th style="text-align:center;width:150px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="multimediaTableBody">
+            <tr>
+              <td colspan="8" style="text-align:center;padding:2rem;color:#888;">Đang tải danh mục tư liệu đặc biệt...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PHÂN HỆ 2: HỢP TÁC HỌC THUẬT & SỰ KIỆN CHUYÊN ĐỀ -->
+    <!-- ============================================== -->
+
+    <!-- TRANG 3: LỊCH HỘI THẢO & DIỄN ĐÀN KHOA HỌC -->
+    <section id="seminarsManagement" class="content-section staff-only" data-admin-route="seminars" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ACADEMIC WORKSHOPS & SCIENTIFIC FORUMS</span>
+          <h2>Lịch Hội thảo & Diễn đàn Khoa học</h2>
+          <p>Tổ chức các tọa đàm học thuật, workshop kỹ năng nghiên cứu, giao lưu tác giả và diễn đàn khoa học chuyên đề tại thư viện.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateSeminarBtn" class="button button-primary" type="button">🎤 + Lên Lịch Hội thảo Mới</button>
+          <button id="refreshSeminarsBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê hội thảo -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #8b5cf6;">
+          <span class="stat-label">Tổng số hội thảo</span>
+          <span class="stat-value" id="statTotalSeminars" style="color:#8b5cf6;">0</span>
+          <span class="stat-desc">Chuỗi sự kiện học thuật</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #06b6d4;">
+          <span class="stat-label">Sắp diễn ra</span>
+          <span class="stat-value" id="statUpcomingSeminars" style="color:#06b6d4;">0</span>
+          <span class="stat-desc">Đang mở cổng đăng ký</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Tổng chỗ đã đăng ký</span>
+          <span class="stat-value" id="statRegisteredSeats" style="color:#10b981;">0</span>
+          <span class="stat-desc">Sinh viên & Giảng viên</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <span class="stat-label">Tỷ lệ Check-in</span>
+          <span class="stat-value" id="statAttendanceRate" style="color:#f59e0b;">0%</span>
+          <span class="stat-desc">Tham gia thực tế</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="seminarSearchInput" type="search" placeholder="Tìm theo tên hội thảo, chủ đề, diễn giả, địa điểm..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:320px;font-size:13px;flex:1;">
+          <select id="seminarStatusFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi trạng thái hội thảo --</option>
+            <option value="UPCOMING">📅 Sắp diễn ra</option>
+            <option value="HAPPENING">⚡ Đang diễn ra</option>
+            <option value="ENDED">✓ Đã kết thúc</option>
+            <option value="CANCELLED">❌ Đã hủy</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách hội thảo -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th>Tên Hội thảo & Diễn đàn</th>
+              <th>Chủ đề khoa học</th>
+              <th>Diễn giả / Khách mời</th>
+              <th style="width:170px;">Thời gian & Địa điểm</th>
+              <th style="text-align:center;width:110px;">Chỗ ngồi</th>
+              <th style="text-align:center;width:120px;">Trạng thái</th>
+              <th style="text-align:center;width:160px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="seminarsTableBody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:2rem;color:#888;">Đang tải danh sách hội thảo...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRANG 4: SÁCH TRAO ĐỔI & HỌC BỔNG TÀI TRỢ -->
+    <section id="exchangeGrantsManagement" class="content-section staff-only" data-admin-route="exchange-grants" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ACADEMIC PARTNERSHIP & READING INCENTIVES</span>
+          <h2>Sách Trao đổi & Học bổng Tài trợ</h2>
+          <p>Điều phối các chương trình trao đổi sách quốc tế với các trường đại học đối tác và quản lý quỹ học bổng văn hóa đọc.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateExchangeGrantBtn" class="button button-primary" type="button">🌐 + Thêm Chương trình / Quỹ</button>
+          <button id="refreshExchangeGrantsBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê trao đổi & học bổng -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #14b8a6;">
+          <span class="stat-label">Tổng chương trình</span>
+          <span class="stat-value" id="statTotalPrograms" style="color:#14b8a6;">0</span>
+          <span class="stat-desc">Dự án trao đổi & tài trợ</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #3b82f6;">
+          <span class="stat-label">Sách trao đổi</span>
+          <span class="stat-value" id="statTotalExchangedBooks" style="color:#3b82f6;">0 cuốn</span>
+          <span class="stat-desc">Hợp tác quốc tế & trong nước</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <span class="stat-label">Tổng giá trị học bổng</span>
+          <span class="stat-value" id="statTotalGrantBudget" style="color:#f59e0b;">0 đ</span>
+          <span class="stat-desc">Khuyến khích bạn đọc</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Độc giả thụ hưởng</span>
+          <span class="stat-value" id="statTotalBeneficiaries" style="color:#10b981;">0 bạn</span>
+          <span class="stat-desc">Sinh viên nhận giải / sách</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="exchangeGrantSearchInput" type="search" placeholder="Tìm theo tên chương trình, cơ quan đối tác, quốc gia..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:320px;font-size:13px;flex:1;">
+          <select id="exchangeGrantTypeFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi phân loại chương trình --</option>
+            <option value="BOOK_EXCHANGE">📚 Trao đổi sách học thuật</option>
+            <option value="READING_GRANT">🎁 Học bổng & Quỹ khuyến đọc</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách chương trình -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:130px;">Phân loại</th>
+              <th>Tên Chương trình / Dự án</th>
+              <th>Đối tác hợp tác</th>
+              <th style="width:120px;">Quốc gia</th>
+              <th style="text-align:right;width:130px;">Số lượng / Ngân sách</th>
+              <th style="text-align:center;width:100px;">Thụ hưởng</th>
+              <th style="width:160px;">Thời gian</th>
+              <th style="text-align:center;width:120px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="exchangeGrantsTableBody">
+            <tr>
+              <td colspan="8" style="text-align:center;padding:2rem;color:#888;">Đang tải danh sách chương trình hợp tác...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- PHÂN HỆ 3: VẬN HÀNH NỘI BỘ & QUẢN TRỊ NHÂN SỰ   -->
+    <!-- ============================================== -->
+
+    <!-- TRANG 5: QUẢN LÝ CA TRỰC & LỊCH PHÂN CÔNG THỦ THƯ -->
+    <section id="shiftSchedulesManagement" class="content-section staff-only" data-admin-route="shift-schedules" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">INTERNAL OPERATIONS & ROSTER</span>
+          <h2>Quản lý Ca trực & Lịch phân công Thủ thư</h2>
+          <p>Lập lịch trực ban theo tuần/tháng, điều phối vị trí làm việc tại các quầy dịch vụ và xử lý yêu cầu đổi ca, xin nghỉ trực.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateShiftBtn" class="button button-primary" type="button">🕒 + Phân công Ca trực</button>
+          <button id="refreshShiftsBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê ca trực -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #6366f1;">
+          <span class="stat-label">Tổng ca trực (Tháng này)</span>
+          <span class="stat-value" id="statTotalShifts" style="color:#6366f1;">0</span>
+          <span class="stat-desc">Kế hoạch vận hành</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Ca trực Hôm nay</span>
+          <span class="stat-value" id="statTodayShifts" style="color:#10b981;">0 ca</span>
+          <span class="stat-desc">3 ca: Sáng, Chiều, Tối</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <span class="stat-label">Đã hoàn thành</span>
+          <span class="stat-value" id="statCompletedShifts" style="color:#f59e0b;">0</span>
+          <span class="stat-desc">Điểm danh đầy đủ</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #ec4899;">
+          <span class="stat-label">Ca đã đổi / Điều chuyển</span>
+          <span class="stat-value" id="statSwappedShifts" style="color:#ec4899;">0</span>
+          <span class="stat-desc">Đổi ca linh hoạt</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="shiftSearchInput" type="search" placeholder="Tìm theo tên thủ thư, mã nhân viên..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:240px;font-size:13px;">
+          <select id="shiftTypeFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi buổi trực --</option>
+            <option value="MORNING">☀️ Ca Sáng (07:30 - 11:30)</option>
+            <option value="AFTERNOON">⛅ Ca Chiều (13:00 - 17:00)</option>
+            <option value="EVENING">🌙 Ca Tối (17:00 - 21:00)</option>
+          </select>
+          <select id="shiftZoneFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi khu vực phụ trách --</option>
+            <option value="CIRCULATION">Quầy Lưu thông & Mượn trả</option>
+            <option value="READING_ROOM">Phòng đọc & Không gian tự học</option>
+            <option value="STACKS">Kho sách mở & Xử lý nghiệp vụ</option>
+            <option value="MULTIMEDIA">Phòng Đa phương tiện & IoT Hub</option>
+          </select>
+          <select id="shiftStatusFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi trạng thái ca --</option>
+            <option value="SCHEDULED">📅 Đã lên lịch</option>
+            <option value="COMPLETED">✓ Hoàn thành</option>
+            <option value="SWAPPED">🔄 Đã đổi ca</option>
+            <option value="ABSENT">❌ Vắng mặt</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách ca trực -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px;">Ngày trực</th>
+              <th style="width:150px;">Buổi trực</th>
+              <th>Khu vực phụ trách</th>
+              <th>Thủ thư trực ban</th>
+              <th style="text-align:center;width:120px;">Trạng thái</th>
+              <th>Ghi chú / Thay đổi</th>
+              <th style="text-align:center;width:180px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="shiftsTableBody">
+            <tr>
+              <td colspan="7" style="text-align:center;padding:2rem;color:#888;">Đang tải lịch phân công ca trực...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRANG 6: ĐÁNH GIÁ KPI & HIỆU SUẤT THỦ THƯ -->
+    <section id="staffKpiManagement" class="content-section staff-only" data-admin-route="staff-kpi" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">STAFF PERFORMANCE & KPI METRICS</span>
+          <h2>Đánh giá KPI & Hiệu suất Thủ thư</h2>
+          <p>Hệ thống tự động chấm điểm hiệu suất làm việc dựa trên số lượt xử lý mượn/trả, biên mục tài liệu, kiểm kê kho và mức độ hài lòng độc giả.</p>
+        </div>
+        <div class="button-row">
+          <button id="openCreateKpiBtn" class="button button-primary" type="button">🏆 + Thiết lập KPI Thủ thư</button>
+          <button id="refreshKpiBtn" class="button button-light" type="button">🔄 Làm mới</button>
+        </div>
+      </div>
+
+      <!-- Thống kê KPI -->
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card" style="border-left:4px solid #eab308;">
+          <span class="stat-label">Điểm KPI Trung bình</span>
+          <span class="stat-value" id="statAvgKpiScore" style="color:#eab308;">0 / 100</span>
+          <span class="stat-desc">Toàn bộ đội ngũ thủ thư</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #10b981;">
+          <span class="stat-label">Thủ thư Xuất sắc (Loại A)</span>
+          <span class="stat-value" id="statExcellentStaffCount" style="color:#10b981;">0</span>
+          <span class="stat-desc">Đạt danh hiệu thi đua</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #3b82f6;">
+          <span class="stat-label">Tổng lượt mượn trả xử lý</span>
+          <span class="stat-value" id="statTotalLoansHandled" style="color:#3b82f6;">0</span>
+          <span class="stat-desc">Năng suất phục vụ bạn đọc</span>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #ec4899;">
+          <span class="stat-label">Hài lòng Bạn đọc TB</span>
+          <span class="stat-value" id="statAvgSatisfaction" style="color:#ec4899;">0 ★</span>
+          <span class="stat-desc">Đánh giá thực tế dịch vụ</span>
+        </div>
+      </div>
+
+      <!-- Bộ lọc và tìm kiếm -->
+      <div class="report-card" style="padding:14px 18px;margin-bottom:18px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input id="kpiSearchInput" type="search" placeholder="Tìm theo tên thủ thư, chức danh..."
+            style="height:38px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;min-width:240px;font-size:13px;">
+          <select id="kpiYearFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi năm đánh giá --</option>
+            <option value="2026" selected>Năm 2026</option>
+            <option value="2025">Năm 2025</option>
+          </select>
+          <select id="kpiGradeFilter" style="height:38px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;">
+            <option value="">-- Mọi mức xếp loại --</option>
+            <option value="EXCELLENT">🌟 Xuất sắc (Điểm ≥ 90)</option>
+            <option value="GOOD">✓ Tốt (Điểm 75 - 89)</option>
+            <option value="AVERAGE">⚠️ Đạt yêu cầu (Điểm 60 - 74)</option>
+            <option value="POOR">❌ Cần cải thiện (&lt; 60)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bảng danh sách đánh giá KPI -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;">
+        <table>
+          <thead>
+            <tr>
+              <th>Thủ thư</th>
+              <th style="width:120px;">Kỳ đánh giá</th>
+              <th style="text-align:center;width:95px;">Biên mục</th>
+              <th style="text-align:center;width:95px;">Xử lý Mượn</th>
+              <th style="text-align:center;width:80px;">Kiểm kê</th>
+              <th style="text-align:center;width:110px;">Hài lòng</th>
+              <th style="text-align:center;width:110px;">Điểm KPI</th>
+              <th style="text-align:center;width:120px;">Xếp loại</th>
+              <th style="text-align:center;width:120px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="kpiTableBody">
+            <tr>
+              <td colspan="9" style="text-align:center;padding:2rem;color:#888;">Đang tải bảng theo dõi KPI thủ thư...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -6088,6 +6709,485 @@
         <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
           <button class="button button-light" type="button" data-close-dialog="iotDeviceDialog">Hủy</button>
           <button class="button button-primary" type="submit" id="saveIotBtn">Lưu thiết bị IoT</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ============================================== -->
+  <!-- DIALOGS CHO 6 TRANG MỚI                        -->
+  <!-- ============================================== -->
+
+  <!-- DIALOG LUẬN VĂN & KHÓA LUẬN -->
+  <dialog id="thesisDialog" class="dialog" style="max-width:min(720px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="thesisDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">ACADEMIC RESOURCES</span>
+      <h2 id="thesisDialogTitle">Đăng ký Luận văn & Khóa luận Tốt nghiệp</h2>
+      <form id="thesisForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="thesisFormId">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+          <label>
+            <span>Mã đề tài *</span>
+            <input id="thesisFormCode" required placeholder="LV-2026-001">
+          </label>
+          <label>
+            <span>Tên đề tài Luận văn / Khóa luận *</span>
+            <input id="thesisFormTitle" required placeholder="Nghiên cứu ứng dụng trí tuệ nhân tạo...">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Tác giả (Họ tên) *</span>
+            <input id="thesisFormAuthor" required placeholder="Nguyễn Văn A">
+          </label>
+          <label>
+            <span>Mã số sinh viên (MSSV) *</span>
+            <input id="thesisFormStudentId" required placeholder="SV20220001">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;">
+          <label>
+            <span>Giảng viên hướng dẫn *</span>
+            <input id="thesisFormAdvisor" required placeholder="PGS. TS. Trần Văn B">
+          </label>
+          <label>
+            <span>Năm bảo vệ *</span>
+            <input id="thesisFormDefenseYear" type="number" required min="2000" max="2035" value="2026">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Chuyên ngành đào tạo *</span>
+            <select id="thesisFormMajor" required>
+              <option value="Công nghệ thông tin">Công nghệ thông tin</option>
+              <option value="Khoa học máy tính">Khoa học máy tính</option>
+              <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+              <option value="Kinh tế số & TMĐT">Kinh tế số & TMĐT</option>
+              <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
+            </select>
+          </label>
+          <label>
+            <span>Trạng thái bảo mật *</span>
+            <select id="thesisFormSecurity" required>
+              <option value="PUBLIC">🌐 Công khai (Toàn quyền đọc số)</option>
+              <option value="INTERNAL">🏫 Nội bộ (Cần tài khoản trường)</option>
+              <option value="RESTRICTED">🔒 Hạn chế (Bản quyền đề tài)</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span>Tóm tắt đề tài (Abstract)</span>
+          <textarea id="thesisFormAbstract" rows="3" placeholder="Tóm tắt mục tiêu, phương pháp và kết quả nghiên cứu..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <label>
+          <span>Đường dẫn tệp toàn văn (PDF URL)</span>
+          <input id="thesisFormFileUrl" placeholder="https://repository.university.edu.vn/theses/sample.pdf">
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="thesisDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveThesisBtn">Lưu Luận văn</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG TÀI LIỆU ĐA PHƯƠNG TIỆN -->
+  <dialog id="multimediaDialog" class="dialog" style="max-width:min(680px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="multimediaDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">MULTIMEDIA ARCHIVES</span>
+      <h2 id="multimediaDialogTitle">Nhập Tư liệu Đa phương tiện & Đặc biệt</h2>
+      <form id="multimediaForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="multimediaFormId">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+          <label>
+            <span>Mã tư liệu *</span>
+            <input id="multimediaFormCode" required placeholder="MED-CD-001">
+          </label>
+          <label>
+            <span>Tiêu đề tư liệu / Bộ sưu tập *</span>
+            <input id="multimediaFormTitle" required placeholder="Bộ đĩa CD-ROM Audio Bài giảng...">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Định dạng tư liệu *</span>
+            <select id="multimediaFormType" required>
+              <option value="CD_DVD">💿 Đĩa quang học CD / DVD</option>
+              <option value="CASSETTE">📼 Băng Cassette / Băng từ</option>
+              <option value="HISTORIC_MAP">🗺️ Bản đồ & Tư liệu địa lý</option>
+              <option value="PHOTO_ARCHIVE">📷 Bộ sưu tập ảnh lịch sử</option>
+              <option value="MICROFILM">🎞️ Phim vi bản (Microfilm)</option>
+            </select>
+          </label>
+          <label>
+            <span>Tình trạng bảo quản vật lý *</span>
+            <select id="multimediaFormCondition" required>
+              <option value="GOOD">✓ Bảo quản tốt</option>
+              <option value="NEED_DIGITIZATION">⚠️ Cần số hóa khẩn cấp</option>
+              <option value="DAMAGED">❌ Hư hỏng / Không đọc được</option>
+            </select>
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
+          <label>
+            <span>Vị trí lưu trữ / Kệ tủ *</span>
+            <input id="multimediaFormLocation" required placeholder="Kệ Med-01, Hộp 3B">
+          </label>
+          <label>
+            <span>Số lượng *</span>
+            <input id="multimediaFormQty" type="number" required min="1" value="1">
+          </label>
+          <label>
+            <span>Khả dụng *</span>
+            <input id="multimediaFormAvail" type="number" required min="0" value="1">
+          </label>
+        </div>
+        <label>
+          <span>Mô tả chi tiết nội dung & quy cách</span>
+          <textarea id="multimediaFormDesc" rows="3" placeholder="Mô tả danh mục bài học, xuất xứ, năm lưu trữ..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="multimediaDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveMultimediaBtn">Lưu Tư liệu</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG GHI NHẬN MƯỢN ĐỌC TẠI CHỖ TƯ LIỆU -->
+  <dialog id="recordMultimediaLoanDialog" class="dialog" style="max-width:min(480px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="recordMultimediaLoanDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">ON-SITE MULTIMEDIA LOAN</span>
+      <h2>Mượn đọc Tư liệu tại chỗ</h2>
+      <form id="recordMultimediaLoanForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="loanMultimediaId">
+        <p id="loanMultimediaText" style="font-size:13.5px;color:#1e293b;margin:0 0 8px 0;"></p>
+        <label>
+          <span>Họ tên hoặc MSSV Độc giả *</span>
+          <input id="loanMultimediaReader" required placeholder="Vũ Thị Mai (SV20230045)">
+        </label>
+        <label>
+          <span>Ghi chú thiết bị mượn kèm</span>
+          <input id="loanMultimediaNote" placeholder="Sử dụng tại Cabin số 4, mượn kèm tai nghe Sony">
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="recordMultimediaLoanDialog">Đóng</button>
+          <button class="button button-primary" type="submit" id="submitMultimediaLoanBtn">Xác nhận Cho Mượn Đọc</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG HỘI THẢO & DIỄN ĐÀN -->
+  <dialog id="seminarDialog" class="dialog" style="max-width:min(720px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="seminarDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">ACADEMIC WORKSHOPS</span>
+      <h2 id="seminarDialogTitle">Lên Lịch Hội thảo & Diễn đàn Khoa học</h2>
+      <form id="seminarForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="seminarFormId">
+        <label>
+          <span>Tên Hội thảo / Tọa đàm Khoa học *</span>
+          <input id="seminarFormTitle" required placeholder="Hội thảo Kỹ năng Khai thác Cơ sở dữ liệu Scopus & Web of Science">
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Chủ đề chuyên môn *</span>
+            <input id="seminarFormTheme" required placeholder="Phương pháp Nghiên cứu Khoa học">
+          </label>
+          <label>
+            <span>Diễn giả / Khách mời *</span>
+            <input id="seminarFormSpeakers" required placeholder="TS. Lê Hoàng Long, Chuyên gia Elsevier">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Thời gian tổ chức *</span>
+            <input id="seminarFormDate" type="datetime-local" required>
+          </label>
+          <label>
+            <span>Địa điểm tổ chức *</span>
+            <input id="seminarFormLocation" required placeholder="Hội trường Thư viện Tầng 3 (Phòng 302)">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <label>
+            <span>Thời lượng (Phút) *</span>
+            <input id="seminarFormDuration" type="number" required min="30" value="120">
+          </label>
+          <label>
+            <span>Số chỗ ngồi tối đa *</span>
+            <input id="seminarFormMaxSeats" type="number" required min="10" value="80">
+          </label>
+          <label>
+            <span>Trạng thái sự kiện *</span>
+            <select id="seminarFormStatus" required>
+              <option value="UPCOMING">📅 Sắp diễn ra</option>
+              <option value="HAPPENING">⚡ Đang diễn ra</option>
+              <option value="ENDED">✓ Đã kết thúc</option>
+              <option value="CANCELLED">❌ Đã hủy</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span>Mô tả tóm tắt nội dung hội thảo</span>
+          <textarea id="seminarFormDesc" rows="3" placeholder="Chương trình nghị sự, mục tiêu và quyền lợi bạn đọc tham dự..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="seminarDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveSeminarBtn">Lưu Hội thảo</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG QUẢN LÝ ĐĂNG KÝ & CHECK-IN HỘI THẢO -->
+  <dialog id="seminarAttendanceDialog" class="dialog" style="max-width:min(800px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="seminarAttendanceDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">ATTENDANCE & CHECK-IN</span>
+      <h2 id="seminarAttendanceTitle">Danh sách Đăng ký & Điểm danh Hội thảo</h2>
+      
+      <!-- Đăng ký nhanh người tham dự mới -->
+      <form id="registerAttendeeForm" style="display:flex;gap:8px;align-items:flex-end;margin:12px 0;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+        <input type="hidden" id="attendanceSeminarId">
+        <label style="flex:1;">
+          <span style="font-size:12px;font-weight:600;">Họ tên người tham dự *</span>
+          <input id="attendeeNameInput" required placeholder="Nguyễn Văn B" style="height:34px;font-size:13px;">
+        </label>
+        <label style="width:140px;">
+          <span style="font-size:12px;font-weight:600;">MSSV / Mã Cán bộ *</span>
+          <input id="attendeeCodeInput" required placeholder="SV2022456" style="height:34px;font-size:13px;">
+        </label>
+        <label style="flex:1;">
+          <span style="font-size:12px;font-weight:600;">Email liên hệ</span>
+          <input id="attendeeEmailInput" type="email" placeholder="nguyenb@uni.edu.vn" style="height:34px;font-size:13px;">
+        </label>
+        <button class="button button-primary" type="submit" style="height:34px;padding:0 14px;font-size:12.5px;">+ Đăng ký</button>
+      </form>
+
+      <!-- Bảng danh sách người tham dự -->
+      <div class="table-wrap report-card" style="padding:0;overflow:hidden;max-height:360px;overflow-y:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Họ tên</th>
+              <th style="width:120px;">MSSV / Mã CB</th>
+              <th>Email</th>
+              <th style="width:120px;">Thời gian ĐK</th>
+              <th style="text-align:center;width:120px;">Check-in</th>
+              <th style="text-align:center;width:110px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="attendeesTableBody">
+            <tr>
+              <td colspan="6" style="text-align:center;padding:1.5rem;color:#888;">Đang tải danh sách tham dự...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+        <button class="button button-light" type="button" data-close-dialog="seminarAttendanceDialog">Đóng</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- DIALOG SÁCH TRAO ĐỔI & HỌC BỔNG TÀI TRỢ -->
+  <dialog id="exchangeGrantDialog" class="dialog" style="max-width:min(700px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="exchangeGrantDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">ACADEMIC PARTNERSHIP</span>
+      <h2 id="exchangeGrantDialogTitle">Thêm Chương trình Trao đổi / Học bổng</h2>
+      <form id="exchangeGrantForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="exchangeGrantFormId">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">
+          <label>
+            <span>Phân loại chương trình *</span>
+            <select id="exchangeGrantFormType" required>
+              <option value="BOOK_EXCHANGE">📚 Trao đổi sách học thuật</option>
+              <option value="READING_GRANT">🎁 Học bổng & Quỹ khuyến đọc</option>
+            </select>
+          </label>
+          <label>
+            <span>Tên Chương trình / Dự án *</span>
+            <input id="exchangeGrantFormTitle" required placeholder="Dự án Trao đổi Sách Đại học Tokyo Tech...">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;">
+          <label>
+            <span>Đối tác hợp tác / Đơn vị tài trợ *</span>
+            <input id="exchangeGrantFormPartner" required placeholder="Viện Công nghệ Tokyo (Tokyo Tech)">
+          </label>
+          <label>
+            <span>Quốc gia *</span>
+            <input id="exchangeGrantFormCountry" required placeholder="Nhật Bản">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <label>
+            <span>Số lượng sách trao đổi</span>
+            <input id="exchangeGrantFormBooks" type="number" min="0" value="0">
+          </label>
+          <label>
+            <span>Tổng giá trị học bổng (VNĐ)</span>
+            <input id="exchangeGrantFormAmount" type="number" min="0" value="0">
+          </label>
+          <label>
+            <span>Số độc giả thụ hưởng</span>
+            <input id="exchangeGrantFormBeneficiaries" type="number" min="0" value="0">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Ngày bắt đầu *</span>
+            <input id="exchangeGrantFormStart" type="date" required>
+          </label>
+          <label>
+            <span>Ngày kết thúc</span>
+            <input id="exchangeGrantFormEnd" type="date">
+          </label>
+        </div>
+        <label>
+          <span>Ghi chú thỏa thuận / Quyết định liên kết</span>
+          <textarea id="exchangeGrantFormNote" rows="3" placeholder="Số hiệu văn bản ký kết, điều khoản mượn liên thư viện..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="exchangeGrantDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveExchangeGrantBtn">Lưu Chương trình</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG PHÂN CÔNG CA TRỰC -->
+  <dialog id="shiftDialog" class="dialog" style="max-width:min(600px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="shiftDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">INTERNAL OPERATIONS</span>
+      <h2 id="shiftDialogTitle">Phân công Ca trực Thủ thư</h2>
+      <form id="shiftForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="shiftFormId">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Ngày trực *</span>
+            <input id="shiftFormDate" type="date" required>
+          </label>
+          <label>
+            <span>Buổi trực *</span>
+            <select id="shiftFormType" required>
+              <option value="MORNING">☀️ Ca Sáng (07:30 - 11:30)</option>
+              <option value="AFTERNOON">⛅ Ca Chiều (13:00 - 17:00)</option>
+              <option value="EVENING">🌙 Ca Tối (17:00 - 21:00)</option>
+            </select>
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label>
+            <span>Khu vực phụ trách *</span>
+            <select id="shiftFormZone" required>
+              <option value="CIRCULATION">Quầy Lưu thông & Mượn trả</option>
+              <option value="READING_ROOM">Phòng đọc & Tự học</option>
+              <option value="STACKS">Kho sách mở & Nghiệp vụ</option>
+              <option value="MULTIMEDIA">Phòng Đa phương tiện & IoT</option>
+            </select>
+          </label>
+          <label>
+            <span>Thủ thư phân công *</span>
+            <input id="shiftFormStaffName" required placeholder="Lê Minh Tâm">
+          </label>
+        </div>
+        <label>
+          <span>Ghi chú công việc trực ban</span>
+          <textarea id="shiftFormNote" rows="2" placeholder="Nhiệm vụ trọng tâm trong ca trực..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="shiftDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveShiftBtn">Lưu Ca trực</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG ĐỔI CA TRỰC -->
+  <dialog id="swapShiftDialog" class="dialog" style="max-width:min(480px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="swapShiftDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">SHIFT SWAP REQUEST</span>
+      <h2>Đổi ca trực / Điều chuyển</h2>
+      <form id="swapShiftForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="swapShiftId">
+        <p id="swapShiftInfoText" style="font-size:13.5px;color:#1e293b;margin:0 0 8px 0;"></p>
+        <label>
+          <span>Đổi cho Thủ thư nhận trực thay *</span>
+          <input id="swapShiftWithStaff" required placeholder="Nguyễn Văn Hoàng">
+        </label>
+        <label>
+          <span>Lý do đổi ca *</span>
+          <input id="swapShiftReason" required placeholder="Trùng lịch thi cao học / Lý do đột xuất cá nhân">
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="swapShiftDialog">Đóng</button>
+          <button class="button button-primary" type="submit" id="submitSwapShiftBtn">Xác nhận Đổi ca</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- DIALOG ĐÁNH GIÁ KPI THỦ THƯ -->
+  <dialog id="kpiDialog" class="dialog" style="max-width:min(650px, 95vw);width:100%;">
+    <div class="dialog-card">
+      <button class="dialog-close" type="button" data-close-dialog="kpiDialog" aria-label="Đóng">×</button>
+      <span class="eyebrow">STAFF PERFORMANCE</span>
+      <h2 id="kpiDialogTitle">Thiết lập / Cập nhật KPI Thủ thư</h2>
+      <form id="kpiForm" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+        <input type="hidden" id="kpiFormId">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
+          <label>
+            <span>Họ tên Thủ thư *</span>
+            <input id="kpiFormStaffName" required placeholder="Lê Minh Tâm">
+          </label>
+          <label>
+            <span>Tháng *</span>
+            <select id="kpiFormMonth" required>
+              <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option><option value="11" selected>Tháng 11</option><option value="12">Tháng 12</option>
+            </select>
+          </label>
+          <label>
+            <span>Năm *</span>
+            <input id="kpiFormYear" type="number" required min="2020" max="2035" value="2026">
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+          <label>
+            <span>Biên mục sách</span>
+            <input id="kpiFormCataloged" type="number" min="0" value="45">
+          </label>
+          <label>
+            <span>Xử lý mượn trả</span>
+            <input id="kpiFormLoans" type="number" min="0" value="280">
+          </label>
+          <label>
+            <span>Kiểm kê kho</span>
+            <input id="kpiFormAudits" type="number" min="0" value="2">
+          </label>
+          <label>
+            <span>Hài lòng (1-5)</span>
+            <input id="kpiFormSatisfaction" type="number" step="0.1" min="1" max="5" value="4.8">
+          </label>
+        </div>
+        <label>
+          <span>Nhận xét đánh giá chuyên môn</span>
+          <textarea id="kpiFormNote" rows="2" placeholder="Ghi chú thành tích hoặc điểm cần khắc phục..." style="border:1px solid #cbd5e1;border-radius:6px;padding:8px;font-family:inherit;font-size:13px;"></textarea>
+        </label>
+        <div class="button-row" style="margin-top:14px;justify-content:flex-end;">
+          <button class="button button-light" type="button" data-close-dialog="kpiDialog">Hủy</button>
+          <button class="button button-primary" type="submit" id="saveKpiBtn">Lưu Kết Quả KPI</button>
         </div>
       </form>
     </div>

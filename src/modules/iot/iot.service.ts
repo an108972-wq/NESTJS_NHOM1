@@ -6,6 +6,7 @@ import {
   IotDeviceStatus,
   IotDeviceType,
 } from './entities/iot-device.entity';
+import { IotAlert, IotAlertSeverity } from './entities/iot-alert.entity';
 import {
   CreateIotDeviceDto,
   DeviceActionDto,
@@ -17,10 +18,63 @@ export class IotService implements OnModuleInit {
   constructor(
     @InjectRepository(IotDevice)
     private readonly deviceRepo: Repository<IotDevice>,
+    @InjectRepository(IotAlert)
+    private readonly alertRepo: Repository<IotAlert>,
   ) {}
 
   async onModuleInit() {
     await this.seedIotDevicesIfEmpty();
+    await this.seedIotAlertsIfEmpty();
+  }
+
+  private async seedIotAlertsIfEmpty() {
+    const count = await this.alertRepo.count();
+    if (count > 0) return;
+
+    const sampleAlerts = [
+      this.alertRepo.create({
+        deviceCode: 'RFID-GATE-MAIN',
+        deviceName: 'Hệ Thống Cổng Từ An Ninh RFID Cửa Chính (Làn 1)',
+        alertType: 'RFID_UNAUTHORIZED',
+        severity: IotAlertSeverity.CRITICAL,
+        message: 'Phát hiện tài liệu chưa mượn mã [BK-CSDL-2026] đi qua cổng từ. Đã tự động kích hoạt chuông và chụp ảnh hiện trường.',
+        resolved: false,
+        createdAt: new Date(Date.now() - 25 * 60000), // 25 phút trước
+      }),
+      this.alertRepo.create({
+        deviceCode: 'ENV-SENSOR-ARCHIVE',
+        deviceName: 'Trạm Cảm Biến Môi Trường Kho Sách Quý & Luận Án',
+        alertType: 'HIGH_HUMIDITY',
+        severity: IotAlertSeverity.WARNING,
+        message: 'Độ ẩm kho sách quý phòng 305 tăng lên 66.8% RH (vượt ngưỡng an toàn bảo quản 60% RH). Máy hút ẩm trung tâm đã tự động khởi động.',
+        resolved: false,
+        createdAt: new Date(Date.now() - 80 * 60000), // 80 phút trước
+      }),
+      this.alertRepo.create({
+        deviceCode: 'ENV-SENSOR-SERVER',
+        deviceName: 'Cảm Biến Nhiệt/Ẩm Phòng Máy Chủ & Hạ Tầng Số',
+        alertType: 'OVER_TEMPERATURE',
+        severity: IotAlertSeverity.WARNING,
+        message: 'Nhiệt độ cụm Rack 2 phòng máy chủ vượt 25.8°C. Quạt thông gió thứ cấp đã được tăng tốc.',
+        resolved: true,
+        resolvedAt: new Date(Date.now() - 30 * 60000),
+        resolvedByStaffName: 'Thủ thư Quản trị mạng',
+        createdAt: new Date(Date.now() - 150 * 60000),
+      }),
+      this.alertRepo.create({
+        deviceCode: 'RFID-GATE-FLOOR2',
+        deviceName: 'Cổng Từ Giám Sát Lối Vào Phòng Sách Chuyên Khảo',
+        alertType: 'DEVICE_OFFLINE',
+        severity: IotAlertSeverity.INFO,
+        message: 'Mất tín hiệu kết nối mạng cục bộ LAN trong 3 phút. Đã tự động tái thiết lập kết nối IP tĩnh thành công.',
+        resolved: true,
+        resolvedAt: new Date(Date.now() - 200 * 60000),
+        resolvedByStaffName: 'Hệ thống tự động',
+        createdAt: new Date(Date.now() - 220 * 60000),
+      }),
+    ];
+
+    await this.alertRepo.save(sampleAlerts);
   }
 
   private async seedIotDevicesIfEmpty() {
@@ -261,6 +315,41 @@ export class IotService implements OnModuleInit {
       message: `Đã thực thi lệnh "${actionDto.action}" cho thiết bị [${device.deviceCode}] thành công!`,
       device,
     };
+  }
+
+  // Quản lý nhật ký cảnh báo IoT & an ninh
+  async getAlerts(resolved?: boolean) {
+    const qb = this.alertRepo.createQueryBuilder('a');
+    if (resolved !== undefined) {
+      qb.andWhere('a.resolved = :resolved', { resolved });
+    }
+    qb.orderBy('a.createdAt', 'DESC');
+    return qb.getMany();
+  }
+
+  async resolveAlert(id: number, staffName = 'Thủ thư xử lý') {
+    const alert = await this.alertRepo.findOne({ where: { id } });
+    if (!alert) {
+      throw new NotFoundException(`Không tìm thấy cảnh báo #${id}`);
+    }
+    alert.resolved = true;
+    alert.resolvedAt = new Date();
+    alert.resolvedByStaffName = staffName;
+    return this.alertRepo.save(alert);
+  }
+
+  async simulateAlert(deviceCode = 'RFID-GATE-MAIN', staffName = 'Thủ thư') {
+    const device = await this.deviceRepo.findOne({ where: { deviceCode } });
+    const alert = this.alertRepo.create({
+      deviceCode: deviceCode,
+      deviceName: device ? device.name : 'Thiết bị IoT thư viện',
+      alertType: device?.type === IotDeviceType.ENV_SENSOR ? 'OVER_TEMPERATURE' : 'RFID_UNAUTHORIZED',
+      severity: IotAlertSeverity.CRITICAL,
+      message: `CẢNH BÁO MÔ PHỎNG: ${device?.type === IotDeviceType.ENV_SENSOR ? 'Nhiệt độ cảm biến tăng đột biến lên 27.5°C' : 'Kích hoạt chuông an ninh phát hiện tài liệu vi phạm mang ra ngoài'} tại ${device?.location || 'Thư viện'}!`,
+      resolved: false,
+      createdAt: new Date(),
+    });
+    return this.alertRepo.save(alert);
   }
 }
 
