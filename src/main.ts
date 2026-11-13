@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Nạp file .env nếu có
+// Nạp file .env cấu hình hệ thống
 const envPath = path.resolve(process.cwd(), '.env');
 if (fs.existsSync(envPath)) {
   const content = fs.readFileSync(envPath, 'utf8');

@@ -1029,6 +1029,57 @@
           <button id="btnTestSmsConnection" class="button button-light button-small" type="button" style="font-weight:600;background:#0284c7;color:#fff;">📲 Gửi test SMS OTP</button>
         </div>
       </div>
+
+      <!-- 4. QUẢN TRỊ DỮ LIỆU & SAO LƯU CƠ SỞ DỮ LIỆU -->
+      <div class="report-card" style="padding:22px;margin-bottom:20px;border-radius:12px;border:1px solid #e2e8f0;background:#ffffff;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h3 style="margin:0;font-size:16.5px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:8px;">
+              🛠️ Bảo trì Dữ liệu & Sao lưu Hệ thống (Maintenance & Backup)
+            </h3>
+            <p style="margin:4px 0 0 0;font-size:13px;color:#64748b;">
+              Công cụ quản trị hệ thống: dọn dẹp các dữ liệu kiểm thử cũ (tên he, thể loại hài, đầu sách test) và xuất bản sao lưu SQL an toàn.
+            </p>
+          </div>
+          <span class="status-badge" style="background:#f0fdf4;color:#166534;font-weight:700;">Hệ thống ổn định</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;">
+          <div style="padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <h4 style="margin:0 0 6px 0;font-size:14.5px;color:#0f172a;display:flex;align-items:center;gap:6px;">
+                🧹 Dọn dẹp dữ liệu thử nghiệm (Clean Test Data)
+              </h4>
+              <p style="margin:0 0 12px 0;font-size:12.5px;color:#64748b;line-height:1.5;">
+                Quét và tự động chuẩn hóa các thể loại/danh mục thử nghiệm (như <em>'hài'</em>, <em>'test'</em>), đầu sách nhập nháp (<em>'he'</em>, <em>'test'</em>) và tài khoản mẫu thành dữ liệu học thuật chuẩn của thư viện đại học.
+              </p>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <span id="cleanTestDataStatusText" style="font-size:12px;color:#64748b;">Sẵn sàng thực hiện</span>
+              <button id="btnCleanTestData" class="button button-danger button-small" type="button" style="font-weight:600;">
+                🧹 Dọn dẹp dữ liệu test ngay
+              </button>
+            </div>
+          </div>
+
+          <div style="padding:16px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <h4 style="margin:0 0 6px 0;font-size:14.5px;color:#0f172a;display:flex;align-items:center;gap:6px;">
+                💾 Sao lưu cơ sở dữ liệu (Database Backup)
+              </h4>
+              <p style="margin:0 0 12px 0;font-size:12.5px;color:#64748b;line-height:1.5;">
+                Xuất trích xuất dữ liệu toàn bộ các bảng nghiệp vụ (độc giả, sách, phiếu mượn, vi phạm, tài sản, đối tác) thành tệp tin SQL chuẩn để lưu trữ an toàn hoặc chuyển giao đồ án.
+              </p>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:12px;color:#64748b;">Định dạng: SQL Dump (.sql)</span>
+              <button id="btnDownloadBackupSql" class="button button-primary button-small" type="button" style="font-weight:600;background:#059669;border-color:#059669;">
+                📥 Tải bản sao lưu SQL
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
 
@@ -1653,7 +1704,8 @@
         </div><button id="refreshLoans" class="button button-light" type="button">Làm mới</button>
       </div>
       <div class="loan-toolbar counter-only" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-        <button id="openBorrowDialog" class="button button-primary" type="button">＋ Lập phiếu mượn</button>
+        <button id="openBorrowDialog" class="button button-primary" type="submit">＋ Lập phiếu mượn</button>
+        <button id="openToolbarCameraBtn" class="button button-accent" type="button" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;">📷 Quét Webcam Mượn / Trả</button>
         <button id="sendReturnRemindersBtn" class="button button-light" type="button"
           title="Tự động quét và gửi thông báo nhắc trả sách cho độc giả sắp đến hạn và quá hạn">🔔 Tự động nhắc trả
           sách</button>
@@ -1727,13 +1779,13 @@
       <!-- Modal Quét Mã Vạch Trả Sách Trực Tiếp Bằng Camera -->
       <dialog id="loanReturnCameraDialog" class="modal-dialog" style="max-width:540px;padding:22px;border-radius:12px;border:none;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <h3 style="margin:0;font-size:17px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:8px;">
-            📷 Quét Mã Vạch Camera Trả Sách Nhanh
+          <h3 id="loanReturnCameraTitle" style="margin:0;font-size:17px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:8px;">
+            📷 Quét Mã Vạch Camera Trực Tuyến
           </h3>
           <button type="button" class="dialog-close" id="closeLoanReturnCameraBtn">✕</button>
         </div>
-        <p style="font-size:13px;color:#64748b;margin:0 0 12px 0;">
-          Hướng camera vào mã vạch (Barcode / QR) dán trên gáy hoặc bìa sách. Hệ thống sẽ tự động nhận diện và hoàn tất thủ tục trả sách tức thì.
+        <p id="loanReturnCameraSubtitle" style="font-size:13px;color:#64748b;margin:0 0 12px 0;">
+          Hướng camera vào mã vạch (Barcode / QR) dán trên gáy hoặc bìa sách. Hệ thống sẽ tự động nhận diện và hoàn tất thủ tục tức thì.
         </p>
         <div style="position:relative;background:#0f172a;border-radius:10px;overflow:hidden;width:100%;height:320px;display:flex;align-items:center;justify-content:center;">
           <div id="loanReturnCameraReader" style="width:100%;height:100%;display:none;"></div>
@@ -2366,6 +2418,12 @@
         <p id="borrowDueSuggestion" class="muted-note"></p>
         <label>Quét barcode bản sao<input id="quickBorrowBarcode" autocomplete="off"
             placeholder="Quét / nhập mã rồi nhấn Enter"></label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <button id="openBorrowCameraBtn" type="button" class="button button-accent button-small" style="font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+            📷 Quét Camera bản sao mượn
+          </button>
+          <span style="font-size:12px;color:#64748b;">(Hoặc dùng máy quét mã vạch USB bấm trực tiếp)</span>
+        </div>
         <div id="borrowBarcodeList" class="borrow-barcode-list" aria-live="polite"></div>
         <div class="button-row"><button class="button button-light" type="button"
             data-close-dialog="staffBorrowDialog">Hủy</button><button id="submitStaffBorrow"

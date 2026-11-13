@@ -2938,6 +2938,7 @@
       const actions = [
         state.user ? `<button class="button button-light button-small" data-favorite="${book.id}" title="${isFav ? 'Bỏ yêu thích' : 'Yêu thích'}" type="button" style="color:${isFav ? '#e11d48' : '#64748b'};padding:4px 8px;font-size:14px;">${isFav ? '❤️' : '🤍'}</button>` : '',
         `<button class="button button-light button-small" data-book-detail="${book.id}" type="button">ⓘ Chi tiết</button>`,
+        (book.shelf || book.floor) ? `<button class="button button-light button-small" data-shelf-code="${escapeHtml(book.shelf || '')}" data-floor="${escapeHtml(book.floor || '1')}" type="button" title="Xem vị trí kệ trên sơ đồ">📍 Vị trí kệ</button>` : '',
         state.user && book.availableCopies > 0
           ? `<button class="button button-primary button-small" data-borrow="${book.id}" data-title="${escapeHtml(book.title)}" type="button">＋ Mượn</button>`
           : state.user && book.availableCopies <= 0
@@ -2947,7 +2948,7 @@
         isAdmin() ? `<button class="button button-danger button-small" data-delete-book="${book.id}" type="button">Ẩn</button>` : '',
         book.pdfUrl ? `<button class="button button-primary button-small" style="background:#2b6cb0;" data-read-pdf="${escapeHtml(book.pdfUrl)}" data-title="${escapeHtml(book.title)}" data-id="${book.id}" data-perm="${book.pdfPermission || 'PUBLIC'}" type="button">📖 Đọc online</button>` : '',
       ].join('');
-      return `<article class="book-card"><div class="book-top"><div class="book-cover" aria-hidden="true"><span>${escapeHtml(book.title.slice(0, 1).toLocaleUpperCase('vi'))}</span>${coverUrl ? `<img src="${escapeHtml(coverUrl)}" alt="" loading="lazy">` : ''}</div><span class="inventory-badge ${book.availableCopies > 0 ? 'inventory-available' : 'inventory-unavailable'}">${book.availableCopies > 0 ? `Còn ${book.availableCopies} bản` : 'Hết hàng'}</span></div><h3>${escapeHtml(book.title)}</h3><p class="book-author">${escapeHtml(book.author)}</p><div class="book-meta"><span class="book-tag category-tag">${escapeHtml(book.category?.name || 'Chưa phân loại')}</span><span class="book-tag publisher-tag">${escapeHtml(book.publisher?.name || 'Chưa có nhà xuất bản')}</span><span class="book-location">${escapeHtml(locations.length ? locations.join(' · ') : 'Chưa có vị trí')}</span><span>ISBN ${escapeHtml(book.isbn)}</span>${book.publicationYear ? `<span>${escapeHtml(book.publicationYear)}</span>` : ''}</div><div class="book-actions">${actions}</div></article>`;
+      return `<article class="book-card"><div class="book-top"><div class="book-cover" aria-hidden="true"><span>${escapeHtml(book.title.slice(0, 1).toLocaleUpperCase('vi'))}</span>${coverUrl ? `<img src="${escapeHtml(coverUrl)}" alt="" loading="lazy">` : ''}</div><span class="inventory-badge ${book.availableCopies > 0 ? 'inventory-available' : 'inventory-unavailable'}">${book.availableCopies > 0 ? `Còn ${book.availableCopies} bản` : 'Hết hàng'}</span></div><h3>${escapeHtml(book.title)}</h3><p class="book-author">${escapeHtml(book.author)}</p><div class="book-meta"><span class="book-tag category-tag">${escapeHtml(book.category?.name || 'Chưa phân loại')}</span><span class="book-tag publisher-tag">${escapeHtml(book.publisher?.name || 'Chưa có nhà xuất bản')}</span><span class="book-location" data-shelf-code="${escapeHtml(book.shelf || '')}" data-floor="${escapeHtml(book.floor || '1')}" style="cursor:pointer;" title="Bấm để xem vị trí trên Sơ đồ kệ">${escapeHtml(locations.length ? locations.join(' · ') : 'Chưa có vị trí')}</span><span>ISBN ${escapeHtml(book.isbn)}</span>${book.publicationYear ? `<span>${escapeHtml(book.publicationYear)}</span>` : ''}</div><div class="book-actions">${actions}</div></article>`;
     }).join('') : `<div class="book-empty-state"><strong>Chưa tìm thấy đầu sách phù hợp</strong><p>${hasBookFilters() ? 'Thử thay đổi bộ lọc hoặc xóa điều kiện tìm kiếm.' : 'Danh mục hiện chưa có sách để hiển thị.'}</p><div class="button-row"><button class="button button-light" data-clear-book-filters type="button">Xóa bộ lọc</button>${isAdmin() ? '<button class="button button-primary" data-empty-create-book type="button">+ Thêm sách</button>' : ''}</div></div>`;
     $('bookList').querySelectorAll('.book-cover img').forEach((image) => {
       image.addEventListener('error', () => image.remove(), { once: true });
@@ -2972,6 +2973,14 @@
     }));
     document.querySelectorAll('[data-book-detail]').forEach((button) => {
       button.addEventListener('click', () => void showBookDetails(button.dataset.bookDetail));
+    });
+    document.querySelectorAll('[data-shelf-code]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const floor = button.dataset.floor || '1';
+        const shelf = button.dataset.shelfCode || '';
+        window.history.pushState({}, '', `/admin/shelves?floor=${encodeURIComponent(floor)}&id=${encodeURIComponent(shelf)}`);
+        syncAdminRoute();
+      });
     });
     document.querySelectorAll('[data-read-pdf]').forEach((button) => {
       button.addEventListener('click', () => void openPdfViewer(button.dataset.readPdf, button.dataset.title, button.dataset.id, button.dataset.perm));
@@ -6468,12 +6477,41 @@
   let lastScannedLoanBarcode = '';
   let lastScannedLoanTime = 0;
 
-  async function startLoanReturnCamera() {
+  let cameraScanMode = 'RETURN'; // 'RETURN' hoặc 'BORROW'
+
+  async function handleCameraBarcodeScanned(code) {
+    if (!code) return;
+    if (cameraScanMode === 'BORROW') {
+      addBorrowBarcode(code);
+      if (typeof playBarcodeScanTone === 'function') playBarcodeScanTone('scan');
+      notify(`✓ Đã quét mã bản sao mượn: ${code}`);
+      const msg = $('loanReturnCameraMsg');
+      if (msg) msg.innerHTML = `✓ Đã thêm bản sao mượn: <b style="color:#0284c7;">${escapeHtml(code)}</b>`;
+    } else {
+      await handleContinuousBarcodeReturn(code);
+    }
+  }
+
+  async function startLoanReturnCamera(mode = 'RETURN') {
+    cameraScanMode = typeof mode === 'string' ? mode : 'RETURN';
     const dialog = $('loanReturnCameraDialog');
     const video = $('loanReturnCameraVideo');
     const readerDiv = $('loanReturnCameraReader');
     const msg = $('loanReturnCameraMsg');
+    const title = $('loanReturnCameraTitle');
+    const subtitle = $('loanReturnCameraSubtitle');
     if (!dialog) return;
+
+    if (title) {
+      title.innerHTML = cameraScanMode === 'BORROW'
+        ? '📷 Quét Mã Vạch Camera Mượn Sách'
+        : '📷 Quét Mã Vạch Camera Trả Sách Nhanh';
+    }
+    if (subtitle) {
+      subtitle.textContent = cameraScanMode === 'BORROW'
+        ? 'Hướng camera vào mã vạch dán trên gáy hoặc bìa sách để thêm tự động vào danh sách mượn tại quầy.'
+        : 'Hướng camera vào mã vạch (Barcode / QR) dán trên gáy hoặc bìa sách. Hệ thống sẽ tự động nhận diện và hoàn tất thủ tục trả sách tức thì.';
+    }
 
     dialog.showModal();
     if (msg) msg.textContent = 'Đang khởi động Camera...';
@@ -6513,8 +6551,7 @@
               lastScannedLoanTime = now;
               if (msg) msg.innerHTML = `Đã nhận diện: <b style="color:#0284c7;">${escapeHtml(code)}</b>`;
               if (typeof playBarcodeScanTone === 'function') playBarcodeScanTone('scan');
-              await handleContinuousBarcodeReturn(code);
-              if (msg) msg.innerHTML = `✓ Đã xử lý trả sách mã: <b>${escapeHtml(code)}</b>`;
+              await handleCameraBarcodeScanned(code);
             }
           },
           () => {}
@@ -6562,8 +6599,7 @@
             lastScannedLoanTime = now;
             if (msg) msg.innerHTML = `Đã nhận diện: <b style="color:#0284c7;">${escapeHtml(code)}</b>`;
             if (typeof playBarcodeScanTone === 'function') playBarcodeScanTone('scan');
-            await handleContinuousBarcodeReturn(code);
-            if (msg) msg.innerHTML = `✓ Đã xử lý trả sách mã: <b>${escapeHtml(code)}</b>`;
+            await handleCameraBarcodeScanned(code);
           }
         }
       } catch (e) {
@@ -6575,15 +6611,16 @@
     }
   }
 
-  $('openLoanReturnCameraBtn')?.addEventListener('click', startLoanReturnCamera);
+  $('openLoanReturnCameraBtn')?.addEventListener('click', () => void startLoanReturnCamera('RETURN'));
+  $('openBorrowCameraBtn')?.addEventListener('click', () => void startLoanReturnCamera('BORROW'));
   $('closeLoanReturnCameraBtn')?.addEventListener('click', stopLoanReturnCamera);
   $('stopLoanReturnCameraBtn')?.addEventListener('click', stopLoanReturnCamera);
 
   $('loanReturnManualBtn')?.addEventListener('click', () => {
     const code = $('loanReturnManualInput')?.value.trim();
-    if (!code) return notify('Vui lòng nhập mã vạch cần trả', true);
+    if (!code) return notify('Vui lòng nhập mã vạch', true);
     $('loanReturnManualInput').value = '';
-    void handleContinuousBarcodeReturn(code);
+    void handleCameraBarcodeScanned(code);
   });
   $('loanReturnManualInput')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -6591,7 +6628,7 @@
       const code = $('loanReturnManualInput')?.value.trim();
       if (!code) return;
       $('loanReturnManualInput').value = '';
-      void handleContinuousBarcodeReturn(code);
+      void handleCameraBarcodeScanned(code);
     }
   });
 
@@ -6930,6 +6967,10 @@
   $('cardRenewForm')?.addEventListener('submit', (event) => void renewLibraryCard(event));
   $('quickBorrowForm')?.addEventListener('submit', (event) => void createStaffBorrowRequest(event));
   $('openBorrowDialog')?.addEventListener('click', () => void openStaffBorrowDialog());
+  $('openToolbarCameraBtn')?.addEventListener('click', () => {
+    openStaffBorrowDialog();
+    startLoanReturnCamera('BORROW');
+  });
   $('quickBorrowReaderSearch')?.addEventListener('input', renderQuickBorrowReaders);
   $('quickBorrowBarcode')?.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
@@ -10955,6 +10996,43 @@
   // Nút làm mới settings
   $('refreshSettingsBtn')?.addEventListener('click', () => void loadSettings());
 
+  // Dọn dẹp dữ liệu thử nghiệm (Clean Test Data)
+  $('btnCleanTestData')?.addEventListener('click', async () => {
+    if (!window.confirm('Hệ thống sẽ quét và chuẩn hóa toàn bộ dữ liệu test cũ (tên "he", thể loại "hài", đầu sách nháp) thành dữ liệu học thuật chuẩn. Bạn có chắc chắn muốn thực hiện?')) {
+      return;
+    }
+    const btn = $('btnCleanTestData');
+    const statusText = $('cleanTestDataStatusText');
+    const oldText = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = '⏳ Đang dọn dẹp...'; btn.disabled = true; }
+    if (statusText) statusText.textContent = 'Đang xử lý dọn dẹp...';
+
+    try {
+      const res = await api('/system/settings/clean-test-data', { method: 'POST' });
+      notify(res.message || 'Đã dọn dẹp dữ liệu test thành công!');
+      if (statusText) {
+        statusText.textContent = `✓ Đã chuẩn hóa: ${res.totalCleaned || 0} mục dữ liệu`;
+        statusText.style.color = '#166534';
+      }
+      if (typeof loadBooks === 'function') void loadBooks(1);
+      if (typeof loadCategories === 'function') void loadCategories();
+      if (typeof loadUsers === 'function') void loadUsers(1);
+    } catch (err) {
+      notify(`✕ Lỗi khi dọn dẹp dữ liệu: ${err.message}`, true);
+      if (statusText) {
+        statusText.textContent = '✗ Xảy ra lỗi dọn dẹp';
+        statusText.style.color = '#dc2626';
+      }
+    } finally {
+      if (btn) { btn.textContent = oldText; btn.disabled = false; }
+    }
+  });
+
+  // Tải bản sao lưu cơ sở dữ liệu SQL
+  $('btnDownloadBackupSql')?.addEventListener('click', () => {
+    window.open('/system/settings/backup/download', '_blank');
+  });
+
   // VIETQR POPUP & SELF RENEWAL
   window.openQrPayment = function(amount, refCode, title) {
     const amt = Number(amount) || 0;
@@ -11263,11 +11341,19 @@
       shelvesData = Array.isArray(data) ? data : [];
       renderShelvesStats();
       populateShelfFilters();
+
+      // Hỗ trợ xử lý tham số url?id=...&floor=...
+      const searchParams = new URLSearchParams(window.location.search);
+      const queryFloor = searchParams.get('floor');
+      if (queryFloor) {
+        currentShelfFloor = String(queryFloor);
+        document.querySelectorAll('[data-floor-tab]').forEach((tab) => {
+          tab.classList.toggle('active', tab.dataset.floorTab === currentShelfFloor);
+        });
+      }
       renderShelvesFloorPlan(currentShelfFloor || '1');
       renderShelvesGrid();
 
-      // Hỗ trợ xử lý tham số url?id=9 hoặc ?id=9
-      const searchParams = new URLSearchParams(window.location.search);
       const queryId = searchParams.get('id');
       if (queryId) {
         handleTargetShelfParam(queryId);
@@ -11282,6 +11368,12 @@
     const target = shelvesData.find((s) => s.id === qNum || s.shelf === queryId || String(s.shelf).includes(queryId));
     if (target) {
       setTimeout(() => {
+        const floorRack = document.querySelector(`[data-shelf-num="${target.shelf}"]`);
+        if (floorRack) {
+          floorRack.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          floorRack.style.outline = '3px solid #dc2626';
+          floorRack.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.7)';
+        }
         const shelfCard = document.querySelector(`[data-shelf-id="${target.id}"]`);
         if (shelfCard) {
           shelfCard.scrollIntoView({ behavior: 'smooth', block: 'center' });

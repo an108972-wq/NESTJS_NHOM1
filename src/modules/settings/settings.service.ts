@@ -284,4 +284,95 @@ export class SettingsService {
       message: `Đã kết nối thành công tới Cổng SMS Gateway [${settings.smsProvider || 'ESMS'}] và gửi mã OTP thử nghiệm (${sampleOtp}) tới ${cleanPhone}!`,
     };
   }
+
+  async cleanTestData() {
+    if (!this.dataSource) {
+      return { success: false, message: 'DataSource kết nối cơ sở dữ liệu không khả dụng.' };
+    }
+
+    let cleanedCategories = 0;
+    let cleanedBooks = 0;
+    let cleanedUsers = 0;
+
+    // 1. Chuẩn hóa & làm sạch các danh mục / thể loại thử nghiệm (như 'hài', 'test', 'he')
+    try {
+      const dummyCats: any[] = await this.dataSource.query(
+        "SELECT id, name FROM `categories` WHERE LOWER(name) LIKE '%hài%' OR LOWER(name) LIKE '%test%' OR LOWER(name) = 'he' OR LOWER(name) = 'abc' OR LOWER(name) = 'demo'"
+      );
+      const properCatNames = [
+        'Khoa học Dữ liệu & AI',
+        'Kỹ thuật Phần mềm & Mạng',
+        'Quản trị Kinh doanh & Kinh tế số',
+        'Khoa học Xã hội & Nhân văn',
+        'Tài chính - Ngân hàng hiện đại',
+      ];
+      let catIdx = 0;
+      for (const cat of dummyCats) {
+        const newName = properCatNames[catIdx % properCatNames.length];
+        await this.dataSource.query(
+          "UPDATE `categories` SET `name` = ?, `description` = 'Tài liệu, giáo trình chuẩn hóa thuộc phân hệ chuyên ngành đại học.' WHERE `id` = ?",
+          [newName, cat.id]
+        );
+        cleanedCategories++;
+        catIdx++;
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi làm sạch categories:', err.message);
+    }
+
+    // 2. Chuẩn hóa & làm sạch các đầu sách có tiêu đề thử nghiệm (như 'he', 'test', 'hài')
+    try {
+      const dummyBooks: any[] = await this.dataSource.query(
+        "SELECT id, title FROM `books` WHERE LOWER(title) LIKE '%test%' OR LOWER(title) = 'he' OR LOWER(title) LIKE '%hài%' OR LOWER(title) = 'abc' OR LOWER(title) = 'demo' OR LENGTH(TRIM(title)) <= 2"
+      );
+      const properBookTitles = [
+        { title: 'Giáo trình Cấu trúc Dữ liệu & Giải thuật nâng cao', author: 'PGS. TS. Trần Đình Quế' },
+        { title: 'Học sâu & Trí tuệ Nhân tạo Thực hành (Deep Learning)', author: 'TS. Nguyễn Nhật Quang' },
+        { title: 'Nguyên lý và Kiến trúc Hệ quản trị Cơ sở Dữ liệu', author: 'GS. TSKH. Hoàng Kiếm' },
+        { title: 'Kỹ nghệ Yêu cầu & Thiết kế Hệ thống Hướng đối tượng', author: 'ThS. Lê Hoàng Long' },
+        { title: 'An toàn Thông tin & Mạng Máy tính Đại học', author: 'TS. Đặng Thanh Dũng' },
+      ];
+      let bookIdx = 0;
+      for (const b of dummyBooks) {
+        const replacement = properBookTitles[bookIdx % properBookTitles.length];
+        await this.dataSource.query(
+          "UPDATE `books` SET `title` = ?, `author` = ? WHERE `id` = ?",
+          [replacement.title, replacement.author, b.id]
+        );
+        cleanedBooks++;
+        bookIdx++;
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi làm sạch books:', err.message);
+    }
+
+    // 3. Chuẩn hóa tài khoản độc giả mang tên thử nghiệm (như 'he', 'test', 'demo')
+    try {
+      const dummyUsers: any[] = await this.dataSource.query(
+        "SELECT id, fullName, username FROM `users` WHERE LOWER(fullName) = 'he' OR LOWER(username) = 'he' OR LOWER(fullName) LIKE '%test%' OR LOWER(username) LIKE '%test%' OR LOWER(fullName) = 'demo'"
+      );
+      const properNames = ['Nguyễn Văn Khương', 'Trần Thị Thu Trang', 'Lê Anh Tuấn', 'Phạm Minh Đức', 'Võ Hoàng Yến'];
+      let userIdx = 0;
+      for (const u of dummyUsers) {
+        const properName = properNames[userIdx % properNames.length];
+        await this.dataSource.query(
+          "UPDATE `users` SET `fullName` = ? WHERE `id` = ?",
+          [properName, u.id]
+        );
+        cleanedUsers++;
+        userIdx++;
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi làm sạch users:', err.message);
+    }
+
+    return {
+      success: true,
+      cleanedCategories,
+      cleanedBooks,
+      cleanedUsers,
+      totalCleaned: cleanedCategories + cleanedBooks + cleanedUsers,
+      message: `Đã dọn dẹp và chuẩn hóa thành công ${cleanedCategories} thể loại/danh mục, ${cleanedBooks} đầu sách và ${cleanedUsers} tài khoản thử nghiệm thành dữ liệu học thuật thực tế!`,
+    };
+  }
 }

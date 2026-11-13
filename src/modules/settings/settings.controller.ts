@@ -45,6 +45,12 @@ export class SettingsController {
     return this.settingsService.testSmsConnection(phone);
   }
 
+  @Post('clean-test-data')
+  @Roles(UserRole.ADMIN)
+  cleanTestData() {
+    return this.settingsService.cleanTestData();
+  }
+
   @Post('backup/manual')
   @Roles(UserRole.ADMIN)
   triggerManualBackup() {
