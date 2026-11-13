@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th10 13, 2026 lúc 02:34 AM
+-- Thời gian đã tạo: Th10 13, 2026 lúc 06:35 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.2.12
 
@@ -80,7 +80,8 @@ INSERT INTO `audit_logs` (`id`, `action`, `module`, `description`, `performerId`
 (1, 'SYSTEM_INIT', 'SYSTEM', 'Hệ thống Quản lý Thư viện số khởi động thành công.', NULL, 'Hệ thống', 'SYSTEM', '127.0.0.1', '2026-11-03 15:43:57.814000', 'INFO'),
 (2, 'LOGIN', 'AUTH', 'Quản trị viên đăng nhập vào hệ thống quản lý.', NULL, 'admin', 'ADMIN', '127.0.0.1', '2026-11-04 15:43:57.814000', 'INFO'),
 (3, 'STOCK_CHECK', 'INVENTORY', 'Thực hiện kiểm kê đối soát tự động toàn bộ kho sách.', NULL, 'admin', 'ADMIN', '127.0.0.1', '2026-11-05 10:43:57.814000', 'INFO'),
-(4, 'MERGE_CATEGORIES', 'CATEGORIES', 'Gộp 1 thể loại [buồn] vào \"hài\". Đã di chuyển 0 đầu sách. Đã xóa danh mục nguồn cũ.', 1, 'admin', 'ADMIN', NULL, '2026-11-12 16:42:54.440516', 'INFO');
+(4, 'MERGE_CATEGORIES', 'CATEGORIES', 'Gộp 1 thể loại [buồn] vào \"hài\". Đã di chuyển 0 đầu sách. Đã xóa danh mục nguồn cũ.', 1, 'admin', 'ADMIN', NULL, '2026-11-12 16:42:54.440516', 'INFO'),
+(5, 'UNLOCK_USER', 'USERS', 'Mở khóa tài khoản người dùng Võ Văn Tuấn Anh', NULL, NULL, NULL, NULL, '2026-11-13 12:09:00.205829', 'WARNING');
 
 -- --------------------------------------------------------
 
@@ -127,7 +128,7 @@ INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `totalCopies`, `availableC
 (9, 'Clean Code: Cẩm Nang Viết Mã Sạch', 'Robert C. Martin', '978-0132350884', 10, 8, 'A1', '2', '1', 3, NULL, 5, 'Cuốn cẩm nang kinh điển của Uncle Bob về nghệ thuật viết mã sạch, tối ưu cấu trúc phần mềm, nguyên lý SOLID và kỹ thuật tái cấu trúc mã nguồn (Refactoring).', 'https://images.unsplash.com/photo-1532012164546-f432f2e3777a?auto=format&fit=crop&w=400&q=80', 2021, NULL, 185000.00, '2026-11-13 08:11:24.696436', '2026-11-13 08:11:24.696436', 0, 0, 'PUBLIC', 'PDF', 5),
 (10, 'Design Patterns: Mẫu Thiết Kế Hướng Đối Tượng', 'Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides (GoF)', '978-0201633610', 8, 6, 'A2', '2', '1', 3, NULL, 4, '23 mẫu thiết kế kinh điển giúp kỹ sư phần mềm giải quyết các bài toán kiến trúc hệ thống lặp lại, tối ưu hóa tính linh hoạt và khả năng tái sử dụng.', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80', 2020, NULL, 220000.00, '2026-11-13 08:11:24.727552', '2026-11-13 08:11:24.727552', 0, 0, 'PUBLIC', 'PDF', 5),
 (11, 'Introduction to Algorithms (CLRS)', 'Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein', '978-0262033848', 12, 9, 'B1', '2', '2', NULL, NULL, 3, 'Giáo trình giải thuật chuẩn mực toàn cầu cho sinh viên chuyên ngành Khoa học máy tính, bao quát từ cấu trúc dữ liệu nâng cao, quy hoạch động đến đồ thị.', 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=400&q=80', 2022, NULL, 350000.00, '2026-11-13 08:11:24.759834', '2026-11-13 08:11:24.759834', 0, 0, 'PUBLIC', 'PDF', 5),
-(12, 'Artificial Intelligence: Cách Tiếp Cận Hiện Đại', 'Stuart Russell, Peter Norvig', '978-0136042594', 10, 7, 'B2', '2', '2', NULL, NULL, 3, 'Tác phẩm gối đầu giường về AI, trình bày từ tác tử thông minh, học tăng cường, thị giác máy tính đến các mô hình học sâu thế hệ mới.', 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80', 2023, NULL, 380000.00, '2026-11-13 08:11:24.797969', '2026-11-13 08:11:24.797969', 0, 0, 'PUBLIC', 'PDF', 5),
+(12, 'Artificial Intelligence: Cách Tiếp Cận Hiện Đại', 'Stuart Russell, Peter Norvig', '978-0136042594', 10, 6, 'B2', '2', '2', NULL, NULL, 3, 'Tác phẩm gối đầu giường về AI, trình bày từ tác tử thông minh, học tăng cường, thị giác máy tính đến các mô hình học sâu thế hệ mới.', 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80', 2023, NULL, 380000.00, '2026-11-13 08:11:24.797969', '2026-11-13 12:10:14.000000', 0, 0, 'PUBLIC', 'PDF', 5),
 (13, 'Giáo trình Cơ Sở Dữ Liệu & Hệ Quản Trị CSDL', 'PGS.TS. Trần Đức Khánh, TS. Lê Thị Bích', '978-6046294821', 15, 12, 'A3', '2', '1', 3, NULL, 3, 'Giáo trình đại học chính quy về đại số quan hệ, chuẩn hóa dữ liệu dạng 3NF/BCNF, ngôn ngữ SQL nâng cao và an toàn giao dịch ACID.', 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=400&q=80', 2022, NULL, 120000.00, '2026-11-13 08:11:24.829232', '2026-11-13 08:11:24.829232', 0, 0, 'PUBLIC', 'PDF', 5),
 (14, 'Lập Trình Hướng Đối Tượng Với Java', 'GS.TS. Nguyễn Thanh Thủy', '978-6049503487', 15, 11, 'A4', '2', '1', 3, NULL, 4, 'Trang bị tư duy lập trình hướng đối tượng, xử lý ngoại lệ, Java Collections Framework, kiến trúc đa luồng và thiết kế phần mềm doanh nghiệp.', 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80', 2022, NULL, 145000.00, '2026-11-13 08:11:24.888814', '2026-11-13 08:11:24.888814', 0, 0, 'PUBLIC', 'PDF', 5),
 (15, 'Lược Sử Thời Gian (A Brief History of Time)', 'Stephen Hawking', '978-0553380163', 8, 6, 'C1', '3', '1', 6, NULL, 6, 'Khám phá các bí ẩn vĩ đại nhất của vũ trụ: hố đen, lý thuyết dây, thuyết tương đối rộng và nguồn gốc không - thời gian.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80', 2021, NULL, 125000.00, '2026-11-13 08:11:24.939969', '2026-11-13 08:11:24.939969', 0, 0, 'PUBLIC', 'PDF', 5),
@@ -209,7 +210,7 @@ INSERT INTO `book_copies` (`id`, `barcode`, `status`, `bookId`, `shelf`, `floor`
 (63, 'BC-011-10', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.788557', '2026-11-13 08:11:24.788557'),
 (64, 'BC-011-11', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.791545', '2026-11-13 08:11:24.791545'),
 (65, 'BC-011-12', 'BORROWED', 11, 'B1', '2', '2', NULL, '2026-11-13 08:11:24.794449', '2026-11-13 08:11:24.794449'),
-(66, 'BC-012-01', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.801789', '2026-11-13 08:11:24.801789'),
+(66, 'BC-012-01', 'BORROWED', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.801789', '2026-11-13 12:16:47.000000'),
 (67, 'BC-012-02', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.804393', '2026-11-13 08:11:24.804393'),
 (68, 'BC-012-03', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.807068', '2026-11-13 08:11:24.807068'),
 (69, 'BC-012-04', 'AVAILABLE', 12, 'B2', '2', '2', NULL, '2026-11-13 08:11:24.809572', '2026-11-13 08:11:24.809572'),
@@ -361,7 +362,8 @@ INSERT INTO `borrow_records` (`id`, `borrowedAt`, `dueDate`, `returnedAt`, `fine
 (4, '2026-11-02 09:46:09.347972', '2026-11-16 09:51:11', NULL, 0.00, 'NONE', 3, 3, '2026-11-02 09:51:11', 0, NULL, 24, 'BORROWED', '2026-11-06 18:46:34.283799', '2026-11-06 18:46:34.293826'),
 (6, '2026-11-13 08:11:25.085000', NULL, NULL, 0.00, 'NONE', 2, 9, NULL, 0, NULL, 36, 'PENDING', '2026-11-13 08:11:25.089295', '2026-11-13 08:11:25.089295'),
 (7, '2026-10-27 08:11:25.085000', '2026-11-10 08:11:25', NULL, 15000.00, 'UNPAID', 2, 10, '2026-10-27 08:11:25', 0, NULL, 37, 'BORROWED', '2026-11-13 08:11:25.092765', '2026-11-13 08:11:25.092765'),
-(8, '2026-10-19 08:11:25.085000', '2026-11-02 08:11:25', '2026-11-01 08:11:25', 0.00, 'PAID', 2, 11, '2026-10-19 08:11:25', 0, '', 37, 'RETURNED', '2026-11-13 08:11:25.095697', '2026-11-13 08:11:25.095697');
+(8, '2026-10-19 08:11:25.085000', '2026-11-02 08:11:25', '2026-11-01 08:11:25', 0.00, 'PAID', 2, 11, '2026-10-19 08:11:25', 0, '', 37, 'RETURNED', '2026-11-13 08:11:25.095697', '2026-11-13 08:11:25.095697'),
+(9, '2026-11-13 12:10:14.757260', '2026-12-28 12:16:47', NULL, 0.00, 'NONE', 10, 12, '2026-11-13 12:16:47', 0, NULL, 66, 'BORROWED', '2026-11-13 12:10:14.757260', '2026-11-13 12:16:47.000000');
 
 -- --------------------------------------------------------
 
@@ -384,7 +386,7 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `ddcCode`, `parentId`, `createdAt`, `updatedAt`) VALUES
-(1, 'hài', NULL, NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-06 18:47:24.585491'),
+(1, 'Văn học hài hước & Châm biếm', 'Tuyển tập các tác phẩm văn học châm biếm, trào phúng và hài hước kinh điển', NULL, NULL, '2026-11-06 18:47:24.576733', '2026-11-13 12:13:56.990701'),
 (3, 'Công nghệ thông tin', 'Khoa học máy tính, kỹ thuật phần mềm, cấu trúc dữ liệu và thuật toán', '004', NULL, '2026-11-13 08:11:24.655625', '2026-11-13 08:11:24.655625'),
 (4, 'Trí tuệ nhân tạo & Khoa học dữ liệu', 'Machine Learning, Deep Learning, Big Data và AI hiện đại', '006', NULL, '2026-11-13 08:11:24.660391', '2026-11-13 08:11:24.660391'),
 (5, 'Kinh tế & Quản trị kinh doanh', 'Kinh tế học vĩ mô, vi mô, khởi nghiệp đổi mới sáng tạo', '330', NULL, '2026-11-13 08:11:24.663340', '2026-11-13 08:11:24.663340'),
@@ -580,7 +582,7 @@ CREATE TABLE `iot_alerts` (
 
 INSERT INTO `iot_alerts` (`id`, `deviceCode`, `deviceName`, `alertType`, `severity`, `message`, `resolved`, `resolvedAt`, `resolvedByStaffName`, `createdAt`, `updatedAt`) VALUES
 (1, 'RFID-GATE-MAIN', 'Hệ Thống Cổng Từ An Ninh RFID Cửa Chính (Làn 1)', 'RFID_UNAUTHORIZED', 'CRITICAL', 'Phát hiện tài liệu chưa mượn mã [BK-CSDL-2026] đi qua cổng từ. Đã tự động kích hoạt chuông và chụp ảnh hiện trường.', 0, NULL, NULL, '2026-11-13 06:58:50.474000', '2026-11-13 07:23:50.479875'),
-(2, 'ENV-SENSOR-ARCHIVE', 'Trạm Cảm Biến Môi Trường Kho Sách Quý & Luận Án', 'HIGH_HUMIDITY', 'WARNING', 'Độ ẩm kho sách quý phòng 305 tăng lên 66.8% RH (vượt ngưỡng an toàn bảo quản 60% RH). Máy hút ẩm trung tâm đã tự động khởi động.', 0, NULL, NULL, '2026-11-13 06:03:50.474000', '2026-11-13 07:23:50.484300'),
+(2, 'ENV-SENSOR-ARCHIVE', 'Trạm Cảm Biến Môi Trường Kho Sách Quý & Luận Án', 'HIGH_HUMIDITY', 'WARNING', 'Độ ẩm kho sách quý phòng 305 tăng lên 66.8% RH (vượt ngưỡng an toàn bảo quản 60% RH). Máy hút ẩm trung tâm đã tự động khởi động.', 1, '2026-11-13 12:21:57', 'Thủ thư xử lý', '2026-11-13 06:03:50.474000', '2026-11-13 12:21:57.000000'),
 (3, 'ENV-SENSOR-SERVER', 'Cảm Biến Nhiệt/Ẩm Phòng Máy Chủ & Hạ Tầng Số', 'OVER_TEMPERATURE', 'WARNING', 'Nhiệt độ cụm Rack 2 phòng máy chủ vượt 25.8°C. Quạt thông gió thứ cấp đã được tăng tốc.', 1, '2026-11-13 06:53:50', 'Thủ thư Quản trị mạng', '2026-11-13 04:53:50.474000', '2026-11-13 07:23:50.486875'),
 (4, 'RFID-GATE-FLOOR2', 'Cổng Từ Giám Sát Lối Vào Phòng Sách Chuyên Khảo', 'DEVICE_OFFLINE', 'INFO', 'Mất tín hiệu kết nối mạng cục bộ LAN trong 3 phút. Đã tự động tái thiết lập kết nối IP tĩnh thành công.', 1, '2026-11-13 04:03:50', 'Hệ thống tự động', '2026-11-13 03:43:50.474000', '2026-11-13 07:23:50.488360');
 
@@ -623,7 +625,8 @@ INSERT INTO `iot_devices` (`id`, `deviceCode`, `name`, `type`, `location`, `stat
 (4, 'ENV-SENSOR-SERVER', 'Cảm Biến Nhiệt/Ẩm Phòng Máy Chủ & Hạ Tầng Số (Data Center)', 'ENV_SENSOR', 'Phòng Máy Chủ DC - Tầng B1', 'ONLINE', '192.168.10.121', 'B4:E6:2D:11:88:E2', 'v2.1.0-ENV', 19.50, 48.20, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Theo dõi 24/7 nhiệt độ tủ Rack máy chủ ứng dụng thư viện.', '2026-11-12 21:20:06.838299', '2026-11-12 21:20:06.838299'),
 (5, 'SMART-AC-ZONE-A', 'Hệ Thống Điều Hòa Trung Tâm VRV - Khu Đọc Tự Do (Zone A)', 'SMART_AC', 'Hội trường đọc tự do - Tầng 1', 'ONLINE', '192.168.10.140', '70:B3:D5:E1:90:3A', 'v1.8.9-HVAC-BACnet', 24.00, 58.00, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Tự động điều chỉnh công suất theo mật độ người đọc qua cảm biến hồng ngoại.', '2026-11-12 21:20:06.840409', '2026-11-12 21:20:06.840409'),
 (6, 'SMART-LIGHT-FLOOR2', 'Bộ Điều Khiển Chiếu Sáng Thông Minh DALI - Tầng 2', 'SMART_LIGHT', 'Hành lang & Dãy kệ sách Kho Mở - Tầng 2', 'ONLINE', '192.168.10.150', '70:B3:D5:E1:90:4B', 'v1.5.0-DALI', NULL, NULL, 0, 0, 1, 100, '2026-11-12 21:20:06', 'Tiết kiệm 45% điện năng nhờ tự động giảm sáng khi không có người trong dãy kệ.', '2026-11-12 21:20:06.841662', '2026-11-12 21:20:06.841662'),
-(7, 'BOOK-DROP-247', 'Thùng Trả Sách Tự Động Thông Minh 24/7 Ngoài Cổng', 'BOOK_DROP_BOX', 'Mặt tiền Thư viện - Cổng phía Tây', 'ONLINE', '192.168.10.160', 'AC:67:B2:FF:10:99', 'v2.8.1-DROPBOX', NULL, NULL, 95, 0, 1, 100, '2026-11-12 21:20:06', 'Tích hợp đầu quét RFID nhận diện sách và băng tải tự động phân loại.', '2026-11-12 21:20:06.842793', '2026-11-12 21:20:06.842793');
+(7, 'BOOK-DROP-247', 'Thùng Trả Sách Tự Động Thông Minh 24/7 Ngoài Cổng', 'BOOK_DROP_BOX', 'Mặt tiền Thư viện - Cổng phía Tây', 'ONLINE', '192.168.10.160', 'AC:67:B2:FF:10:99', 'v2.8.1-DROPBOX', NULL, NULL, 95, 0, 1, 100, '2026-11-12 21:20:06', 'Tích hợp đầu quét RFID nhận diện sách và băng tải tự động phân loại.', '2026-11-12 21:20:06.842793', '2026-11-12 21:20:06.842793'),
+(8, 'Robot IC', 'cổng tầng ôzn', 'RFID_GATE', 'tầng 2', 'ONLINE', '192.168.12.5', NULL, '34', NULL, NULL, 0, 0, 1, 100, '2026-11-13 12:22:46', 'ok', '2026-11-13 12:22:46.430056', '2026-11-13 12:22:46.430056');
 
 -- --------------------------------------------------------
 
@@ -1356,15 +1359,16 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `passwordHash`, `currentHashedRefreshToken`, `createdAt`, `updatedAt`, `email`, `isActive`, `role`, `maxActiveLoans`, `libraryCardIssuedAt`, `libraryCardExpiresAt`, `fullName`, `phone`, `approvedAt`, `isTwoFactorEnabled`, `twoFactorTempCode`, `twoFactorCodeExpiresAt`, `passwordResetToken`, `passwordResetExpiresAt`, `failedLoginAttempts`, `lockoutUntil`, `cardNumber`, `readerGroup`, `customPermissions`) VALUES
-(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$rq1HFT5yTQpHW1QOYG2S9.usr07Lu1Zm09FrTs9we4.D/BYnzIvMe', '2026-10-30 15:14:38.589024', '2026-11-13 08:31:48.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
-(2, 'he', '$2b$10$O2RbYv8CdMBL8Dr8Lzg3TOAZwxFjnP.qkxdgu/MLr9..UM9gqdDPy', NULL, '2026-11-01 13:06:32.277679', '2026-11-01 13:06:45.000000', NULL, 1, 'READER', 5, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(1, 'admin', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', '$2b$10$3rdHYy6BODEpPFktYUgQqO4A63Ui12qWtfskz2eEX.Z7E.qjpqlTS', '2026-10-30 15:14:38.589024', '2026-11-13 12:29:50.000000', NULL, 1, 'ADMIN', 5, NULL, NULL, NULL, NULL, NULL, 0, '249739', '2026-11-06 17:34:06', NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(2, 'he', '$2b$10$O2RbYv8CdMBL8Dr8Lzg3TOAZwxFjnP.qkxdgu/MLr9..UM9gqdDPy', NULL, '2026-11-01 13:06:32.277679', '2026-11-13 12:13:56.986668', NULL, 1, 'READER', 5, NULL, NULL, 'Nguyễn Văn Minh', NULL, NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (3, 'an108972@donga.edu.vn', '$2b$10$zGiNjzn3VwYTPZW5OpKIVO3756fZAQn2YR.niBFgROWQ6dYtP6mhO', NULL, '2026-11-01 19:33:47.447069', '2026-11-02 09:46:23.000000', 'an108972@donga.edu.vn', 1, 'READER', 5, '2026-11-01', NULL, 'Phan Thanh An', '0354352106', '2026-11-01 19:39:32', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (4, 'phanthanhanlop9.2@gmail.com', '$2b$10$3cEwVX8Lh.35gZx22rf2pul885ranTwGcW1XBwObRZU6.OVt2C5yW', NULL, '2026-11-01 19:34:42.624268', '2026-11-02 07:29:44.000000', 'phanthanhanlop9.2@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Phan Thanh An_IT24C', '0354352106', '2026-11-02 07:29:44', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (5, 'anpt@gmal.com', '$2b$10$F1XBF8S/VEOyBrS.c8X8gOIHPjfwXzCi1ywANt4yT1sw6zmKni8eO', NULL, '2026-11-01 19:36:30.984788', '2026-11-02 07:29:40.000000', 'anpt@gmal.com', 1, 'READER', 5, '2026-11-02', NULL, 'An Phan', '0986161322', '2026-11-02 07:29:40', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
-(6, 'anh@gmail.com', '$2b$10$bYeYFtDoLUBPsUDaBupeTuQia/INl7h74HpsdcqgDe0Izzd/e/r8a', NULL, '2026-11-02 07:26:13.858876', '2026-11-02 07:29:42.000000', 'anh@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Võ Văn Tuấn Anh', '0111222333', '2026-11-02 07:29:42', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
-(7, 'ty', '$2b$10$T0qfCzR9jFV7sIZmKHfGQ.na79TVPTRSxCc9FdXRYMWtq5lh9xEc2', NULL, '2026-11-02 09:47:14.377891', '2026-11-02 09:47:14.377891', 'ty@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'He', '0446746346', '2026-11-02 09:47:14', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(6, 'anh@gmail.com', '$2b$10$bYeYFtDoLUBPsUDaBupeTuQia/INl7h74HpsdcqgDe0Izzd/e/r8a', NULL, '2026-11-02 07:26:13.858876', '2026-11-13 12:07:50.000000', 'anh@gmail.com', 1, 'READER', 5, '2026-11-02', '2027-01-01', 'Võ Văn Tuấn Anh', '0111222333', '2026-11-02 07:29:42', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(7, 'ty', '$2b$10$T0qfCzR9jFV7sIZmKHfGQ.na79TVPTRSxCc9FdXRYMWtq5lh9xEc2', NULL, '2026-11-02 09:47:14.377891', '2026-11-13 12:13:56.986668', 'ty@gmail.com', 1, 'READER', 5, '2026-11-02', NULL, 'Nguyễn Văn Minh', '0446746346', '2026-11-02 09:47:14', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
 (8, 'Phan Thanh An', '$2b$10$0K88tomRvn/obQv6nOzIDO0SsbDSBDkstlAmgiOV5AOZIMRXZUIfS', NULL, '2026-11-02 09:55:07.714758', '2026-11-02 09:55:07.714758', 'anpt@gmail.com', 1, 'INVENTORY_LIBRARIAN', 5, NULL, NULL, 'Phan Thanh An', '035435106', '2026-11-02 09:55:07', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
-(9, 'dang.nguyen.sv2024@donga.edu.vn', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', NULL, '2026-11-13 08:11:25.081459', '2026-11-13 08:11:25.081459', 'dang.nguyen.sv2024@donga.edu.vn', 0, 'READER', 5, NULL, NULL, 'Đặng Hoàng Nguyên (IT24B)', '0912345678', NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL);
+(9, 'dang.nguyen.sv2024@donga.edu.vn', '$2b$10$1Qp4LFp..AmWWCy0QHCncOXGvsYG5XgrDlztOp3/fRhxAfRf2Yvie', NULL, '2026-11-13 08:11:25.081459', '2026-11-13 08:11:25.081459', 'dang.nguyen.sv2024@donga.edu.vn', 0, 'READER', 5, NULL, NULL, 'Đặng Hoàng Nguyên (IT24B)', '0912345678', NULL, 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'STUDENT', NULL),
+(10, 'anh109200@donga.edu.vn', '$2b$10$bEp1B62mgrO29h27B6TbZuhFyulIITn.NnEdJVlVA5H8xHfTJQW/C', NULL, '2026-11-13 12:06:23.438382', '2026-11-13 12:10:47.000000', 'anh109200@donga.edu.vn', 1, 'READER', 10, '2026-11-13', '2027-11-13', 'Võ Văn Tuấn Anh', '0234234234', '2026-11-13 12:09:00', 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 'RESEARCHER', NULL);
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -1698,7 +1702,7 @@ ALTER TABLE `academic_seminars`
 -- AUTO_INCREMENT cho bảng `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT cho bảng `books`
@@ -1722,7 +1726,7 @@ ALTER TABLE `book_donations`
 -- AUTO_INCREMENT cho bảng `borrow_records`
 --
 ALTER TABLE `borrow_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT cho bảng `categories`
@@ -1788,7 +1792,7 @@ ALTER TABLE `iot_alerts`
 -- AUTO_INCREMENT cho bảng `iot_devices`
 --
 ALTER TABLE `iot_devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT cho bảng `library_budgets`
@@ -1938,7 +1942,7 @@ ALTER TABLE `tutorial_registrations`
 -- AUTO_INCREMENT cho bảng `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Các ràng buộc cho các bảng đã đổ
