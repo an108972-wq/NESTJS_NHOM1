@@ -1,172 +1,172 @@
 
-  // Khai báo sớm fetchJson và formatDateTime trên window để tương thích ngược mọi phân hệ và tránh lỗi 'fetchJson / formatDateTime is not defined'
-  var fetchJson = window.fetchJson;
-  var formatDateTime = window.formatDateTime;
-  var money = window.money;
-  var date = window.date;
-  var escapeHtml = window.escapeHtml;
+// Khai báo sớm fetchJson và formatDateTime trên window để tương thích ngược mọi phân hệ và tránh lỗi 'fetchJson / formatDateTime is not defined'
+var fetchJson = window.fetchJson;
+var formatDateTime = window.formatDateTime;
+var money = window.money;
+var date = window.date;
+var escapeHtml = window.escapeHtml;
 
-  window.fetchJson = async function fetchJson(path, options = {}) {
-    if (typeof window.api === 'function') return window.api(path, options);
-    const token = localStorage.getItem('accessToken');
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options?.headers || {}),
-    };
-    const base = window.location.origin;
-    const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : '/' + path}`;
-    const res = await fetch(url, { ...options, headers });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
-      throw new Error(msg || `Yêu cầu thất bại (${res.status})`);
+window.fetchJson = async function fetchJson(path, options = {}) {
+  if (typeof window.api === 'function') return window.api(path, options);
+  const token = localStorage.getItem('accessToken');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options?.headers || {}),
+  };
+  const base = window.location.origin;
+  const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : '/' + path}`;
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
+    throw new Error(msg || `Yêu cầu thất bại (${res.status})`);
+  }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json().catch(() => null) : null;
+};
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '—';
+  return `${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+}
+window.formatDateTime = formatDateTime;
+
+function readMoneyInVietnameseWords(amount) {
+  amount = Math.round(Number(amount) || 0);
+  if (amount <= 0) return 'Không đồng';
+  const digits = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+  const units = ['', 'nghìn', 'triệu', 'tỷ'];
+
+  function readThreeDigits(num, isLeading) {
+    const h = Math.floor(num / 100);
+    const t = Math.floor((num % 100) / 10);
+    const o = num % 10;
+    let res = '';
+    if (h > 0 || !isLeading) res += digits[h] + ' trăm ';
+    if (t > 1) {
+      res += digits[t] + ' mươi ';
+      if (o === 1) res += 'mốt ';
+      else if (o === 5) res += 'lăm ';
+      else if (o > 0) res += digits[o] + ' ';
+    } else if (t === 1) {
+      res += 'mười ';
+      if (o === 5) res += 'lăm ';
+      else if (o > 0) res += digits[o] + ' ';
+    } else if (t === 0 && o > 0) {
+      if (!isLeading || h > 0) res += 'lẻ ' + digits[o] + ' ';
+      else res += digits[o] + ' ';
     }
-    const ct = res.headers.get('content-type') || '';
-    return ct.includes('application/json') ? res.json().catch(() => null) : null;
+    return res.trim();
+  }
+
+  let chunks = [];
+  let temp = amount;
+  while (temp > 0) {
+    chunks.push(temp % 1000);
+    temp = Math.floor(temp / 1000);
+  }
+
+  let words = [];
+  for (let i = chunks.length - 1; i >= 0; i--) {
+    const chunk = chunks[i];
+    if (chunk > 0) {
+      const chunkText = readThreeDigits(chunk, i === chunks.length - 1);
+      words.push(chunkText + (units[i] ? ' ' + units[i] : ''));
+    }
+  }
+  const result = words.join(' ').trim();
+  return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng chẵn';
+}
+
+function escapeRegExp(string) {
+  return String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function openElectronicReceiptModal(payment) {
+  if (!payment) return;
+  const methodLabels = {
+    CASH: 'Tiền mặt tại quầy',
+    VIETQR: 'Chuyển khoản VietQR Napas247',
+    E_WALLET: 'Ví điện tử (MoMo / ZaloPay / VNPAY)',
+    VNPAY: 'Cổng VNPAY',
+    MANUAL: 'Thu thủ công tại quầy',
   };
 
-  function formatDateTime(value) {
-    if (!value) return '—';
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return '—';
-    return `${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+  if ($('receiptTxnRef')) $('receiptTxnRef').textContent = payment.txnRef || '—';
+  if ($('receiptDate')) $('receiptDate').textContent = date(payment.paidAt || payment.createdAt);
+  if ($('receiptReaderName')) $('receiptReaderName').textContent = payment.readerName || 'Độc giả';
+  if ($('receiptReaderPhone')) $('receiptReaderPhone').textContent = payment.readerPhone || payment.readerEmail || '—';
+  if ($('receiptCardNumber')) $('receiptCardNumber').textContent = payment.cardNumber || ('TV-' + (payment.readerId || ''));
+  if ($('receiptBookTitle')) $('receiptBookTitle').textContent = payment.bookTitle || 'Khoản thu vi phạm thư viện';
+  if ($('receiptBarcode')) $('receiptBarcode').textContent = payment.barcode || '—';
+  if ($('receiptReason')) $('receiptReason').textContent = payment.violationType
+    ? ('Bồi thường vi phạm: ' + payment.violationType)
+    : (payment.borrowRecordId ? ('Phí quá hạn & hoàn trả phiếu mượn #' + payment.borrowRecordId) : 'Phạt vi phạm quy định thư viện');
+  if ($('receiptMethod')) $('receiptMethod').textContent = methodLabels[payment.paymentMethod] || payment.paymentMethod || 'Tiền mặt';
+
+  const amount = Number(payment.amount || 0);
+  if ($('receiptAmount')) $('receiptAmount').textContent = money(amount);
+  if ($('receiptAmountWords')) $('receiptAmountWords').textContent = '(Bằng chữ: ' + readMoneyInVietnameseWords(amount) + ')';
+  if ($('receiptCashier')) $('receiptCashier').textContent = state.user?.fullName || state.user?.username || 'Thủ thư quầy';
+
+  const qrContainer = $('receiptQrContainer');
+  if (qrContainer) {
+    const qrData = encodeURIComponent('https://thuvien.edu.vn/receipt/' + payment.txnRef);
+    qrContainer.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=' + qrData + '" alt="Mã tra cứu biên lai" style="width:68px;height:68px;border-radius:4px;" onerror="this.parentElement.textContent=\'QR Tra cứu\'">';
   }
-  window.formatDateTime = formatDateTime;
 
-  function readMoneyInVietnameseWords(amount) {
-    amount = Math.round(Number(amount) || 0);
-    if (amount <= 0) return 'Không đồng';
-    const digits = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
-    const units = ['', 'nghìn', 'triệu', 'tỷ'];
-
-    function readThreeDigits(num, isLeading) {
-      const h = Math.floor(num / 100);
-      const t = Math.floor((num % 100) / 10);
-      const o = num % 10;
-      let res = '';
-      if (h > 0 || !isLeading) res += digits[h] + ' trăm ';
-      if (t > 1) {
-        res += digits[t] + ' mươi ';
-        if (o === 1) res += 'mốt ';
-        else if (o === 5) res += 'lăm ';
-        else if (o > 0) res += digits[o] + ' ';
-      } else if (t === 1) {
-        res += 'mười ';
-        if (o === 5) res += 'lăm ';
-        else if (o > 0) res += digits[o] + ' ';
-      } else if (t === 0 && o > 0) {
-        if (!isLeading || h > 0) res += 'lẻ ' + digits[o] + ' ';
-        else res += digits[o] + ' ';
+  const unlockBadge = $('receiptUnlockBadge');
+  if (unlockBadge) {
+    if (payment.accountUnlocked) {
+      unlockBadge.style.display = 'flex';
+      if ($('receiptUnlockMessage') && payment.unlockMessage) {
+        $('receiptUnlockMessage').textContent = payment.unlockMessage;
       }
-      return res.trim();
+    } else {
+      unlockBadge.style.display = 'none';
     }
-
-    let chunks = [];
-    let temp = amount;
-    while (temp > 0) {
-      chunks.push(temp % 1000);
-      temp = Math.floor(temp / 1000);
-    }
-
-    let words = [];
-    for (let i = chunks.length - 1; i >= 0; i--) {
-      const chunk = chunks[i];
-      if (chunk > 0) {
-        const chunkText = readThreeDigits(chunk, i === chunks.length - 1);
-        words.push(chunkText + (units[i] ? ' ' + units[i] : ''));
-      }
-    }
-    const result = words.join(' ').trim();
-    return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng chẵn';
   }
 
-  function escapeRegExp(string) {
-    return String(string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  $('receiptDialog')?.showModal();
+}
+
+
+let compensationTargetInput = 'damageFineAmount';
+
+function updateCompensationCalculation() {
+  const price = Number($('calcBookPrice')?.value || 0);
+  const wear = Number($('calcWearFactor')?.value || 1.0);
+  const severity = Number($('calcDamageSeverity')?.value || 1.0);
+  const fee = Number($('calcProcessingFee')?.value || 0);
+
+  const residual = Math.round(price * wear);
+  const directLoss = Math.round(residual * severity);
+  const total = directLoss + fee;
+
+  if ($('calcResidualValue')) $('calcResidualValue').textContent = money(residual);
+  if ($('calcDirectLoss')) $('calcDirectLoss').textContent = money(directLoss);
+  if ($('calcFeeDisplay')) $('calcFeeDisplay').textContent = money(fee);
+  if ($('calcTotalCompensation')) $('calcTotalCompensation').textContent = money(total);
+
+  return total;
+}
+
+function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPrice = 100000, bookTitle = '') {
+  compensationTargetInput = targetInput;
+  if ($('calcBookPrice')) $('calcBookPrice').value = defaultPrice || 100000;
+  if ($('calcWearFactor')) $('calcWearFactor').value = '1.0';
+  if ($('calcDamageSeverity')) {
+    const condition = $('returnCondition')?.value;
+    if (condition === 'LIGHT_DAMAGE') $('calcDamageSeverity').value = '0.25';
+    else if (condition === 'SEVERE_DAMAGE') $('calcDamageSeverity').value = '0.60';
+    else if (condition === 'LOST') $('calcDamageSeverity').value = '1.00';
   }
-
-  function openElectronicReceiptModal(payment) {
-    if (!payment) return;
-    const methodLabels = {
-      CASH: 'Tiền mặt tại quầy',
-      VIETQR: 'Chuyển khoản VietQR Napas247',
-      E_WALLET: 'Ví điện tử (MoMo / ZaloPay / VNPAY)',
-      VNPAY: 'Cổng VNPAY',
-      MANUAL: 'Thu thủ công tại quầy',
-    };
-
-    if ($('receiptTxnRef')) $('receiptTxnRef').textContent = payment.txnRef || '—';
-    if ($('receiptDate')) $('receiptDate').textContent = date(payment.paidAt || payment.createdAt);
-    if ($('receiptReaderName')) $('receiptReaderName').textContent = payment.readerName || 'Độc giả';
-    if ($('receiptReaderPhone')) $('receiptReaderPhone').textContent = payment.readerPhone || payment.readerEmail || '—';
-    if ($('receiptCardNumber')) $('receiptCardNumber').textContent = payment.cardNumber || ('TV-' + (payment.readerId || ''));
-    if ($('receiptBookTitle')) $('receiptBookTitle').textContent = payment.bookTitle || 'Khoản thu vi phạm thư viện';
-    if ($('receiptBarcode')) $('receiptBarcode').textContent = payment.barcode || '—';
-    if ($('receiptReason')) $('receiptReason').textContent = payment.violationType
-      ? ('Bồi thường vi phạm: ' + payment.violationType)
-      : (payment.borrowRecordId ? ('Phí quá hạn & hoàn trả phiếu mượn #' + payment.borrowRecordId) : 'Phạt vi phạm quy định thư viện');
-    if ($('receiptMethod')) $('receiptMethod').textContent = methodLabels[payment.paymentMethod] || payment.paymentMethod || 'Tiền mặt';
-    
-    const amount = Number(payment.amount || 0);
-    if ($('receiptAmount')) $('receiptAmount').textContent = money(amount);
-    if ($('receiptAmountWords')) $('receiptAmountWords').textContent = '(Bằng chữ: ' + readMoneyInVietnameseWords(amount) + ')';
-    if ($('receiptCashier')) $('receiptCashier').textContent = state.user?.fullName || state.user?.username || 'Thủ thư quầy';
-    
-    const qrContainer = $('receiptQrContainer');
-    if (qrContainer) {
-      const qrData = encodeURIComponent('https://thuvien.edu.vn/receipt/' + payment.txnRef);
-      qrContainer.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=' + qrData + '" alt="Mã tra cứu biên lai" style="width:68px;height:68px;border-radius:4px;" onerror="this.parentElement.textContent=\'QR Tra cứu\'">';
-    }
-
-    const unlockBadge = $('receiptUnlockBadge');
-    if (unlockBadge) {
-      if (payment.accountUnlocked) {
-        unlockBadge.style.display = 'flex';
-        if ($('receiptUnlockMessage') && payment.unlockMessage) {
-          $('receiptUnlockMessage').textContent = payment.unlockMessage;
-        }
-      } else {
-        unlockBadge.style.display = 'none';
-      }
-    }
-
-    $('receiptDialog')?.showModal();
-  }
-
-
-  let compensationTargetInput = 'damageFineAmount';
-
-  function updateCompensationCalculation() {
-    const price = Number($('calcBookPrice')?.value || 0);
-    const wear = Number($('calcWearFactor')?.value || 1.0);
-    const severity = Number($('calcDamageSeverity')?.value || 1.0);
-    const fee = Number($('calcProcessingFee')?.value || 0);
-
-    const residual = Math.round(price * wear);
-    const directLoss = Math.round(residual * severity);
-    const total = directLoss + fee;
-
-    if ($('calcResidualValue')) $('calcResidualValue').textContent = money(residual);
-    if ($('calcDirectLoss')) $('calcDirectLoss').textContent = money(directLoss);
-    if ($('calcFeeDisplay')) $('calcFeeDisplay').textContent = money(fee);
-    if ($('calcTotalCompensation')) $('calcTotalCompensation').textContent = money(total);
-
-    return total;
-  }
-
-  function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPrice = 100000, bookTitle = '') {
-    compensationTargetInput = targetInput;
-    if ($('calcBookPrice')) $('calcBookPrice').value = defaultPrice || 100000;
-    if ($('calcWearFactor')) $('calcWearFactor').value = '1.0';
-    if ($('calcDamageSeverity')) {
-      const condition = $('returnCondition')?.value;
-      if (condition === 'LIGHT_DAMAGE') $('calcDamageSeverity').value = '0.25';
-      else if (condition === 'SEVERE_DAMAGE') $('calcDamageSeverity').value = '0.60';
-      else if (condition === 'LOST') $('calcDamageSeverity').value = '1.00';
-    }
-    updateCompensationCalculation();
-    $('compensationDialog')?.showModal();
-  }
+  updateCompensationCalculation();
+  $('compensationDialog')?.showModal();
+}
 
 (() => {
   const API_URL = window.location.origin;
@@ -348,12 +348,12 @@
       });
     };
     let response = await request();
-      let sessionExpired = false;
-      if (response.status === 401 && !path.startsWith('/auth/')) {
-        if (await refreshAccessToken()) response = await request();
-        if (response.status === 401) {
-          sessionExpired = true;
-          localStorage.removeItem('accessToken');
+    let sessionExpired = false;
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      if (await refreshAccessToken()) response = await request();
+      if (response.status === 401) {
+        sessionExpired = true;
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         state.user = null;
         showSession();
@@ -475,10 +475,10 @@
     let route = profileMatch || selfProfile
       ? 'reader-profile'
       : (path === '/opac' || (!isStaff() && (path === '/' || path === '/search')))
-      ? 'opac'
-      : path.startsWith('/admin/')
-      ? ADMIN_ROUTE_PATHS[path] || 'dashboard'
-      : null;
+        ? 'opac'
+        : path.startsWith('/admin/')
+          ? ADMIN_ROUTE_PATHS[path] || 'dashboard'
+          : null;
     if (path === '/profile' && !state.user) {
       window.history.replaceState({}, '', '/');
       path = '/';
@@ -500,11 +500,11 @@
     document.querySelectorAll('[data-admin-route]').forEach((section) => {
       const visibleOnRoute = route
         ? section.dataset.adminRoute === route &&
-          (route === 'opac' ? true : route === 'reader-profile' ? isCounterStaff() || Boolean(selfProfile) : Boolean(isStaff()))
+        (route === 'opac' ? true : route === 'reader-profile' ? isCounterStaff() || Boolean(selfProfile) : Boolean(isStaff()))
         : !section.dataset.adminRoute ||
-            (path === '/search'
-              ? section.id === 'books'
-              : ['books', 'loans', 'reservations'].includes(section.dataset.adminRoute) && !isStaff());
+        (path === '/search'
+          ? section.id === 'books'
+          : ['books', 'loans', 'reservations'].includes(section.dataset.adminRoute) && !isStaff());
       const roleAllowed = !section.classList.contains('admin-only') || isAdmin();
       const staffAllowed = !section.classList.contains('staff-only') || isStaff();
       section.hidden = !visibleOnRoute || !roleAllowed || !staffAllowed;
@@ -589,7 +589,7 @@
     const signedIn = Boolean(state.user);
     const isAdminPage = window.location.pathname.startsWith('/admin') || document.body.classList.contains('admin-layout');
     document.body.classList.toggle('admin-layout', Boolean(isStaff() || isAdminPage));
-    
+
     // Đồng bộ hiển thị form đăng nhập Quản trị viên chuyên biệt
     const adminOverlay = document.getElementById('adminAuthOverlay');
     if (adminOverlay) {
@@ -667,7 +667,7 @@
     syncAdminRoute();
   }
 
-  
+
   // SSO LOGIN (GOOGLE / MICROSOFT / LMS)
   async function handleSsoLogin(provider) {
     try {
@@ -701,7 +701,7 @@
       $('authCaptchaQuestion').textContent = res.question;
       $('authCaptchaId').value = res.captchaId;
       $('authCaptchaAnswer').value = '';
-    } catch (_) {}
+    } catch (_) { }
   }
 
   async function login(event) {
@@ -1112,37 +1112,37 @@
       if (tbody) {
         tbody.innerHTML = displayCategories.length
           ? displayCategories.map((category) => {
-              const isChecked = state.selectedCategoryIds && state.selectedCategoryIds.has(category.id);
-              const isChild = (category.level && category.level > 0) || !!category.parentId;
-              const highlightedName = highlight(category.name);
-              const highlightedDdc = category.ddcCode ? highlight(category.ddcCode) : '—';
-              const nameDisplay = isChild
-                ? `<span style="padding-left:${(category.level || 1) * 1.5}rem;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            const isChecked = state.selectedCategoryIds && state.selectedCategoryIds.has(category.id);
+            const isChild = (category.level && category.level > 0) || !!category.parentId;
+            const highlightedName = highlight(category.name);
+            const highlightedDdc = category.ddcCode ? highlight(category.ddcCode) : '—';
+            const nameDisplay = isChild
+              ? `<span style="padding-left:${(category.level || 1) * 1.5}rem;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
                     <span style="color:#0f766e;font-weight:700;">↳ 📄</span>
                     <strong>${highlightedName}</strong>
                     <span class="badge" style="background:#e0f2fe;color:#0369a1;font-size:11px;padding:2px 6px;border-radius:4px;">Con của: ${escapeHtml(category.parentName || 'Gốc')}</span>
                   </span>`
-                : `<span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              : `<span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
                     <span style="font-size:15px;">📁</span>
                     <strong>${highlightedName}</strong>
                     <span class="badge" style="background:#f1f5f9;color:#475569;font-size:11px;padding:2px 6px;border-radius:4px;">Gốc</span>
                     ${category.childrenCount ? `<span class="badge" style="background:#ecfdf5;color:#065f46;font-size:11px;padding:2px 6px;border-radius:4px;">${category.childrenCount} mục con</span>` : ''}
                   </span>`;
 
-              const parentDisplay = category.parentName
-                ? `<span style="color:#334155;font-weight:500;">📁 ${escapeHtml(category.parentName)}</span>`
-                : '<span style="color:#94a3b8;font-size:12px;">— (Thể loại gốc)</span>';
+            const parentDisplay = category.parentName
+              ? `<span style="color:#334155;font-weight:500;">📁 ${escapeHtml(category.parentName)}</span>`
+              : '<span style="color:#94a3b8;font-size:12px;">— (Thể loại gốc)</span>';
 
-              const bCount = Number(category.bookCount) || 0;
-              const bookCountBadge = `
+            const bCount = Number(category.bookCount) || 0;
+            const bookCountBadge = `
                 <a href="#" data-view-category-books="${category.id}" style="text-decoration:none;" title="Xem ${bCount} đầu sách thuộc thể loại ${escapeHtml(category.name)}">
                   <span class="badge" style="background:#f0fdf4;color:#166534;font-weight:700;padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
                     📚 ${bCount} sách ↗
                   </span>
                 </a>`;
-              const copyBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;font-weight:600;padding:3px 8px;border-radius:6px;font-size:12px;">${category.totalCopies || 0} bản (${category.availableCopies || 0} sẵn sàng)</span>`;
+            const copyBadge = `<span class="badge" style="background:#eff6ff;color:#1e40af;font-weight:600;padding:3px 8px;border-radius:6px;font-size:12px;">${category.totalCopies || 0} bản (${category.availableCopies || 0} sẵn sàng)</span>`;
 
-              return `<tr>
+            return `<tr>
                 <td style="text-align:center;"><input type="checkbox" class="cat-checkbox" data-cat-id="${category.id}" ${isChecked ? 'checked' : ''}></td>
                 <td><code>${highlightedDdc}</code></td>
                 <td>${nameDisplay}</td>
@@ -1157,7 +1157,7 @@
                   <button class="button button-danger button-small" data-delete-category="${category.id}" type="button" title="Xóa thể loại">🗑️ Xóa</button>
                 </td>
               </tr>`;
-            }).join('')
+          }).join('')
           : '<tr><td colspan="8" style="text-align:center;color:#888;padding:2rem;">Không tìm thấy thể loại nào phù hợp.</td></tr>';
       }
 
@@ -1369,27 +1369,27 @@
     if (tbody) {
       tbody.innerHTML = publishers.length
         ? publishers.map((p) => {
-            const taxBadge = p.taxCode
-              ? `<div style="font-size:12px;color:#0284c7;font-weight:600;margin-top:2px;">MST: <code>${highlight(p.taxCode)}</code></div>`
-              : '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Chưa có MST</div>';
+          const taxBadge = p.taxCode
+            ? `<div style="font-size:12px;color:#0284c7;font-weight:600;margin-top:2px;">MST: <code>${highlight(p.taxCode)}</code></div>`
+            : '<div style="font-size:11px;color:#94a3b8;margin-top:2px;">Chưa có MST</div>';
 
-            const websiteLink = p.website
-              ? `<div style="font-size:12px;margin-top:2px;"><a href="${escapeHtml(p.website)}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:none;">🌐 ${escapeHtml(p.website)}</a></div>`
-              : '';
+          const websiteLink = p.website
+            ? `<div style="font-size:12px;margin-top:2px;"><a href="${escapeHtml(p.website)}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:none;">🌐 ${escapeHtml(p.website)}</a></div>`
+            : '';
 
-            const contactDisplay = `
+          const contactDisplay = `
               <div style="font-size:13px;font-weight:600;color:#1e293b;">👤 ${highlight(p.contactPerson || 'Chưa cập nhật đại diện')}</div>
               <div style="font-size:12px;color:#475569;margin-top:2px;">📞 ${highlight(p.phone || '—')} · ✉️ ${highlight(p.email || '—')}</div>
               ${p.address ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">📍 ${escapeHtml(p.address)}</div>` : ''}
             `;
 
-            const ratingStars = '⭐'.repeat(Math.max(1, Math.min(5, Number(p.qualityRating) || 5)));
-            const discountBadge = `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:11px;padding:2px 6px;border-radius:4px;">-${p.discountRate || 0}% CK</span>`;
-            const reputationNotesDisplay = p.reputationNotes
-              ? `<div style="font-size:11px;color:#475569;font-style:italic;margin-top:3px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.reputationNotes)}">📝 ${escapeHtml(p.reputationNotes)}</div>`
-              : '';
+          const ratingStars = '⭐'.repeat(Math.max(1, Math.min(5, Number(p.qualityRating) || 5)));
+          const discountBadge = `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:11px;padding:2px 6px;border-radius:4px;">-${p.discountRate || 0}% CK</span>`;
+          const reputationNotesDisplay = p.reputationNotes
+            ? `<div style="font-size:11px;color:#475569;font-style:italic;margin-top:3px;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(p.reputationNotes)}">📝 ${escapeHtml(p.reputationNotes)}</div>`
+            : '';
 
-            return `<tr>
+          return `<tr>
               <td>
                 <strong style="font-size:14px;color:#0f172a;">${highlight(p.name)}</strong>
                 ${taxBadge}
@@ -1423,7 +1423,7 @@
                 <button class="button button-danger button-small" data-delete-publisher="${p.id}" type="button">🗑️ Xóa</button>
               </td>
             </tr>`;
-          }).join('')
+        }).join('')
         : '<tr><td colspan="6" style="text-align:center;color:#888;padding:2rem;">Không tìm thấy nhà xuất bản nào phù hợp.</td></tr>';
     }
 
@@ -1479,20 +1479,20 @@
       if (tbody) {
         tbody.innerHTML = orders.length
           ? orders.map((o) => {
-              const statusBadge = o.status === 'COMPLETED'
-                ? '<span class="badge" style="background:#ecfdf5;color:#065f46;">Đã hoàn thành</span>'
-                : o.status === 'ORDERED'
+            const statusBadge = o.status === 'COMPLETED'
+              ? '<span class="badge" style="background:#ecfdf5;color:#065f46;">Đã hoàn thành</span>'
+              : o.status === 'ORDERED'
                 ? '<span class="badge" style="background:#eff6ff;color:#1e40af;">Đang giao hàng</span>'
                 : `<span class="badge">${o.status}</span>`;
 
-              const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '—';
-              return `<tr>
+            const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '—';
+            return `<tr>
                 <td><code>${escapeHtml(o.orderCode)}</code></td>
                 <td>${dateStr}</td>
                 <td>${statusBadge}</td>
                 <td style="text-align:right;"><strong>${formatCurrency(o.totalAmount)}</strong></td>
               </tr>`;
-            }).join('')
+          }).join('')
           : '<tr><td colspan="4" style="text-align:center;color:#888;padding:1.5rem;">Chưa có đơn đặt hàng nào phát sinh với NXB này.</td></tr>';
       }
 
@@ -1754,8 +1754,8 @@
     $('staffPerformanceModal').showModal();
   }
 
-  
-    function generateBarcodeSvg(code) {
+
+  function generateBarcodeSvg(code) {
     if (!code) code = 'TV-000000';
     const clean = String(code).toUpperCase().replace(/[^0-9A-Z\-]/g, '-');
     const CODE39 = {
@@ -1850,18 +1850,18 @@
     const staff = state.users.filter((user) => user.role !== 'READER');
     $('staffList').innerHTML = staff.length
       ? staff.map((user) => '<tr>' +
-          '<td><strong>' + escapeHtml(user.username) + '</strong></td>' +
-          '<td>' + escapeHtml(user.fullName || '—') + '<br><small>' + escapeHtml(user.email || '—') + ' · ' + escapeHtml(user.phone || '—') + '</small></td>' +
-          '<td><div class="staff-role-editor"><span class="role-badge">' + escapeHtml(roleTitle(user.role)) + '</span><select data-staff-role="' + user.id + '" aria-label="Vai trò của ' + escapeHtml(user.username) + '"><option value="ADMIN" ' + (user.role === 'ADMIN' ? 'selected' : '') + '>Super Admin</option><option value="LIBRARIAN" ' + (user.role === 'LIBRARIAN' ? 'selected' : '') + '>Thủ thư tổng hợp</option><option value="COUNTER_LIBRARIAN" ' + (user.role === 'COUNTER_LIBRARIAN' ? 'selected' : '') + '>Thủ thư quầy</option><option value="INVENTORY_LIBRARIAN" ' + (user.role === 'INVENTORY_LIBRARIAN' ? 'selected' : '') + '>Thủ thư kho</option></select></div></td>' +
-          '<td><div style="max-width:240px;">' + renderPermissionPills(user) + '</div></td>' +
-          '<td><span class="status ' + (user.isActive ? 'status-RETURNED' : 'status-REJECTED') + '">' + (user.isActive ? 'Đang hoạt động' : 'Đã khóa') + '</span></td>' +
-          '<td>' +
-            '<div class="book-actions">' +
-              '<button class="button button-light button-small" data-staff-permissions="' + user.id + '" type="button" title="Tùy chỉnh phân quyền chi tiết RBAC">⚙️ Phân quyền</button>' +
-              '<button class="button button-primary button-small" data-save-staff-role="' + user.id + '" type="button">Lưu vai trò</button>' +
-              '<button class="button ' + (user.isActive ? 'button-danger' : 'button-light') + ' button-small" data-toggle-user="' + user.id + '" type="button">' + (user.isActive ? 'Khóa' : 'Mở khóa') + '</button>' +
-            '</div>' +
-          '</td>' +
+        '<td><strong>' + escapeHtml(user.username) + '</strong></td>' +
+        '<td>' + escapeHtml(user.fullName || '—') + '<br><small>' + escapeHtml(user.email || '—') + ' · ' + escapeHtml(user.phone || '—') + '</small></td>' +
+        '<td><div class="staff-role-editor"><span class="role-badge">' + escapeHtml(roleTitle(user.role)) + '</span><select data-staff-role="' + user.id + '" aria-label="Vai trò của ' + escapeHtml(user.username) + '"><option value="ADMIN" ' + (user.role === 'ADMIN' ? 'selected' : '') + '>Super Admin</option><option value="LIBRARIAN" ' + (user.role === 'LIBRARIAN' ? 'selected' : '') + '>Thủ thư tổng hợp</option><option value="COUNTER_LIBRARIAN" ' + (user.role === 'COUNTER_LIBRARIAN' ? 'selected' : '') + '>Thủ thư quầy</option><option value="INVENTORY_LIBRARIAN" ' + (user.role === 'INVENTORY_LIBRARIAN' ? 'selected' : '') + '>Thủ thư kho</option></select></div></td>' +
+        '<td><div style="max-width:240px;">' + renderPermissionPills(user) + '</div></td>' +
+        '<td><span class="status ' + (user.isActive ? 'status-RETURNED' : 'status-REJECTED') + '">' + (user.isActive ? 'Đang hoạt động' : 'Đã khóa') + '</span></td>' +
+        '<td>' +
+        '<div class="book-actions">' +
+        '<button class="button button-light button-small" data-staff-permissions="' + user.id + '" type="button" title="Tùy chỉnh phân quyền chi tiết RBAC">⚙️ Phân quyền</button>' +
+        '<button class="button button-primary button-small" data-save-staff-role="' + user.id + '" type="button">Lưu vai trò</button>' +
+        '<button class="button ' + (user.isActive ? 'button-danger' : 'button-light') + ' button-small" data-toggle-user="' + user.id + '" type="button">' + (user.isActive ? 'Khóa' : 'Mở khóa') + '</button>' +
+        '</div>' +
+        '</td>' +
         '</tr>').join('')
       : '<tr><td colspan="6">Chưa có tài khoản nhân viên.</td></tr>';
     document.querySelectorAll('[data-save-staff-role]').forEach((button) => {
@@ -1931,18 +1931,18 @@
         '<td><span style="font-family:monospace;font-weight:700;color:#0f766e;">' + escapeHtml(cardNum) + '</span><br><small>' + (user.role === 'READER' ? 'Cấp ' + date(user.libraryCardIssuedAt) + (user.libraryCardExpiresAt ? ' · Hạn ' + date(user.libraryCardExpiresAt) : '') : '—') + '</small></td>' +
         '<td><span class="status ' + (user.isActive ? 'status-RETURNED' : 'status-REJECTED') + '">' + (user.isActive ? 'Đang hoạt động' : user.role === 'READER' && !user.approvedAt ? 'Chờ duyệt' : 'Đã khóa') + '</span></td>' +
         '<td>' +
-          '<div class="book-actions">' +
-            '<button class="button button-light button-small" data-reader-history="' + user.id + '" type="button" title="Xem lịch sử mượn trả & chỉ số chuyên cần đọc sách">📜 Lịch sử & Rank</button>' +
-            (user.role === 'READER' ? '<button class="button button-primary button-small" data-library-card="' + user.id + '" type="button" title="Mở thẻ thư viện kỹ thuật số gắn Barcode & QR">💳 Thẻ TV</button>' : '') +
-            '<button class="button button-light button-small" data-user-profile="' + user.id + '" type="button">Hồ sơ</button>' +
-            (user.role === 'READER' ? '<button class="button button-light button-small" data-renew-card="' + user.id + '" type="button">Gia hạn</button>' : '') +
-            '<button class="button button-light button-small" data-edit-user="' + user.id + '" type="button">Sửa</button>' +
-            '<button class="button ' + (user.isActive ? 'button-danger' : 'button-primary') + ' button-small" data-toggle-user="' + user.id + '" type="button">' + (user.isActive ? 'Khóa' : user.role === 'READER' && !user.approvedAt ? 'Duyệt / mở khóa' : 'Mở khóa') + '</button>' +
-          '</div>' +
+        '<div class="book-actions">' +
+        '<button class="button button-light button-small" data-reader-history="' + user.id + '" type="button" title="Xem lịch sử mượn trả & chỉ số chuyên cần đọc sách">📜 Lịch sử & Rank</button>' +
+        (user.role === 'READER' ? '<button class="button button-primary button-small" data-library-card="' + user.id + '" type="button" title="Mở thẻ thư viện kỹ thuật số gắn Barcode & QR">💳 Thẻ TV</button>' : '') +
+        '<button class="button button-light button-small" data-user-profile="' + user.id + '" type="button">Hồ sơ</button>' +
+        (user.role === 'READER' ? '<button class="button button-light button-small" data-renew-card="' + user.id + '" type="button">Gia hạn</button>' : '') +
+        '<button class="button button-light button-small" data-edit-user="' + user.id + '" type="button">Sửa</button>' +
+        '<button class="button ' + (user.isActive ? 'button-danger' : 'button-primary') + ' button-small" data-toggle-user="' + user.id + '" type="button">' + (user.isActive ? 'Khóa' : user.role === 'READER' && !user.approvedAt ? 'Duyệt / mở khóa' : 'Mở khóa') + '</button>' +
+        '</div>' +
         '</td>' +
-      '</tr>';
+        '</tr>';
     }).join('')
-    : '<tr><td colspan="7">Không tìm thấy tài khoản phù hợp.</td></tr>';
+      : '<tr><td colspan="7">Không tìm thấy tài khoản phù hợp.</td></tr>';
 
     document.querySelectorAll('[data-reader-history]').forEach((button) => {
       button.addEventListener('click', () => openReaderHistory(button.dataset.readerHistory));
@@ -2011,7 +2011,7 @@
               '<td>' + retDate + '</td>' +
               '<td><span class="status status-' + loan.status + '">' + escapeHtml(loanStatusTitle(loan.status)) + '</span></td>' +
               '<td><strong style="color:' + (loan.fineStatus === 'UNPAID' ? '#dc2626' : '#64748b') + ';">' + fineText + '</strong></td>' +
-            '</tr>';
+              '</tr>';
           }).join('');
         }
       }
@@ -2078,14 +2078,14 @@
 
     printWindow.document.open();
     printWindow.document.write('<!doctype html>' +
-'<html>' +
-'<head>' +
-  '<meta charset="UTF-8">' +
-  '<title>In thẻ thư viện</title>' +
-  '<style>' +
-    '@page { size: A4; margin: 15mm; }' +
-    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; background: #fff; padding: 20px; }' +
-    '.card-print-box {' +
+      '<html>' +
+      '<head>' +
+      '<meta charset="UTF-8">' +
+      '<title>In thẻ thư viện</title>' +
+      '<style>' +
+      '@page { size: A4; margin: 15mm; }' +
+      'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; background: #fff; padding: 20px; }' +
+      '.card-print-box {' +
       'width: 86mm;' +
       'height: 54mm;' +
       'border-radius: 12px;' +
@@ -2100,21 +2100,21 @@
       'justify-content: space-between;' +
       '-webkit-print-color-adjust: exact;' +
       'print-color-adjust: exact;' +
-    '}' +
-  '</style>' +
-'</head>' +
-'<body>' +
-  '<div style="margin-bottom:12px;font-size:12px;color:#64748b;">HỆ THỐNG THƯ VIỆN ĐẠI HỌC SỐ - BẢN IN THẺ BẠN ĐỌC (Chuẩn CR-80)</div>' +
-  '<div class="card-print-box">' +
-    cardEl.innerHTML +
-  '</div>' +
-  '<script>' +
-    'window.onload = () => {' +
+      '}' +
+      '</style>' +
+      '</head>' +
+      '<body>' +
+      '<div style="margin-bottom:12px;font-size:12px;color:#64748b;">HỆ THỐNG THƯ VIỆN ĐẠI HỌC SỐ - BẢN IN THẺ BẠN ĐỌC (Chuẩn CR-80)</div>' +
+      '<div class="card-print-box">' +
+      cardEl.innerHTML +
+      '</div>' +
+      '<script>' +
+      'window.onload = () => {' +
       'window.print();' +
-    '};' +
-  '<\/script>' +
-'</body>' +
-'</html>');
+      '};' +
+      '<\/script>' +
+      '</body>' +
+      '</html>');
     printWindow.document.close();
   }
 
@@ -2279,7 +2279,7 @@
           $('smtpConfigurationStatus').textContent = mailConfig.smtpConfigured
             ? '✓ Máy chủ SMTP đang hoạt động bình thường. Email thông báo được gửi tự động theo lịch.'
             : '⚠ SMTP chưa được cấu hình qua biến môi trường. Hệ thống vẫn lưu trữ thông báo nội bộ trong ứng dụng.';
-        } catch (_) {}
+        } catch (_) { }
       }
     } catch (error) {
       if (showErrors) notify(`Không tải được cấu hình: ${error.message}`, true);
@@ -2399,7 +2399,7 @@
     }
   }
 
-  
+
   async function renderReaderFavorites() {
     const tbody = $('readerFavoritesList');
     if (!tbody) return;
@@ -2876,7 +2876,7 @@
     try {
       const result = await api(`/books/search?${params}`);
       if (state.suggestionRequestIds[listId] !== requestId ||
-          $(inputId).value.trim() !== normalizedKeyword) return;
+        $(inputId).value.trim() !== normalizedKeyword) return;
       list.innerHTML = result.data.length
         ? result.data.map((book) =>
           `<button class="suggestion-option" role="option" data-search-title="${escapeHtml(book.title)}" type="button"><strong>${escapeHtml(book.title)}</strong><span>${escapeHtml(book.author)} · ISBN ${escapeHtml(book.isbn)}</span></button>`).join('')
@@ -2903,11 +2903,11 @@
     if (isInventoryStaff() && window.location.pathname !== '/admin/books') {
       navigateAdmin('/admin/books');
     } else if (isStaff() && window.location.pathname !== '/search' &&
-        window.location.pathname !== '/admin/books') {
+      window.location.pathname !== '/admin/books') {
       window.history.pushState({}, '', '/search');
       syncAdminRoute();
     } else if (window.location.pathname !== '/search' &&
-        window.location.pathname !== '/admin/books') {
+      window.location.pathname !== '/admin/books') {
       window.history.pushState({}, '', '/search');
       syncAdminRoute();
     }
@@ -2915,7 +2915,7 @@
     void loadBooks(1);
   }
 
-  
+
   async function loadMyFavoriteIds() {
     if (!state.user) {
       state.myFavoriteIds = new Set();
@@ -3109,7 +3109,7 @@
     );
   }
 
-  
+
   // STAR RATING & REVIEWS IN BOOK DETAILS
   async function loadBookReviews(bookId) {
     const list = $('bookReviewsList');
@@ -3206,7 +3206,7 @@
           relatedList.innerHTML = '<span style="color:#888;font-size:13px;">Không tải được sách gợi ý.</span>';
         }
       }
-      
+
       // Update shelf location visualizer
       const shelfLoc = [
         book.floor ? `Tầng ${book.floor}` : '',
@@ -3284,38 +3284,47 @@
 
   async function saveBook(event) {
     event.preventDefault();
-    const id = $('bookId').value;
-    const title = $('bookTitle').value.trim();
-    const author = $('bookAuthor').value.trim();
+    const id = $('bookId')?.value;
+    const title = $('bookTitle')?.value.trim() || '';
+    const author = $('bookAuthor')?.value.trim() || '';
     if (title.length < 2) {
-      $('bookTitle').setCustomValidity('Tên sách phải có ít nhất 2 ký tự.');
-      $('bookTitle').reportValidity();
-      $('bookTitle').setCustomValidity('');
+      $('bookTitle')?.setCustomValidity('Tên sách phải có ít nhất 2 ký tự.');
+      $('bookTitle')?.reportValidity();
+      $('bookTitle')?.setCustomValidity('');
       return;
     }
     if (author.length < 2) {
-      $('bookAuthor').setCustomValidity('Tên tác giả phải có ít nhất 2 ký tự.');
-      $('bookAuthor').reportValidity();
-      $('bookAuthor').setCustomValidity('');
+      $('bookAuthor')?.setCustomValidity('Tên tác giả phải có ít nhất 2 ký tự.');
+      $('bookAuthor')?.reportValidity();
+      $('bookAuthor')?.setCustomValidity('');
       return;
     }
-    const totalCopies = Number($('bookCopies').value);
-    const categoryId = $('bookCategory').value;
-    const publisherId = $('publisherId').value;
+    const isbn = $('bookIsbn')?.value.trim() || '';
+    if (!isbn) {
+      $('bookIsbn')?.setCustomValidity('Mã ISBN không được để trống.');
+      $('bookIsbn')?.reportValidity();
+      $('bookIsbn')?.setCustomValidity('');
+      return;
+    }
+    const totalCopies = Math.max(1, Number($('bookCopies')?.value) || 1);
+    const categoryId = $('bookCategory')?.value;
+    const publisherId = $('publisherId')?.value;
+    const pubYear = Number($('bookPublicationYear')?.value);
+
     const payload = {
       title,
       author,
-      isbn: $('bookIsbn').value.trim(),
-      publicationYear: Number($('bookPublicationYear').value) || undefined,
+      isbn,
+      publicationYear: (pubYear && pubYear >= 1000 && pubYear <= 9999) ? pubYear : undefined,
       totalCopies,
       ...(!id ? { availableCopies: totalCopies } : {}),
       ...(categoryId ? { categoryId: Number(categoryId) } : {}),
-      ...(publisherId ? { publisherId: Number(publisherId) } : { publisherId: null }),
-      shelf: $('bookShelf').value.trim() || undefined,
-      floor: $('bookFloor').value.trim() || undefined,
-      aisle: $('bookAisle').value.trim() || undefined,
-      description: $('bookDescription').value.trim(),
-      coverImageUrl: $('bookCoverImageUrl').value.trim(),
+      ...(publisherId ? { publisherId: Number(publisherId) } : (id ? { publisherId: null } : {})),
+      shelf: $('bookShelf')?.value.trim() || undefined,
+      floor: $('bookFloor')?.value.trim() || undefined,
+      aisle: $('bookAisle')?.value.trim() || undefined,
+      description: $('bookDescription')?.value.trim() || undefined,
+      coverImageUrl: $('bookCoverImageUrl')?.value.trim() || undefined,
       pdfUrl: $('bookPdfUrl')?.value.trim() || undefined,
     };
     try {
@@ -3323,17 +3332,17 @@
         method: id ? 'PATCH' : 'POST',
         body: JSON.stringify(payload),
       });
-      $('bookFormPanel').hidden = true;
-      $('bookForm').reset();
-      $('bookId').value = '';
-      notify(id ? 'Đã cập nhật đầu sách.' : 'Đã thêm đầu sách và tạo barcode cho các bản sao.');
+      if ($('bookFormPanel')) $('bookFormPanel').hidden = true;
+      if ($('bookForm')) $('bookForm').reset();
+      if ($('bookId')) $('bookId').value = '';
+      notify(id ? 'Đã cập nhật đầu sách thành công!' : 'Đã thêm đầu sách và tạo barcode cho các bản sao thành công!');
       await Promise.all([loadBooks(state.page), loadDashboard()]);
     } catch (error) {
-      notify(error.message, true);
+      notify(error.message || 'Không thể lưu thông tin sách. Vui lòng kiểm tra lại dữ liệu.', true);
     }
   }
 
-  
+
   // XUẤT EXCEL DANH MỤC SÁCH
   async function exportBooksExcel() {
     try {
@@ -3511,10 +3520,10 @@
         <label>Tình trạng
           <select data-copy-status="${copy.id}" ${copy.status === BookCopyStatusForUi.DISPOSED ? 'disabled' : ''}>
             ${[BookCopyStatusForUi.AVAILABLE, BookCopyStatusForUi.RESERVED, BookCopyStatusForUi.BORROWED,
-              BookCopyStatusForUi.MAINTENANCE,
-              BookCopyStatusForUi.DAMAGED, BookCopyStatusForUi.LOST,
-              BookCopyStatusForUi.DISPOSED].map((status) =>
-              `<option value="${status}" ${copy.status === status ? 'selected' : ''} ${['RESERVED', 'BORROWED'].includes(status) ? 'disabled' : ''}>${escapeHtml(statusLabels[status])}</option>`).join('')}
+      BookCopyStatusForUi.MAINTENANCE,
+      BookCopyStatusForUi.DAMAGED, BookCopyStatusForUi.LOST,
+      BookCopyStatusForUi.DISPOSED].map((status) =>
+        `<option value="${status}" ${copy.status === status ? 'selected' : ''} ${['RESERVED', 'BORROWED'].includes(status) ? 'disabled' : ''}>${escapeHtml(statusLabels[status])}</option>`).join('')}
           </select>
         </label>
         <label>Kệ<input data-copy-shelf="${copy.id}" maxlength="100" value="${escapeHtml(copy.shelf ?? book.shelf ?? '')}"></label>
@@ -3726,7 +3735,7 @@
     if (!state.user) return;
     try {
       if (isCounterStaff()) {
-        api('/reservations/expire-check', { method: 'POST' }).catch(() => {});
+        api('/reservations/expire-check', { method: 'POST' }).catch(() => { });
       }
       state.reservations = await api(isCounterStaff() ? '/reservations' : '/reservations/mine');
       renderReservations();
@@ -3735,7 +3744,7 @@
     }
   }
 
-    async function quickClaimReservation(id) {
+  async function quickClaimReservation(id) {
     try {
       const result = await api(`/reservations/${id}/claim`, { method: 'POST' });
       if (typeof playBarcodeScanTone === 'function') playBarcodeScanTone('success');
@@ -3804,64 +3813,64 @@
     });
 
     $('reservationList').innerHTML = reservations.length ? reservations.map((reservation) => {
-        const status = escapeHtml(reservation.status);
-        const actions = [];
-        if (reservation.status === 'WAITING' && isCounterStaff()) {
-          actions.push(`<button class="button button-primary button-small" data-ready-reservation="${reservation.id}" type="button">✓ Chuẩn bị sách</button>`);
+      const status = escapeHtml(reservation.status);
+      const actions = [];
+      if (reservation.status === 'WAITING' && isCounterStaff()) {
+        actions.push(`<button class="button button-primary button-small" data-ready-reservation="${reservation.id}" type="button">✓ Chuẩn bị sách</button>`);
+      }
+      if (reservation.status === 'READY') {
+        if (isCounterStaff()) {
+          actions.push(`<button class="button button-small btn-quick-claim" data-quick-claim="${reservation.id}" type="button" title="Giao sách nhanh 1 chạm: Lập tức tạo phiếu mượn và giao sách cho bạn đọc">⚡ Giao sách (1 chạm)</button>`);
+          actions.push(`<button class="button button-light button-small" data-resend-email="${reservation.id}" type="button" title="Gửi lại Email thông báo sách có sẵn kèm thời hạn giữ chỗ 24h">✉️ Gửi Email</button>`);
+        } else {
+          actions.push(`<button class="button button-primary button-small" data-claim-reservation="${reservation.id}" type="button">Nhận sách</button>`);
         }
-        if (reservation.status === 'READY') {
-          if (isCounterStaff()) {
-            actions.push(`<button class="button button-small btn-quick-claim" data-quick-claim="${reservation.id}" type="button" title="Giao sách nhanh 1 chạm: Lập tức tạo phiếu mượn và giao sách cho bạn đọc">⚡ Giao sách (1 chạm)</button>`);
-            actions.push(`<button class="button button-light button-small" data-resend-email="${reservation.id}" type="button" title="Gửi lại Email thông báo sách có sẵn kèm thời hạn giữ chỗ 24h">✉️ Gửi Email</button>`);
-          } else {
-            actions.push(`<button class="button button-primary button-small" data-claim-reservation="${reservation.id}" type="button">Nhận sách</button>`);
-          }
-        }
-        if (['WAITING', 'READY'].includes(reservation.status)) {
-          actions.push(`<button class="button button-danger button-small" data-cancel-reservation="${reservation.id}" type="button">Hủy</button>`);
-        }
-        const readerName = reservation.user?.fullName || reservation.user?.username || 'Độc giả';
-        const reader = isCounterStaff()
-          ? `<button class="text-button" data-reservation-reader="${reservation.user?.id}" type="button">${escapeHtml(readerName)}</button><br><small>${escapeHtml(reservation.user?.phone || `Thẻ TV-${reservation.user?.id || ''}`)}</small>`
-          : escapeHtml(state.user.username);
+      }
+      if (['WAITING', 'READY'].includes(reservation.status)) {
+        actions.push(`<button class="button button-danger button-small" data-cancel-reservation="${reservation.id}" type="button">Hủy</button>`);
+      }
+      const readerName = reservation.user?.fullName || reservation.user?.username || 'Độc giả';
+      const reader = isCounterStaff()
+        ? `<button class="text-button" data-reservation-reader="${reservation.user?.id}" type="button">${escapeHtml(readerName)}</button><br><small>${escapeHtml(reservation.user?.phone || `Thẻ TV-${reservation.user?.id || ''}`)}</small>`
+        : escapeHtml(state.user.username);
 
-        let fifoDisplay = '—';
-        if (reservation.status === 'WAITING') {
-          if (reservation.queuePosition === 1) {
-            fifoDisplay = `<span class="fifo-pill fifo-pill-first">🥇 #1 (Đầu tiên trong hàng đợi)</span>`;
-          } else if (reservation.queuePosition > 1) {
-            fifoDisplay = `<span class="fifo-pill">⏳ #${escapeHtml(reservation.queuePosition)} (Xếp hàng FIFO)</span>`;
-          } else {
-            fifoDisplay = `<span class="fifo-pill">⏳ Đang xếp hàng</span>`;
-          }
-        } else if (reservation.status === 'READY') {
-          fifoDisplay = `<span class="fifo-pill fifo-pill-first" style="background:#dcfce7;color:#15803d;border-color:#86efac;">⚡ Đã có sách: ${escapeHtml(reservation.copy?.barcode || 'Tại quầy')}</span>`;
-        } else if (reservation.status === 'FULFILLED') {
-          fifoDisplay = `<span style="color:#16a34a;font-weight:700;">✓ Đã giao độc giả</span>`;
-        } else if (reservation.status === 'EXPIRED') {
-          fifoDisplay = `<span style="color:#dc2626;font-weight:700;">✕ Hết hạn 24h</span>`;
-        } else if (reservation.status === 'CANCELLED') {
-          fifoDisplay = `<span style="color:#6b7280;">Đã hủy</span>`;
+      let fifoDisplay = '—';
+      if (reservation.status === 'WAITING') {
+        if (reservation.queuePosition === 1) {
+          fifoDisplay = `<span class="fifo-pill fifo-pill-first">🥇 #1 (Đầu tiên trong hàng đợi)</span>`;
+        } else if (reservation.queuePosition > 1) {
+          fifoDisplay = `<span class="fifo-pill">⏳ #${escapeHtml(reservation.queuePosition)} (Xếp hàng FIFO)</span>`;
+        } else {
+          fifoDisplay = `<span class="fifo-pill">⏳ Đang xếp hàng</span>`;
         }
+      } else if (reservation.status === 'READY') {
+        fifoDisplay = `<span class="fifo-pill fifo-pill-first" style="background:#dcfce7;color:#15803d;border-color:#86efac;">⚡ Đã có sách: ${escapeHtml(reservation.copy?.barcode || 'Tại quầy')}</span>`;
+      } else if (reservation.status === 'FULFILLED') {
+        fifoDisplay = `<span style="color:#16a34a;font-weight:700;">✓ Đã giao độc giả</span>`;
+      } else if (reservation.status === 'EXPIRED') {
+        fifoDisplay = `<span style="color:#dc2626;font-weight:700;">✕ Hết hạn 24h</span>`;
+      } else if (reservation.status === 'CANCELLED') {
+        fifoDisplay = `<span style="color:#6b7280;">Đã hủy</span>`;
+      }
 
-        let emailBadge = '';
-        if (reservation.status === 'READY') {
-          if (reservation.emailStatus === 'SENT') {
-            emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;" title="Đã tự động gửi email thông báo sách sẵn sàng kèm hạn giữ 24h">📧 Email: Đã gửi (Hạn 24h)</span></div>`;
-          } else if (reservation.emailStatus === 'FAILED') {
-            emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;" title="${escapeHtml(reservation.emailError || 'Lỗi gửi SMTP')}">⚠️ Email: Lỗi gửi</span></div>`;
-          } else if (reservation.emailStatus === 'PENDING') {
-            emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;">⏳ Email: Đang gửi...</span></div>`;
-          } else {
-            emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#f1f5f9;color:#64748b;font-size:11px;padding:2px 6px;border-radius:4px;" title="Tự động kích hoạt khi có sách sẵn sàng">📧 Email: Tự động (24h)</span></div>`;
-          }
+      let emailBadge = '';
+      if (reservation.status === 'READY') {
+        if (reservation.emailStatus === 'SENT') {
+          emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#ecfdf5;color:#065f46;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;" title="Đã tự động gửi email thông báo sách sẵn sàng kèm hạn giữ 24h">📧 Email: Đã gửi (Hạn 24h)</span></div>`;
+        } else if (reservation.emailStatus === 'FAILED') {
+          emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#fee2e2;color:#991b1b;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;" title="${escapeHtml(reservation.emailError || 'Lỗi gửi SMTP')}">⚠️ Email: Lỗi gửi</span></div>`;
+        } else if (reservation.emailStatus === 'PENDING') {
+          emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;">⏳ Email: Đang gửi...</span></div>`;
+        } else {
+          emailBadge = `<div style="margin-top:4px;"><span class="badge" style="background:#f1f5f9;color:#64748b;font-size:11px;padding:2px 6px;border-radius:4px;" title="Tự động kích hoạt khi có sách sẵn sàng">📧 Email: Tự động (24h)</span></div>`;
         }
+      }
 
-        const expiry = reservation.expiresAt
-          ? `<div style="font-size:12px;">${date(reservation.expiresAt)}</div>${reservation.status === 'READY' ? `<div class="reservation-countdown" data-expires-at="${escapeHtml(reservation.expiresAt)}" style="margin-top:2px;">${formatReservationCountdown(reservation.expiresAt)}</div>` : ''}${emailBadge}`
-          : (emailBadge || '—');
+      const expiry = reservation.expiresAt
+        ? `<div style="font-size:12px;">${date(reservation.expiresAt)}</div>${reservation.status === 'READY' ? `<div class="reservation-countdown" data-expires-at="${escapeHtml(reservation.expiresAt)}" style="margin-top:2px;">${formatReservationCountdown(reservation.expiresAt)}</div>` : ''}${emailBadge}`
+        : (emailBadge || '—');
 
-        return `<tr>
+      return `<tr>
           <td>
             <strong>${escapeHtml(reservation.book?.title || 'Sách không còn tồn tại')}</strong>
             ${reservation.copy?.barcode ? `<br><small>Barcode: <code>${escapeHtml(reservation.copy.barcode)}</code></small>` : ''}
@@ -3872,7 +3881,7 @@
           <td>${expiry}</td>
           <td><div class="book-actions">${actions.join(' ') || '—'}</div></td>
         </tr>`;
-      }).join('') : '<tr><td colspan="6">Không có yêu cầu đặt giữ sách ở danh mục này.</td></tr>';
+    }).join('') : '<tr><td colspan="6">Không có yêu cầu đặt giữ sách ở danh mục này.</td></tr>';
 
     $('reservationDescription').textContent = isCounterStaff()
       ? 'Hàng chờ tự động xếp lượt theo FIFO, thông báo độc giả khi có sách và giữ chỗ trong 24 giờ.'
@@ -4290,7 +4299,7 @@
       })[record.returnCondition] || escapeHtml(record.returnCondition) : '—';
       const lateFine = overdue
         ? Math.ceil((Date.now() - new Date(record.dueDate).getTime()) / 86_400_000) *
-          Number(state.settings?.dailyFineRate || 5000)
+        Number(state.settings?.dailyFineRate || 5000)
         : 0;
       const fine = Number(record.fineAmount) > 0
         ? `${money(record.fineAmount)} (${escapeHtml(record.fineStatus)})`
@@ -4551,7 +4560,7 @@
     const id = $('fineCollectionId').value;
     const paymentMethod = $('fineCollectionMethod').value;
     if (paymentMethod === 'VIETQR' &&
-        !window.confirm('Bạn đã đối chiếu tài khoản và xác nhận đã nhận đủ tiền chuyển khoản?')) return;
+      !window.confirm('Bạn đã đối chiếu tài khoản và xác nhận đã nhận đủ tiền chuyển khoản?')) return;
     try {
       const res = await api(type === 'MANUAL'
         ? `/borrow/fines/manual/${id}/pay`
@@ -4705,17 +4714,17 @@
   function exportFinePayments() {
     const payments = filteredFinePayments();
     const rows = payments.map((payment) => [
-        payment.txnRef,
-        payment.borrowRecordId || '',
-        payment.violationId || '',
-        payment.readerName || '',
-        payment.bookTitle || '',
-        payment.barcode || '',
-        payment.amount,
-        payment.paymentMethod,
-        payment.status,
-        payment.paidAt || payment.createdAt,
-      ]);
+      payment.txnRef,
+      payment.borrowRecordId || '',
+      payment.violationId || '',
+      payment.readerName || '',
+      payment.bookTitle || '',
+      payment.barcode || '',
+      payment.amount,
+      payment.paymentMethod,
+      payment.status,
+      payment.paidAt || payment.createdAt,
+    ]);
     const report = `<html><head><meta charset="UTF-8"></head><body>${reportTable(
       'Sổ thu tiền phạt',
       ['Mã giao dịch', 'Mã phiếu mượn', 'Mã vi phạm', 'Độc giả', 'Sách', 'Barcode', 'Số tiền', 'Phương thức', 'Trạng thái', 'Ngày thu'],
@@ -4821,7 +4830,7 @@
     }
   }
 
-  
+
   async function loadStaffSystemAlerts() {
     if (!isStaff()) return;
     try {
@@ -4876,7 +4885,7 @@
           notifList.innerHTML = alertsHtml + (notifList.innerHTML || '');
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   async function loadNotifications() {
@@ -5050,10 +5059,10 @@
       if ($('dashboardTopBooks')) {
         $('dashboardTopBooks').innerHTML = topList.length
           ? topList.slice(0, 10).map((book, idx) => {
-              const count = Number(book.borrowCount || 0);
-              const pct = Math.max(8, Math.round((count / maxBorrows) * 100));
-              const badgeBg = idx === 0 ? '#fef08a;color:#854d0e;' : idx === 1 ? '#e2e8f0;color:#334155;' : idx === 2 ? '#fed7aa;color:#9a3412;' : '#f1f5f9;color:#64748b;';
-              return `<tr>
+            const count = Number(book.borrowCount || 0);
+            const pct = Math.max(8, Math.round((count / maxBorrows) * 100));
+            const badgeBg = idx === 0 ? '#fef08a;color:#854d0e;' : idx === 1 ? '#e2e8f0;color:#334155;' : idx === 2 ? '#fed7aa;color:#9a3412;' : '#f1f5f9;color:#64748b;';
+            return `<tr>
                 <td><span style="display:inline-block;padding:2px 8px;border-radius:99px;font-weight:700;font-size:12px;background:${badgeBg}">#${idx + 1}</span></td>
                 <td><strong>${escapeHtml(book.title)}</strong></td>
                 <td>${escapeHtml(book.author)}</td>
@@ -5064,7 +5073,7 @@
                   </div>
                 </td>
               </tr>`;
-            }).join('')
+          }).join('')
           : '<tr><td colspan="5">Chưa có dữ liệu mượn sách.</td></tr>';
       }
 
@@ -5114,10 +5123,10 @@
             const actionBadgeColor = (act.action || '').includes('CREATE') || (act.action || '').includes('BORROW') || (act.action || '').includes('APPROVE')
               ? 'background:#dcfce7;color:#166534;'
               : (act.action || '').includes('RETURN') || (act.action || '').includes('PAY')
-              ? 'background:#ede9fe;color:#5b21b6;'
-              : (act.action || '').includes('DELETE') || (act.action || '').includes('REJECT')
-              ? 'background:#fee2e2;color:#991b1b;'
-              : 'background:#f1f5f9;color:#334155;';
+                ? 'background:#ede9fe;color:#5b21b6;'
+                : (act.action || '').includes('DELETE') || (act.action || '').includes('REJECT')
+                  ? 'background:#fee2e2;color:#991b1b;'
+                  : 'background:#f1f5f9;color:#334155;';
             return `
               <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid #6f42c1;gap:10px;">
                 <div style="display:flex;flex-direction:column;gap:2px;">
@@ -6347,7 +6356,7 @@
     updateReturnFineEstimate();
   });
   $('damageFineAmount')?.addEventListener('input', updateReturnFineEstimate);
-    function playBarcodeScanTone(type = 'success') {
+  function playBarcodeScanTone(type = 'success') {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
@@ -6380,7 +6389,7 @@
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.3);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function addQuickReturnLog({ barcode, title, reader, fine = 0, success = true, message = '' }) {
@@ -6390,9 +6399,9 @@
     panel.hidden = false;
     const timeStr = new Date().toLocaleTimeString('vi-VN');
     const li = document.createElement('li');
-    li.style.cssText = 'padding:6px 10px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;background:' + 
+    li.style.cssText = 'padding:6px 10px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;font-size:12px;background:' +
       (success ? (fine > 0 ? '#fef3c7;border-left:4px solid #f59e0b' : '#ecfdf5;border-left:4px solid #10b981') : '#fee2e2;border-left:4px solid #ef4444');
-    
+
     if (success) {
       li.innerHTML = `<div><strong>[${timeStr}]</strong> Barcode <code>${escapeHtml(barcode)}</code> · <strong>${escapeHtml(title)}</strong> (${escapeHtml(reader)})</div>` +
         (fine > 0 ? `<span style="color:#b45309;font-weight:700;">⚠️ Quá hạn, phạt: ${money(fine)}</span>` : `<span style="color:#047857;font-weight:700;">✓ Trả thành công</span>`);
@@ -6554,7 +6563,7 @@
               await handleCameraBarcodeScanned(code);
             }
           },
-          () => {}
+          () => { }
         );
         loanReturnScanning = true;
         if (msg) msg.textContent = 'Hướng ống kính camera vào mã vạch trên gáy/bìa sách...';
@@ -6575,8 +6584,8 @@
     }
     if (loanReturnHtml5Qr) {
       try {
-        loanReturnHtml5Qr.stop().catch(() => {});
-      } catch (_) {}
+        loanReturnHtml5Qr.stop().catch(() => { });
+      } catch (_) { }
       loanReturnHtml5Qr = null;
     }
     const dialog = $('loanReturnCameraDialog');
@@ -7062,13 +7071,20 @@
     if (event.target.matches('[data-label-book]')) void loadBatchLabelPreview();
   });
   $('newBookButton')?.addEventListener('click', () => {
-    $('bookForm').reset();
-    $('bookId').value = '';
-    $('bookFormTitle').textContent = 'Thêm sách mới';
-    $('bookFormPanel').hidden = false;
-    $('bookFormPanel').scrollIntoView({ behavior: 'smooth' });
+    const form = $('bookForm');
+    if (form) form.reset();
+    if ($('bookId')) $('bookId').value = '';
+    if ($('bookFormTitle')) $('bookFormTitle').textContent = 'Thêm sách mới';
+    const panel = $('bookFormPanel');
+    if (panel) {
+      panel.hidden = false;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    $('bookTitle')?.focus();
   });
-  $('cancelBookEdit')?.addEventListener('click', () => { $('bookFormPanel').hidden = true; });
+  $('cancelBookEdit')?.addEventListener('click', () => {
+    if ($('bookFormPanel')) $('bookFormPanel').hidden = true;
+  });
   $('categoryForm')?.addEventListener('submit', (event) => void addCategory(event));
   $('categoryEditForm')?.addEventListener('submit', (event) => void saveCategoryEdit(event));
   $('refreshCategories')?.addEventListener('click', () => void loadCategories());
@@ -7132,7 +7148,7 @@
     openMergeCategoriesModal(selected);
   });
   $('mergeCategoriesForm')?.addEventListener('submit', (e) => void handleMergeCategoriesSubmit(e));
-  $('categoryImportFile')?.addEventListener('change', async function() {
+  $('categoryImportFile')?.addEventListener('change', async function () {
     if (!this.files || !this.files[0]) return;
     const fd = new FormData();
     fd.append('file', this.files[0]);
@@ -7155,7 +7171,7 @@
   });
 
   // Publisher extras
-  $('publisherImportFile')?.addEventListener('change', async function() {
+  $('publisherImportFile')?.addEventListener('change', async function () {
     if (!this.files || !this.files[0]) return;
     const fd = new FormData();
     fd.append('file', this.files[0]);
@@ -7249,7 +7265,7 @@
     if (isInventoryStaff() && window.location.pathname !== '/admin/books') {
       navigateAdmin('/admin/books');
     } else if (window.location.pathname !== '/search' &&
-        window.location.pathname !== '/admin/books') {
+      window.location.pathname !== '/admin/books') {
       window.history.pushState({}, '', '/search');
       syncAdminRoute();
     }
@@ -7313,7 +7329,7 @@
   window.addEventListener('popstate', () => {
     syncAdminRoute();
     if (window.location.pathname === '/register' && !state.user &&
-        !$('registerDialog').open) {
+      !$('registerDialog').open) {
       $('registerDialog').showModal();
     }
     window.scrollTo({ top: 0 });
@@ -7333,7 +7349,7 @@
   $('fineCollectionMethod')?.addEventListener('change', renderFineVietQr);
   $('fineWaiveForm')?.addEventListener('submit', (event) => void waiveFine(event));
   $('finePaymentFrom')?.addEventListener('change', renderFinePayments);
-  
+
   // In biên lai điện tử
   $('printReceiptBtn')?.addEventListener('click', () => {
     const printArea = $('receiptPrintArea');
@@ -7443,7 +7459,7 @@
       void loadReaderProfile(state.user.id);
     }
   });
-  
+
   // Quét Barcode giao sách nhanh 1 chạm trong quản lý đặt giữ
   $('reservationQuickBarcode')?.addEventListener('keydown', async (event) => {
     if (event.key !== 'Enter') return;
@@ -7462,7 +7478,7 @@
     }
     try {
       await quickClaimReservation(match.id);
-    } catch (_) {}
+    } catch (_) { }
     $('reservationQuickBarcode').focus();
   });
 
@@ -7516,7 +7532,7 @@
     button.addEventListener('click', () => {
       $(button.dataset.closeDialog).close();
       if (button.dataset.closeDialog === 'registerDialog' &&
-          window.location.pathname === '/register') {
+        window.location.pathname === '/register') {
         window.history.replaceState({}, '', '/search');
       }
     });
@@ -7572,7 +7588,7 @@
   state.user = token() ? decodeUser(token()) : null;
   if (!state.user && token()) void logout();
   showSession();
-  
+
   // Tự động kích hoạt dữ liệu quản trị khi tải trang Admin
   if (window.location.pathname.startsWith('/admin') && isStaff()) {
     void loadDashboard();
@@ -7634,7 +7650,7 @@
   const DOC_THEMES = {
     light: { background: '#ffffff', color: '#1e293b' },
     sepia: { background: '#fdf6e3', color: '#3b2d1e' },
-    dark:  { background: '#1e1e2e', color: '#cdd6f4' },
+    dark: { background: '#1e1e2e', color: '#cdd6f4' },
   };
 
   function applyDocTheme(theme) {
@@ -8001,9 +8017,9 @@
       const container = $('pdfViewerContainer');
       if (!container) return;
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(() => {});
+        container.requestFullscreen().catch(() => { });
       } else {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       }
     });
   }
@@ -8150,7 +8166,7 @@
             try {
               await api(`/books/${bookId}/digital-download`, { method: 'POST' });
               if ($('elibrary') && !$('elibrary').hidden) loadElibrary();
-            } catch (_) {}
+            } catch (_) { }
           }
         };
       }
@@ -8178,7 +8194,7 @@
       try {
         await api(`/books/${bookId}/digital-view`, { method: 'POST' });
         if ($('elibrary') && !$('elibrary').hidden) loadElibrary();
-      } catch (_) {}
+      } catch (_) { }
     }
 
     dialog.showModal();
@@ -8243,7 +8259,7 @@
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.35);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function flashAuditBox(type) {
@@ -8279,8 +8295,8 @@
       });
       auditState.auditResult = res;
       renderAuditStats();
-      void loadBooks(state.page).catch(() => {});
-      void loadDashboard().catch(() => {});
+      void loadBooks(state.page).catch(() => { });
+      void loadDashboard().catch(() => { });
       renderAuditTable();
       if ($('auditLastScanMsg')) {
         $('auditLastScanMsg').innerHTML = `
@@ -8594,7 +8610,7 @@
       auditState.auditResult = res;
       renderAuditStats();
       renderAuditTable();
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function exportAuditReportExcel() {
@@ -8906,7 +8922,7 @@
                 }
               }
             }
-          } catch (_) {}
+          } catch (_) { }
         }, 300);
       } else if (window.Html5Qrcode) {
         stopAuditCameraMedia();
@@ -8920,7 +8936,7 @@
               void processAuditBarcode(decodedText);
             }
           },
-          () => {}
+          () => { }
         );
       } else {
         notify('Camera đã bật. Bạn có thể hướng vào mã vạch trên sách để kiểm kê.', false);
@@ -8935,8 +8951,8 @@
     stopAuditCameraMedia();
     if (auditState.html5QrScanner) {
       try {
-        auditState.html5QrScanner.stop().catch(() => {});
-      } catch (_) {}
+        auditState.html5QrScanner.stop().catch(() => { });
+      } catch (_) { }
       auditState.html5QrScanner = null;
     }
     const wrapper = $('auditCameraWrapper');
@@ -9059,7 +9075,7 @@
   }
 
   // ==========================================
-  
+
 
   // ==========================================
   // QUẢN LÝ ĐƠN MUA HÀNG (PO) & GOM NHÓM NXB
@@ -9098,7 +9114,7 @@
     }
   }
 
-  window.openCreatePoFromPublisher = function(publisher, estimatedTotal, requestIds, titles) {
+  window.openCreatePoFromPublisher = function (publisher, estimatedTotal, requestIds, titles) {
     openCreatePoModal();
     if ($('poSupplier')) $('poSupplier').value = publisher;
     if ($('poTotalAmount')) {
@@ -9132,7 +9148,7 @@
       if ($('poRemainingBudget')) $('poRemainingBudget').textContent = money(budgetData.remainingBudget || 0);
       if ($('poTotalBudget')) $('poTotalBudget').textContent = money(budgetData.totalBudget || 0);
       checkPoBudgetAlert(Number($('poTotalAmount')?.value || 0));
-    } catch (_) {}
+    } catch (_) { }
 
     dialog.showModal();
   }
@@ -9226,7 +9242,7 @@
     }
   }
 
-  window.updatePoStatus = async function(id, status) {
+  window.updatePoStatus = async function (id, status) {
     try {
       await api(`/acquisitions/orders/${id}/status`, {
         method: 'PATCH',
@@ -9239,7 +9255,7 @@
     }
   };
 
-  window.deletePoOrder = async function(id) {
+  window.deletePoOrder = async function (id) {
     if (!window.confirm('Bạn có chắc chắn muốn xóa đơn mua hàng này?')) return;
     try {
       await api(`/acquisitions/orders/${id}`, { method: 'DELETE' });
@@ -9250,7 +9266,7 @@
     }
   };
 
-  
+
   // ==========================================
   // CỔNG TRA CỨU CÔNG CỘNG (OPAC PORTAL)
   // ==========================================
@@ -9268,7 +9284,7 @@
       }
 
       if (topic) {
-        books = books.filter((b) => 
+        books = books.filter((b) =>
           (b.title && b.title.toLowerCase().includes(topic.toLowerCase())) ||
           (b.category && b.category.name && b.category.name.toLowerCase().includes(topic.toLowerCase())) ||
           (b.description && b.description.toLowerCase().includes(topic.toLowerCase()))
@@ -9514,7 +9530,7 @@
     }
   }
 
-  window.voteOpacAcquisition = async function(id) {
+  window.voteOpacAcquisition = async function (id) {
     try {
       await api(`/acquisitions/${id}/vote`, { method: 'POST' });
       notify('Đã ghi nhận bình chọn của bạn thành công! 🔥');
@@ -9524,7 +9540,7 @@
     }
   };
 
-  
+
   // ==========================================
   // QUẢN LÝ THƯ VIỆN SỐ (E-LIBRARY)
   // ==========================================
@@ -9637,7 +9653,7 @@
           }
         } else {
           let errMsg = 'Tải lên thất bại';
-          try { errMsg = JSON.parse(xhr.responseText).message || errMsg; } catch (_) {}
+          try { errMsg = JSON.parse(xhr.responseText).message || errMsg; } catch (_) { }
           notify(errMsg, true);
           if (feedback) feedback.style.display = 'none';
         }
@@ -9714,7 +9730,7 @@
           try {
             const bRes = await api('/books?limit=150');
             state.books = Array.isArray(bRes) ? bRes : (bRes.items || []);
-          } catch (_) {}
+          } catch (_) { }
         }
         if (state.books) {
           bookSelect.innerHTML = '<option value="">-- Chọn sách cần gắn file số --</option>' +
@@ -9794,7 +9810,7 @@
     }
   }
 
-  
+
   // ==========================================
   // QUẢN LÝ NGÂN SÁCH THU MUA (BUDGETS)
   // ==========================================
@@ -10272,7 +10288,7 @@
   }
 
   // Mở modal xem chi tiết đơn PO & hóa đơn
-  window.openPoInvoiceDetail = async function(poId) {
+  window.openPoInvoiceDetail = async function (poId) {
     try {
       const po = await api(`/acquisitions/orders/${poId}`);
       if (!po) {
@@ -10282,7 +10298,7 @@
 
       $('poDetailCode').textContent = po.orderCode || `#PO-${po.id}`;
       $('poDetailSupplier').textContent = `${po.supplierName || 'Chưa xác định'}${po.supplierPhone ? ` (${po.supplierPhone})` : ''}`;
-      
+
       const d = po.createdAt ? new Date(po.createdAt) : new Date();
       const month = d.getMonth() + 1;
       let q = 'Quý 4';
@@ -10330,7 +10346,7 @@
     }
   };
 
-  window.printPoVoucher = function(po, quarter) {
+  window.printPoVoucher = function (po, quarter) {
     const printWindow = window.open('', '_blank', 'width=800,height=750');
     if (!printWindow) {
       notify('Vui lòng cho phép popup để in phiếu chi.', true);
@@ -10664,7 +10680,7 @@
     }, 350);
   }
 
-  
+
   // ==========================================
   // MẪU THÔNG BÁO TỰ ĐỘNG (TEMPLATES)
   // ==========================================
@@ -10783,7 +10799,7 @@
     if ($('tplLivePreviewContent')) $('tplLivePreviewContent').innerHTML = contentOut || '<em style="color:#94a3b8;">Nội dung trống</em>';
   }
 
-  window.openEditTemplate = function(id, name, channel, isActive, subject, content) {
+  window.openEditTemplate = function (id, name, channel, isActive, subject, content) {
     $('tplEditId').value = id;
     $('tplEditTitle').textContent = `Sửa mẫu: ${name}`;
     $('tplEditChannel').value = channel;
@@ -11034,7 +11050,7 @@
   });
 
   // VIETQR POPUP & SELF RENEWAL
-  window.openQrPayment = function(amount, refCode, title) {
+  window.openQrPayment = function (amount, refCode, title) {
     const amt = Number(amount) || 0;
     const cleanRef = (refCode || 'PHAT-' + Math.floor(1000 + Math.random() * 9000)).replace(/[^A-Za-z0-9_-]/g, '');
     $('qrPayDesc').textContent = title || 'Vui lòng dùng ứng dụng Ngân hàng (Vietcombank, MB, Techcombank...) hoặc MoMo/VNPay để quét mã.';
@@ -11044,7 +11060,7 @@
     $('qrPaymentDialog').showModal();
   };
 
-  window.selfRenewLoan = async function(recordId) {
+  window.selfRenewLoan = async function (recordId) {
     if (!window.confirm('Bạn muốn gia hạn cuốn sách này trực tuyến thêm thời gian?')) return;
     try {
       await api(`/borrow/${recordId}/renew`, { method: 'POST' });
@@ -11159,7 +11175,7 @@
     }
   }
 
-  window.advanceAcquisitionStage = async function(id) {
+  window.advanceAcquisitionStage = async function (id) {
     const note = window.prompt('Nhập ý kiến thẩm định / phê duyệt (tùy chọn):', 'Đồng ý chuyển tiếp duyệt');
     if (note === null) return;
     try {
@@ -11174,7 +11190,7 @@
     }
   };
 
-  window.rejectAcquisitionStage = async function(id) {
+  window.rejectAcquisitionStage = async function (id) {
     const reason = window.prompt('Nhập lý do từ chối đề xuất mua sách:');
     if (reason === null) return;
     if (!reason.trim()) {
@@ -11193,7 +11209,7 @@
     }
   };
 
-  window.openAcquisitionApprovalDetail = async function(id) {
+  window.openAcquisitionApprovalDetail = async function (id) {
     const modal = $('acquisitionApprovalDetailModal');
     if (!modal) return;
     try {
@@ -11265,7 +11281,7 @@
     }
   };
 
-  window.updateAcquisitionStatus = async function(id, status) {
+  window.updateAcquisitionStatus = async function (id, status) {
     let adminNote;
     if (status === 'REJECTED') {
       adminNote = window.prompt('Nhập lý do từ chối (có thể để trống):');
@@ -11283,7 +11299,7 @@
     }
   };
 
-  window.convertAcquisitionToBook = async function(id) {
+  window.convertAcquisitionToBook = async function (id) {
     try {
       const req = await api(`/acquisitions/${id}`);
       window.history.pushState({}, '', '/admin/books');
@@ -11479,7 +11495,7 @@
     }).join('');
   }
 
-  window.viewShelfBooks = async function(floorEnc, aisleEnc, shelfEnc) {
+  window.viewShelfBooks = async function (floorEnc, aisleEnc, shelfEnc) {
     const floor = decodeURIComponent(floorEnc);
     const aisle = decodeURIComponent(aisleEnc);
     const shelf = decodeURIComponent(shelfEnc);
@@ -11512,53 +11528,53 @@
   };
 
   // Shelves event listeners
-  
-    // Star rating interactions
-    document.querySelectorAll('#starRatingSelect .star-item').forEach((star) => {
-      star.addEventListener('click', () => {
-        const val = Number(star.dataset.star);
-        $('selectedRatingValue').value = val;
-        document.querySelectorAll('#starRatingSelect .star-item').forEach((s) => {
-          const sVal = Number(s.dataset.star);
-          s.style.color = sVal <= val ? '#f59e0b' : '#cbd5e1';
-        });
+
+  // Star rating interactions
+  document.querySelectorAll('#starRatingSelect .star-item').forEach((star) => {
+    star.addEventListener('click', () => {
+      const val = Number(star.dataset.star);
+      $('selectedRatingValue').value = val;
+      document.querySelectorAll('#starRatingSelect .star-item').forEach((s) => {
+        const sVal = Number(s.dataset.star);
+        s.style.color = sVal <= val ? '#f59e0b' : '#cbd5e1';
       });
     });
+  });
 
-    $('openReviewFormBtn')?.addEventListener('click', () => {
-      if (!state.user) {
-        notify('Vui lòng đăng nhập tài khoản độc giả để gửi đánh giá!', true);
-        $('openLogin').click();
-        return;
-      }
-      $('submitBookReviewForm').hidden = !$('submitBookReviewForm').hidden;
-    });
+  $('openReviewFormBtn')?.addEventListener('click', () => {
+    if (!state.user) {
+      notify('Vui lòng đăng nhập tài khoản độc giả để gửi đánh giá!', true);
+      $('openLogin').click();
+      return;
+    }
+    $('submitBookReviewForm').hidden = !$('submitBookReviewForm').hidden;
+  });
 
-    $('cancelReviewBtn')?.addEventListener('click', () => {
+  $('cancelReviewBtn')?.addEventListener('click', () => {
+    $('submitBookReviewForm').hidden = true;
+  });
+
+  $('submitBookReviewForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!state.currentDetailBookId) return;
+    const rating = Number($('selectedRatingValue').value) || 5;
+    const comment = $('reviewCommentInput').value.trim();
+
+    try {
+      await api(`/reviews/book/${state.currentDetailBookId}`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, comment: comment || undefined }),
+      });
+      notify('Cảm ơn bạn đã gửi đánh giá cuốn sách ⭐!');
       $('submitBookReviewForm').hidden = true;
-    });
+      $('reviewCommentInput').value = '';
+      loadBookReviews(state.currentDetailBookId);
+    } catch (err) {
+      notify(err.message, true);
+    }
+  });
 
-    $('submitBookReviewForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!state.currentDetailBookId) return;
-      const rating = Number($('selectedRatingValue').value) || 5;
-      const comment = $('reviewCommentInput').value.trim();
-
-      try {
-        await api(`/reviews/book/${state.currentDetailBookId}`, {
-          method: 'POST',
-          body: JSON.stringify({ rating, comment: comment || undefined }),
-        });
-        notify('Cảm ơn bạn đã gửi đánh giá cuốn sách ⭐!');
-        $('submitBookReviewForm').hidden = true;
-        $('reviewCommentInput').value = '';
-        loadBookReviews(state.currentDetailBookId);
-      } catch (err) {
-        notify(err.message, true);
-      }
-    });
-
-    $('refreshShelves')?.addEventListener('click', loadShelves);
+  $('refreshShelves')?.addEventListener('click', loadShelves);
   $('shelfFloorFilter')?.addEventListener('change', renderShelvesGrid);
   $('shelfAisleFilter')?.addEventListener('change', renderShelvesGrid);
   // shelfSearchTimer declared at top
@@ -11606,14 +11622,14 @@
           </div>
           <div style="display:grid;grid-template-columns:1fr;gap:12px;">
             ${list.map((s) => {
-              const total = s.totalCopies || 0;
-              const avail = s.availableCopies || 0;
-              const percent = total > 0 ? Math.min(100, Math.round((s.borrowedCopies / total) * 100)) : 0;
-              let barColor = '#10b981';
-              if (percent >= 90) barColor = '#ef4444';
-              else if (percent >= 70) barColor = '#f59e0b';
+        const total = s.totalCopies || 0;
+        const avail = s.availableCopies || 0;
+        const percent = total > 0 ? Math.min(100, Math.round((s.borrowedCopies / total) * 100)) : 0;
+        let barColor = '#10b981';
+        if (percent >= 90) barColor = '#ef4444';
+        else if (percent >= 70) barColor = '#f59e0b';
 
-              return `
+        return `
                 <div class="shelf-interactive-card" data-shelf-floor="${escapeHtml(s.floor)}" data-shelf-aisle="${escapeHtml(s.aisle)}" data-shelf-num="${escapeHtml(s.shelf)}"
                   style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -11632,7 +11648,7 @@
                   </div>
                 </div>
               `;
-            }).join('')}
+      }).join('')}
           </div>
         </div>
       `;
@@ -11835,7 +11851,7 @@
     notify('Đã tải xuống file CSV nhật ký hệ thống.');
   }
 
-  
+
   // ==========================================
   // XỬ LÝ SHOW/HIDE PASSWORD, REMEMBER ME, 2FA, QUÊN MẬT KHẨU
   // ==========================================
@@ -11884,7 +11900,7 @@
   // Captcha refresh
   $('refreshCaptchaBtn')?.addEventListener('click', loadAuthCaptcha);
 
-  
+
   // SỰ KIỆN QUẢN LÝ SÁCH & BỘ LỌC NÂNG CAO
   $('exportBooksExcelBtn')?.addEventListener('click', exportBooksExcel);
   $('resetBookFiltersBtn')?.addEventListener('click', () => {
@@ -11902,16 +11918,16 @@
   });
 
   // Upload ảnh bìa & PDF trong form sách
-  $('bookCoverFileInput')?.addEventListener('change', function() {
+  $('bookCoverFileInput')?.addEventListener('change', function () {
     if (this.files && this.files[0]) handleCoverFileUpload(this.files[0]);
   });
-  $('bookCoverImageUrl')?.addEventListener('input', function() {
+  $('bookCoverImageUrl')?.addEventListener('input', function () {
     updateCoverPreview(this.value);
   });
-  $('bookPdfFileInput')?.addEventListener('change', function() {
+  $('bookPdfFileInput')?.addEventListener('change', function () {
     if (this.files && this.files[0]) handlePdfFileUpload(this.files[0]);
   });
-  $('bookPdfUrl')?.addEventListener('input', function() {
+  $('bookPdfUrl')?.addEventListener('input', function () {
     if ($('bookTestPdfBtn')) {
       $('bookTestPdfBtn').style.display = this.value.trim() ? 'inline-block' : 'none';
     }
@@ -12861,8 +12877,8 @@
     const curDate = new Date().toISOString().slice(0, 10);
     const booking = roomBookingsData.find(
       (b) => (b.room?.qrToken === raw || `ROOM-${b.room?.code}` === raw) &&
-             b.status === 'APPROVED' &&
-             (!b.date || b.date === curDate)
+        b.status === 'APPROVED' &&
+        (!b.date || b.date === curDate)
     );
 
     if (booking) {
@@ -12940,7 +12956,7 @@
               await handleStudyRoomQrToken(raw);
             }
           },
-          () => {}
+          () => { }
         );
         studyRoomCameraScanning = true;
         if (msg) msg.textContent = 'Hướng ống kính camera vào mã QR dán trước cửa phòng học...';
@@ -12961,8 +12977,8 @@
     }
     if (studyRoomHtml5Qr) {
       try {
-        studyRoomHtml5Qr.stop().catch(() => {});
-      } catch (_) {}
+        studyRoomHtml5Qr.stop().catch(() => { });
+      } catch (_) { }
       studyRoomHtml5Qr = null;
     }
     const dialog = $('studyRoomCameraCheckInDialog');
