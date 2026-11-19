@@ -211,6 +211,180 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
     '/admin/shift-schedules': 'shift-schedules',
     '/admin/staff-kpi': 'staff-kpi',
   });
+
+  const ADMIN_GROUPS = Object.freeze({
+    dashboard: {
+      id: 'dashboard',
+      name: 'Bảng điều khiển (Dashboard)',
+      icon: '📊',
+      defaultRoute: 'dashboard',
+      defaultPath: '/admin/dashboard',
+      routes: ['dashboard'],
+      tabs: []
+    },
+    books: {
+      id: 'books',
+      name: 'Kho sách & Danh mục',
+      icon: '📚',
+      defaultRoute: 'books',
+      defaultPath: '/admin/books',
+      routes: ['books', 'categories', 'publishers', 'shelves', 'inventory-audit'],
+      tabs: [
+        { route: 'books', path: '/admin/books', label: 'Đầu sách', icon: '📖' },
+        { route: 'categories', path: '/admin/categories', label: 'Thể loại', icon: '🏷️' },
+        { route: 'publishers', path: '/admin/publishers', label: 'Nhà xuất bản', icon: '🏢' },
+        { route: 'shelves', path: '/admin/shelves', label: 'Sơ đồ kệ', icon: '🗄️' },
+        { route: 'inventory-audit', path: '/admin/inventory-audit', label: 'Kiểm kê kho', icon: '📋' },
+      ]
+    },
+    circulation: {
+      id: 'circulation',
+      name: 'Lưu thông & Vi phạm',
+      icon: '↔️',
+      defaultRoute: 'loans',
+      defaultPath: '/admin/borrow-return',
+      routes: ['loans', 'reservations', 'fines'],
+      tabs: [
+        { route: 'loans', path: '/admin/borrow-return', label: 'Mượn / Trả', icon: '↔️' },
+        { route: 'reservations', path: '/admin/reservations', label: 'Đặt trước / Giữ chỗ', icon: '⌛' },
+        { route: 'fines', path: '/admin/fines', label: 'Vi phạm & Tiền phạt', icon: '₫' },
+      ]
+    },
+    readers: {
+      id: 'readers',
+      name: 'Quản lý độc giả',
+      icon: '👥',
+      defaultRoute: 'readers',
+      defaultPath: '/admin/users',
+      routes: ['readers', 'reader-profile'],
+      tabs: []
+    },
+    acquisitions: {
+      id: 'acquisitions',
+      name: 'Bổ sung & Tài trợ',
+      icon: '💡',
+      defaultRoute: 'acquisitions',
+      defaultPath: '/admin/acquisitions',
+      routes: ['acquisitions', 'budgets', 'exchange-grants', 'partners'],
+      tabs: [
+        { route: 'acquisitions', path: '/admin/acquisitions', label: 'Đề xuất mua', icon: '💡' },
+        { route: 'budgets', path: '/admin/budgets', label: 'Ngân sách thu mua', icon: '💰' },
+        { route: 'exchange-grants', path: '/admin/exchange-grants', label: 'Sách tài trợ & Trao đổi', icon: '🌐' },
+        { route: 'partners', path: '/admin/partners', label: 'Đối tác & Tài trợ', icon: '🤝' },
+      ]
+    },
+    elibrary: {
+      id: 'elibrary',
+      name: 'Thư viện Số',
+      icon: '💾',
+      defaultRoute: 'elibrary',
+      defaultPath: '/admin/elibrary',
+      routes: ['elibrary', 'theses', 'multimedia'],
+      tabs: [
+        { route: 'elibrary', path: '/admin/elibrary', label: 'E-Library PDF', icon: '💾' },
+        { route: 'theses', path: '/admin/theses', label: 'Luận văn & Khóa luận', icon: '📑' },
+        { route: 'multimedia', path: '/admin/multimedia', label: 'Tài liệu Đa phương tiện', icon: '🎞️' },
+      ]
+    },
+    facilities: {
+      id: 'facilities',
+      name: 'Cơ sở vật chất & IoT',
+      icon: '🏢',
+      defaultRoute: 'study-rooms',
+      defaultPath: '/admin/study-rooms',
+      routes: ['study-rooms', 'devices', 'lockers', 'iot-monitoring'],
+      tabs: [
+        { route: 'study-rooms', path: '/admin/study-rooms', label: 'Phòng học nhóm', icon: '🚪' },
+        { route: 'devices', path: '/admin/devices', label: 'Thiết bị học tập', icon: '💻' },
+        { route: 'lockers', path: '/admin/lockers', label: 'Tủ khóa cá nhân', icon: '🗄️' },
+        { route: 'iot-monitoring', path: '/admin/iot-monitoring', label: 'Giám sát IoT', icon: '📡' },
+      ]
+    },
+    activities: {
+      id: 'activities',
+      name: 'Hoạt động & Tương tác',
+      icon: '📢',
+      defaultRoute: 'events-announcements',
+      defaultPath: '/admin/events-announcements',
+      routes: ['events-announcements', 'seminars', 'tutorials', 'feedback'],
+      tabs: [
+        { route: 'events-announcements', path: '/admin/events-announcements', label: 'Sự kiện & Thông báo', icon: '📢' },
+        { route: 'seminars', path: '/admin/seminars', label: 'Hội thảo & Diễn đàn', icon: '🎤' },
+        { route: 'tutorials', path: '/admin/tutorials', label: 'Đào tạo & Hướng dẫn', icon: '🎓' },
+        { route: 'feedback', path: '/admin/feedback', label: 'Ý kiến & Phản hồi', icon: '💬' },
+      ]
+    },
+    'hr-stats': {
+      id: 'hr-stats',
+      name: 'Nhân sự & Thống kê',
+      icon: '📈',
+      defaultRoute: 'reports',
+      defaultPath: '/admin/reports',
+      routes: ['reports', 'staffs', 'shift-schedules', 'staff-kpi'],
+      tabs: [
+        { route: 'reports', path: '/admin/reports', label: 'Báo cáo thống kê', icon: '📊' },
+        { route: 'staffs', path: '/admin/staffs', label: 'Quản lý thủ thư', icon: '♟' },
+        { route: 'shift-schedules', path: '/admin/shift-schedules', label: 'Lịch Ca trực', icon: '🕒' },
+        { route: 'staff-kpi', path: '/admin/staff-kpi', label: 'KPI Thủ thư', icon: '🏆' },
+      ]
+    },
+    system: {
+      id: 'system',
+      name: 'Cấu hình & Hệ thống',
+      icon: '⚙️',
+      defaultRoute: 'settings',
+      defaultPath: '/admin/settings',
+      routes: ['settings', 'notification-templates', 'audit-logs'],
+      tabs: [
+        { route: 'settings', path: '/admin/settings', label: 'Cấu hình chung', icon: '⚙️' },
+        { route: 'notification-templates', path: '/admin/notification-templates', label: 'Mẫu thông báo', icon: '✉️' },
+        { route: 'audit-logs', path: '/admin/audit-logs', label: 'Nhật ký hệ thống', icon: '📜' },
+      ]
+    }
+  });
+
+  function findGroupByRoute(route) {
+    if (!route) return null;
+    return Object.values(ADMIN_GROUPS).find(g => g.routes.includes(route)) || null;
+  }
+
+  function renderAdminGroupTabs(group, currentRoute) {
+    const tabsContainer = $('adminGroupTabs');
+    if (!tabsContainer) return;
+    if (!group || !group.tabs || group.tabs.length <= 1 || !isStaff()) {
+      tabsContainer.hidden = true;
+      return;
+    }
+    const visibleTabs = group.tabs.filter(tab => canAccessAdminRoute(tab.route));
+    if (visibleTabs.length <= 1) {
+      tabsContainer.hidden = true;
+      return;
+    }
+
+    tabsContainer.hidden = false;
+    const iconEl = $('adminGroupIcon');
+    const nameEl = $('adminGroupName');
+    const listEl = $('adminGroupNavTabs');
+    if (iconEl) iconEl.textContent = group.icon;
+    if (nameEl) nameEl.textContent = group.name;
+
+    if (listEl) {
+      listEl.innerHTML = visibleTabs.map(tab => {
+        const isActive = tab.route === currentRoute;
+        return `<a href="${tab.path}" class="admin-tab-item${isActive ? ' active' : ''}" data-tab-route="${tab.route}" ${isActive ? 'aria-current="page"' : ''}>
+          <span class="admin-tab-icon">${tab.icon}</span>
+          <span class="admin-tab-label">${tab.label}</span>
+        </a>`;
+      }).join('');
+
+      listEl.querySelectorAll('.admin-tab-item').forEach(link => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          navigateAdmin(link.getAttribute('href'));
+        });
+      });
+    }
+  }
   const state = {
     myFavoriteIds: new Set(),
     page: 1,
@@ -376,11 +550,12 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
 
   function notify(message, isError = false) {
     const toast = $('toast');
-    toast.textContent = message;
+    if (!toast) return;
+    toast.innerHTML = `<span style="font-size:16px;line-height:1;">${isError ? '⚠️' : '✅'}</span> <span>${escapeHtml(String(message))}</span>`;
     toast.classList.toggle('error', isError);
     toast.classList.add('visible');
     window.clearTimeout(state.toastTimer);
-    state.toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 3600);
+    state.toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 4000);
   }
 
   function decodeUser(accessToken) {
@@ -509,10 +684,24 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
       const staffAllowed = !section.classList.contains('staff-only') || isStaff();
       section.hidden = !visibleOnRoute || !roleAllowed || !staffAllowed;
     });
-    document.querySelectorAll('[data-admin-nav]').forEach((link) => {
-      if (link.dataset.adminNav === route) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
+    const activeGroup = findGroupByRoute(route);
+    document.querySelectorAll('[data-admin-group]').forEach((link) => {
+      const isCurrent = activeGroup && link.dataset.adminGroup === activeGroup.id;
+      if (isCurrent) {
+        link.setAttribute('aria-current', 'page');
+        link.classList.add('active');
+      } else {
+        link.removeAttribute('aria-current');
+        link.classList.remove('active');
+      }
     });
+    document.querySelectorAll('[data-admin-nav]').forEach((link) => {
+      if (!link.dataset.adminGroup) {
+        if (link.dataset.adminNav === route) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      }
+    });
+    renderAdminGroupTabs(activeGroup, route);
 
     if (route === 'reports') {
       if (isStaff()) void loadAdvancedReports();
@@ -574,9 +763,19 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
 
   function navigateAdmin(path) {
     const profileMatch = path.match(/^\/admin\/users\/(\d+)$/);
-    const route = profileMatch ? 'reader-profile' : ADMIN_ROUTE_PATHS[path];
+    let route = profileMatch ? 'reader-profile' : ADMIN_ROUTE_PATHS[path];
     if (!canAccessAdminRoute(route)) {
-      notify('Bạn cần đăng nhập bằng tài khoản Admin hoặc Thủ thư.', true);
+      const group = findGroupByRoute(route);
+      if (group && group.tabs && group.tabs.length > 0) {
+        const accessibleTab = group.tabs.find(t => canAccessAdminRoute(t.route));
+        if (accessibleTab) {
+          path = accessibleTab.path;
+          route = accessibleTab.route;
+        }
+      }
+    }
+    if (!canAccessAdminRoute(route)) {
+      notify('Bạn cần đăng nhập bằng tài khoản Admin hoặc Thủ thư có phân quyền phù hợp.', true);
       return;
     }
     window.history.pushState({}, '', path);
@@ -3282,6 +3481,30 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
     $('barcodeInput').value = '';
   }
 
+  function resetBookForm() {
+    const form = $('bookForm');
+    if (form) form.reset();
+    if ($('bookId')) $('bookId').value = '';
+    if ($('bookTitle')) $('bookTitle').value = '';
+    if ($('bookAuthor')) $('bookAuthor').value = '';
+    if ($('bookIsbn')) $('bookIsbn').value = '';
+    if ($('bookPublicationYear')) $('bookPublicationYear').value = '';
+    if ($('bookCopies')) $('bookCopies').value = '1';
+    if ($('bookCategory')) $('bookCategory').value = '';
+    if ($('publisherId')) $('publisherId').value = '';
+    if ($('bookShelf')) $('bookShelf').value = '';
+    if ($('bookFloor')) $('bookFloor').value = '';
+    if ($('bookAisle')) $('bookAisle').value = '';
+    if ($('bookDescription')) $('bookDescription').value = '';
+    if ($('bookCoverImageUrl')) $('bookCoverImageUrl').value = '';
+    if ($('bookPdfUrl')) $('bookPdfUrl').value = '';
+    if ($('bookPdfFileInput')) $('bookPdfFileInput').value = '';
+    if ($('bookFormTitle')) $('bookFormTitle').textContent = 'Thêm sách mới';
+    ['bookTitle', 'bookAuthor', 'bookIsbn', 'bookCopies', 'bookCoverImageUrl', 'bookPdfUrl'].forEach((id) => {
+      $(id)?.setCustomValidity('');
+    });
+  }
+
   async function saveBook(event) {
     event.preventDefault();
     const id = $('bookId')?.value;
@@ -3333,10 +3556,11 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
         body: JSON.stringify(payload),
       });
       if ($('bookFormPanel')) $('bookFormPanel').hidden = true;
-      if ($('bookForm')) $('bookForm').reset();
-      if ($('bookId')) $('bookId').value = '';
-      notify(id ? 'Đã cập nhật đầu sách thành công!' : 'Đã thêm đầu sách và tạo barcode cho các bản sao thành công!');
-      await Promise.all([loadBooks(state.page), loadDashboard()]);
+      resetBookForm();
+      notify(id ? 'Đã cập nhật sách thành công!' : 'Đã thêm sách thành công!');
+      state.page = 1;
+      await Promise.all([loadBooks(1), loadDashboard()]);
+      $('bookList')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {
       notify(error.message || 'Không thể lưu thông tin sách. Vui lòng kiểm tra lại dữ liệu.', true);
     }
@@ -7070,19 +7294,29 @@ function openCompensationCalculator(targetInput = 'damageFineAmount', defaultPri
   $('labelBookSelector')?.addEventListener('change', (event) => {
     if (event.target.matches('[data-label-book]')) void loadBatchLabelPreview();
   });
+  $('openBookImportDialog')?.addEventListener('click', () => {
+    $('bookImportForm')?.reset();
+    if ($('bookImportResults')) $('bookImportResults').hidden = true;
+    $('bookImportDialog')?.showModal();
+  });
+  $('closeBookImportDialog')?.addEventListener('click', () => {
+    $('bookImportDialog')?.close();
+  });
   $('newBookButton')?.addEventListener('click', () => {
-    const form = $('bookForm');
-    if (form) form.reset();
-    if ($('bookId')) $('bookId').value = '';
-    if ($('bookFormTitle')) $('bookFormTitle').textContent = 'Thêm sách mới';
+    resetBookForm();
     const panel = $('bookFormPanel');
     if (panel) {
       panel.hidden = false;
       panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    $('bookTitle')?.focus();
+    setTimeout(() => $('bookTitle')?.focus(), 80);
   });
   $('cancelBookEdit')?.addEventListener('click', () => {
+    resetBookForm();
+    if ($('bookFormPanel')) $('bookFormPanel').hidden = true;
+  });
+  $('cancelBookEditSecondary')?.addEventListener('click', () => {
+    resetBookForm();
     if ($('bookFormPanel')) $('bookFormPanel').hidden = true;
   });
   $('categoryForm')?.addEventListener('submit', (event) => void addCategory(event));

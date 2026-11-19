@@ -89,77 +89,26 @@
   <aside id="adminSidebar" class="admin-sidebar" aria-label="Điều hướng quản trị" hidden>
     <div class="sidebar-heading">QUẢN TRỊ THƯ VIỆN</div>
     <nav class="sidebar-navigation">
-      <a href="/admin/dashboard" data-admin-nav="dashboard"><span class="sidebar-icon" aria-hidden="true">▦</span><span
-          class="sidebar-label">Dashboard</span></a>
-      <a class="inventory-only" href="/admin/books" data-admin-nav="books"><span class="sidebar-icon"
-          aria-hidden="true">▤</span><span class="sidebar-label">Quản lý sách</span></a>
-      <a class="counter-only" href="/admin/borrow-return" data-admin-nav="loans"><span class="sidebar-icon"
-          aria-hidden="true">↔</span><span class="sidebar-label">Quản lý mượn / trả</span></a>
-      <a class="counter-only" href="/admin/reservations" data-admin-nav="reservations"><span class="sidebar-icon"
-          aria-hidden="true">⌛</span><span class="sidebar-label">Đặt trước / giữ chỗ</span></a>
-      <a class="counter-only" href="/admin/fines" data-admin-nav="fines"><span class="sidebar-icon"
-          aria-hidden="true">₫</span><span class="sidebar-label">Vi phạm & tiền phạt</span></a>
-      <a class="counter-only" href="/admin/users" data-admin-nav="readers"><span class="sidebar-icon"
-          aria-hidden="true">♙</span><span class="sidebar-label">Quản lý độc giả</span></a>
-      <a class="inventory-only" href="/admin/categories" data-admin-nav="categories"><span class="sidebar-icon"
-          aria-hidden="true">▧</span><span class="sidebar-label">Thể loại</span></a>
-      <a class="inventory-only" href="/admin/publishers" data-admin-nav="publishers"><span class="sidebar-icon"
-          aria-hidden="true">▣</span><span class="sidebar-label">Nhà xuất bản</span></a>
-      <a class="staff-only" href="/admin/shelves" data-admin-nav="shelves"><span class="sidebar-icon"
-          aria-hidden="true">🗄️</span><span class="sidebar-label">Sơ đồ kệ sách</span></a>
-      <a class="inventory-only" href="/admin/inventory-audit" data-admin-nav="inventory-audit"><span
-          class="sidebar-icon" aria-hidden="true">📋</span><span class="sidebar-label">Kiểm kê kho</span></a>
-      <a class="inventory-only" href="/admin/acquisitions" data-admin-nav="acquisitions"><span class="sidebar-icon"
-          aria-hidden="true">💡</span><span class="sidebar-label">Đề xuất mua sách</span></a>
-      <a class="inventory-only" href="/admin/elibrary" data-admin-nav="elibrary"><span class="sidebar-icon"
-          aria-hidden="true">💾</span><span class="sidebar-label">Thư viện số (E-Library)</span></a>
-      <a class="staff-only" href="/admin/budgets" data-admin-nav="budgets"><span class="sidebar-icon"
-          aria-hidden="true">💰</span><span class="sidebar-label">Ngân sách thu mua</span></a>
-      <!-- PHÂN HỆ 1: QUẢN LÝ TÀI SẢN & KHÔNG GIAN -->
-      <a class="staff-only" href="/admin/devices" data-admin-nav="devices"><span class="sidebar-icon"
-          aria-hidden="true">💻</span><span class="sidebar-label">Thiết bị học tập</span></a>
-      <a class="staff-only" href="/admin/study-rooms" data-admin-nav="study-rooms"><span class="sidebar-icon"
-          aria-hidden="true">🚪</span><span class="sidebar-label">Phòng học nhóm</span></a>
-      <a class="staff-only" href="/admin/lockers" data-admin-nav="lockers"><span class="sidebar-icon"
-          aria-hidden="true">🗄️</span><span class="sidebar-label">Tủ khóa cá nhân</span></a>
-      <a class="staff-only" href="/admin/reports" data-admin-nav="reports"><span class="sidebar-icon"
-          aria-hidden="true">▥</span><span class="sidebar-label">Báo cáo & thống kê</span></a>
-      <!-- 3 TRANG MỚI: SỰ KIỆN, PHẢN HỒI & ĐÀO TẠO -->
-      <a class="staff-only" href="/admin/events-announcements" data-admin-nav="events-announcements"><span class="sidebar-icon"
-          aria-hidden="true">📢</span><span class="sidebar-label">Sự kiện & Thông báo</span></a>
-      <a class="staff-only" href="/admin/feedback" data-admin-nav="feedback"><span class="sidebar-icon"
-          aria-hidden="true">💬</span><span class="sidebar-label">Ý kiến & Phản hồi</span></a>
-      <a class="staff-only" href="/admin/tutorials" data-admin-nav="tutorials"><span class="sidebar-icon"
-          aria-hidden="true">🎓</span><span class="sidebar-label">Đào tạo & Hướng dẫn</span></a>
-      <!-- 2 TRANG MỚI: ĐỐI TÁC TÀI TRỢ & GIÁM SÁT IOT -->
-      <a class="staff-only" href="/admin/partners" data-admin-nav="partners"><span class="sidebar-icon"
-          aria-hidden="true">🤝</span><span class="sidebar-label">Đối tác & Tài trợ</span></a>
-      <a class="staff-only" href="/admin/iot-monitoring" data-admin-nav="iot-monitoring"><span class="sidebar-icon"
-          aria-hidden="true">📡</span><span class="sidebar-label">Giám sát Thiết bị IoT</span></a>
-      <!-- NHÓM TÀI NGUYÊN HỌC THUẬT & ĐA PHƯƠNG TIỆN -->
-      <a class="staff-only" href="/admin/theses" data-admin-nav="theses"><span class="sidebar-icon"
-          aria-hidden="true">📑</span><span class="sidebar-label">Luận văn & Khóa luận</span></a>
-      <a class="staff-only" href="/admin/multimedia" data-admin-nav="multimedia"><span class="sidebar-icon"
-          aria-hidden="true">🎞️</span><span class="sidebar-label">Tài liệu Đa phương tiện</span></a>
-      <!-- NHÓM HỢP TÁC HỌC THUẬT & SỰ KIỆN CHUYÊN ĐỀ -->
-      <a class="staff-only" href="/admin/seminars" data-admin-nav="seminars"><span class="sidebar-icon"
-          aria-hidden="true">🎤</span><span class="sidebar-label">Hội thảo & Diễn đàn</span></a>
-      <a class="staff-only" href="/admin/exchange-grants" data-admin-nav="exchange-grants"><span class="sidebar-icon"
-          aria-hidden="true">🌐</span><span class="sidebar-label">Sách Trao đổi & Tài trợ</span></a>
-      <!-- NHÓM VẬN HÀNH NỘI BỘ & QUẢN TRỊ NHÂN SỰ -->
-      <a class="staff-only" href="/admin/shift-schedules" data-admin-nav="shift-schedules"><span class="sidebar-icon"
-          aria-hidden="true">🕒</span><span class="sidebar-label">Lịch Ca trực Thủ thư</span></a>
-      <a class="staff-only" href="/admin/staff-kpi" data-admin-nav="staff-kpi"><span class="sidebar-icon"
-          aria-hidden="true">🏆</span><span class="sidebar-label">KPI & Hiệu suất Thủ thư</span></a>
-      <a class="admin-only" href="/admin/audit-logs" data-admin-nav="audit-logs" hidden><span class="sidebar-icon"
-          aria-hidden="true">📜</span><span class="sidebar-label">Nhật ký hệ thống</span></a>
-      <a class="admin-only" href="/admin/staffs" data-admin-nav="staffs" hidden><span class="sidebar-icon"
-          aria-hidden="true">♟</span><span class="sidebar-label">Quản lý thủ thư</span></a>
-
-      <a class="admin-only" href="/admin/notification-templates" data-admin-nav="notification-templates" hidden><span
-          class="sidebar-icon" aria-hidden="true">✉️</span><span class="sidebar-label">Mẫu thông báo</span></a>
-      <a class="admin-only" href="/admin/settings" data-admin-nav="settings" hidden><span class="sidebar-icon"
-          aria-hidden="true">⚙</span><span class="sidebar-label">Cấu hình hệ thống</span></a>
+      <!-- 1. BẢNG ĐIỀU KHIỂN TỔNG QUAN -->
+      <a class="staff-only" href="/admin/dashboard" data-admin-group="dashboard" data-admin-nav="dashboard"><span class="sidebar-icon" aria-hidden="true">📊</span><span class="sidebar-label">Dashboard</span></a>
+      <!-- 2. KHO SÁCH & DANH MỤC (5 TAB: ĐẦU SÁCH | THỂ LOẠI | NXB | SƠ ĐỒ KỆ | KIỂM KÊ KHO) -->
+      <a class="staff-only" href="/admin/books" data-admin-group="books" data-admin-nav="books"><span class="sidebar-icon" aria-hidden="true">📚</span><span class="sidebar-label">Kho sách & Danh mục</span></a>
+      <!-- 3. LƯU THÔNG & VI PHẠM (3 TAB: MƯỢN/TRẢ | ĐẶT TRƯỚC | VI PHẠM & TIỀN PHẠT) -->
+      <a class="counter-only" href="/admin/borrow-return" data-admin-group="circulation" data-admin-nav="loans"><span class="sidebar-icon" aria-hidden="true">↔️</span><span class="sidebar-label">Lưu thông & Vi phạm</span></a>
+      <!-- 4. QUẢN LÝ ĐỘC GIẢ (HỒ SƠ, THẺ THƯ VIỆN, HẠNG HỘI VIÊN) -->
+      <a class="counter-only" href="/admin/users" data-admin-group="readers" data-admin-nav="readers"><span class="sidebar-icon" aria-hidden="true">👥</span><span class="sidebar-label">Quản lý độc giả</span></a>
+      <!-- 5. BỔ SUNG & TÀI TRỢ (4 TAB: ĐỀ XUẤT MUA | NGÂN SÁCH | SÁCH TÀI TRỢ | ĐỐI TÁC) -->
+      <a class="staff-only" href="/admin/acquisitions" data-admin-group="acquisitions" data-admin-nav="acquisitions"><span class="sidebar-icon" aria-hidden="true">💡</span><span class="sidebar-label">Bổ sung & Tài trợ</span></a>
+      <!-- 6. THƯ VIỆN SỐ (3 TAB: E-LIBRARY PDF | LUẬN VĂN | ĐA PHƯƠNG TIỆN) -->
+      <a class="staff-only" href="/admin/elibrary" data-admin-group="elibrary" data-admin-nav="elibrary"><span class="sidebar-icon" aria-hidden="true">💾</span><span class="sidebar-label">Thư viện Số</span></a>
+      <!-- 7. CƠ SỞ VẬT CHẤT & IOT (4 TAB: PHÒNG HỌC | THIẾT BỊ | TỦ KHÓA | GIÁM SÁT IOT) -->
+      <a class="staff-only" href="/admin/study-rooms" data-admin-group="facilities" data-admin-nav="study-rooms"><span class="sidebar-icon" aria-hidden="true">🏢</span><span class="sidebar-label">Cơ sở vật chất & IoT</span></a>
+      <!-- 8. HOẠT ĐỘNG & TƯƠNG TÁC (4 TAB: SỰ KIỆN | HỘI THẢO | ĐÀO TẠO | PHẢN HỒI) -->
+      <a class="staff-only" href="/admin/events-announcements" data-admin-group="activities" data-admin-nav="events-announcements"><span class="sidebar-icon" aria-hidden="true">📢</span><span class="sidebar-label">Hoạt động & Tương tác</span></a>
+      <!-- 9. NHÂN SỰ & THỐNG KÊ (4 TAB: BÁO CÁO | QUẢN LÝ THỦ THƯ | CA TRỰC | KPI THỦ THƯ) -->
+      <a class="staff-only" href="/admin/reports" data-admin-group="hr-stats" data-admin-nav="reports"><span class="sidebar-icon" aria-hidden="true">📈</span><span class="sidebar-label">Nhân sự & Thống kê</span></a>
+      <!-- 10. CẤU HÌNH & HỆ THỐNG (3 TAB: CẤU HÌNH CHUNG | MẪU THÔNG BÁO | NHẬT KÝ HỆ THỐNG) -->
+      <a class="admin-only" href="/admin/settings" data-admin-group="system" data-admin-nav="settings" hidden><span class="sidebar-icon" aria-hidden="true">⚙️</span><span class="sidebar-label">Cấu hình & Hệ thống</span></a>
     </nav>
     <div class="sidebar-footer">Hệ Thống Quản Lý Thư Viện</div>
   </aside>
@@ -230,6 +179,18 @@
       </form>
     </section>
 
+    <!-- THANH ĐIỀU HƯỚNG TAB PHÂN HỆ QUẢN TRỊ ADMIN (10 NHÓM NGHIỆP VỤ ADMINLTE) -->
+    <div id="adminGroupTabs" class="admin-tab-bar staff-only" hidden>
+      <div class="admin-tab-bar-inner">
+        <div class="admin-group-title">
+          <span id="adminGroupIcon" class="admin-group-icon">📚</span>
+          <span id="adminGroupName" class="admin-group-name">Kho sách & Danh mục</span>
+        </div>
+        <nav id="adminGroupNavTabs" class="admin-tabs-list" aria-label="Phân hệ chức năng con">
+          <!-- Các tab chức năng con được render tự động theo nhóm -->
+        </nav>
+      </div>
+    </div>
 
     <section id="staffs" class="content-section admin-only" data-admin-route="staffs" hidden>
       <div class="section-heading">
@@ -1199,17 +1160,10 @@
           <button id="exportBooksButton" class="button button-light inventory-only" type="button">Xuất CSV sách</button>
           <button id="exportBooksExcelBtn" class="button button-light inventory-only" type="button">📊 Xuất Excel
             sách</button>
+          <button id="openBookImportDialog" class="button button-light inventory-only" type="button">📥 Nhập Excel / CSV</button>
           <button id="newBookButton" class="button button-primary inventory-only" type="button" hidden>+ Thêm
             sách</button>
         </div>
-      </div>
-      <div class="book-import-panel inventory-only">
-        <form id="bookImportForm" class="inline-form">
-          <label class="book-import-file">Nhập hàng loạt CSV / XLSX<input id="bookImportFile" type="file"
-              accept=".csv,.xlsx" required></label>
-          <button class="button button-primary" type="submit">Nhập danh sách sách</button>
-          <button id="downloadBookTemplate" class="button button-light" type="button">Tải mẫu CSV</button>
-          <div id="bookImportResults" class="import-results" role="status" hidden></div>
       </div>
       <div class="filter-panel">
         <label class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search"
@@ -1246,18 +1200,19 @@
     </section>
 
 
-    <section id="bookFormPanel" class="content-section form-panel admin-only" data-admin-route="books" hidden>
+    <section id="bookFormPanel" class="content-section form-panel inventory-only" data-admin-route="books" hidden>
       <div class="section-heading">
         <div><span class="eyebrow">DANH MỤC</span>
           <h2 id="bookFormTitle">Thêm sách mới</h2>
+          <p id="bookFormSubtitle" style="font-size:13px;color:#64748b;margin:2px 0 0;">Điền thông tin chi tiết để thêm hoặc cập nhật đầu sách vào hệ thống.</p>
         </div><button id="cancelBookEdit" class="button button-light" type="button">Đóng</button>
       </div>
       <form id="bookForm" class="form-grid">
         <input id="bookId" type="hidden">
-        <label>Tên sách<input id="bookTitle" minlength="2" maxlength="255" required></label><label>Tác giả<input
-            id="bookAuthor" minlength="2" maxlength="255" required></label>
-        <label>ISBN<input id="bookIsbn" required></label><label>Năm xuất bản<input id="bookPublicationYear"
-            type="number" min="1000" max="9999"></label>
+        <label>Tên sách<input id="bookTitle" minlength="2" maxlength="255" required placeholder="Nhập tên đầu sách"></label>
+        <label>Tác giả<input id="bookAuthor" minlength="2" maxlength="255" required placeholder="Nhập tên tác giả"></label>
+        <label>ISBN<input id="bookIsbn" required placeholder="Ví dụ: 978-604-0-12345-6"></label>
+        <label>Năm xuất bản<input id="bookPublicationYear" type="number" min="1000" max="9999" placeholder="Ví dụ: 2024"></label>
         <label>Số bản sao<input id="bookCopies" type="number" min="1" value="1" required></label>
         <label>Thể loại<select id="bookCategory">
             <option value="">Chưa phân loại</option>
@@ -1265,16 +1220,16 @@
         <label>Nhà xuất bản<select id="publisherId">
             <option value="">Chưa có nhà xuất bản</option>
           </select></label>
-        <label>Kệ<input id="bookShelf" placeholder="Ví dụ: A2"></label><label>Tầng<input id="bookFloor"
-            placeholder="Ví dụ: 3"></label>
+        <label>Kệ<input id="bookShelf" placeholder="Ví dụ: A2"></label>
+        <label>Tầng<input id="bookFloor" placeholder="Ví dụ: 3"></label>
         <label class="wide">Dãy<input id="bookAisle" placeholder="Ví dụ: Dãy B"></label>
-        <label class="wide">Mô tả<textarea id="bookDescription" rows="4" maxlength="5000"
-            placeholder="Giới thiệu nội dung sách"></textarea></label>
-        <label class="wide">URL ảnh bìa<input id="bookCoverImageUrl" type="url" maxlength="2048"
-            placeholder="https://..."></label>
+        <label class="wide">Mô tả<textarea id="bookDescription" rows="3" maxlength="5000"
+            placeholder="Giới thiệu nội dung sách (không bắt buộc)"></textarea></label>
+        <label class="wide">URL ảnh bìa<input id="bookCoverImageUrl" type="text" maxlength="2048"
+            placeholder="https://... hoặc /uploads/... hoặc để trống"></label>
         <label class="wide">Tài liệu số (PDF / E-book)
           <div style="display:flex;gap:8px;align-items:center;">
-            <input id="bookPdfUrl" type="text" maxlength="2048" placeholder="URL file PDF hoặc tải file lên"
+            <input id="bookPdfUrl" type="text" maxlength="2048" placeholder="URL file PDF, đường dẫn /uploads/... hoặc tải file lên"
               style="flex:1;">
             <label class="button button-light" style="cursor:pointer;margin:0;white-space:nowrap;">
               📁 Tải file PDF
@@ -1282,7 +1237,10 @@
             </label>
           </div>
         </label>
-        <div class="wide"><button class="button button-primary" type="submit">Lưu thông tin sách</button></div>
+        <div class="wide" style="display:flex;gap:12px;margin-top:8px;">
+          <button class="button button-primary" type="submit">💾 Lưu thông tin sách</button>
+          <button id="cancelBookEditSecondary" class="button button-light" type="button">Hủy bỏ</button>
+        </div>
       </form>
     </section>
 
@@ -2082,6 +2040,26 @@
             data-close-dialog="cardRenewDialog">Hủy</button><button class="button button-primary" type="submit">Lưu hạn
             thẻ</button></div>
       </form>
+    </dialog>
+
+    <dialog id="bookImportDialog" class="dialog" style="max-width:min(620px, 95vw);width:100%;">
+      <div class="dialog-card">
+        <button id="closeBookImportDialog" class="dialog-close" type="button" aria-label="Đóng">×</button>
+        <span class="eyebrow">NHẬP LIỆU HÀNG LOẠT</span>
+        <h2>Nhập sách từ file CSV / Excel</h2>
+        <p>Chọn tệp <strong>.csv</strong> hoặc <strong>.xlsx</strong> theo đúng cấu trúc để tự động tạo đầu sách và sinh mã barcode cho các bản sao vào kho.</p>
+        <form id="bookImportForm" style="display:flex;flex-direction:column;gap:14px;margin-top:10px;">
+          <label class="book-import-file" style="display:block;">
+            <span style="font-weight:600;display:block;margin-bottom:6px;font-size:13px;">Chọn tệp dữ liệu:</span>
+            <input id="bookImportFile" type="file" accept=".csv,.xlsx" required style="width:100%;padding:10px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;">
+          </label>
+          <div id="bookImportResults" class="import-results" role="status" hidden></div>
+          <div class="button-row" style="margin-top:8px;">
+            <button id="downloadBookTemplate" class="button button-light" type="button">📄 Tải mẫu CSV</button>
+            <button class="button button-primary" type="submit">Tải lên & Nhập danh sách</button>
+          </div>
+        </form>
+      </div>
     </dialog>
 
     <dialog id="batchLabelsDialog" class="dialog copies-dialog">
